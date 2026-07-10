@@ -1,0 +1,68 @@
+// Personal Movie Archive - Prisma Schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Movie {
+  id            String   @id @default(cuid())
+  tmdbId        Int?
+  imdbId        String?
+  title         String
+  originalTitle String?
+  poster        String?
+  backdrop      String?
+  releaseDate   String?
+  year          Int?
+  genres        String   @default("[]") // JSON array of genre name strings
+  runtime       Int?
+  country       String?
+  language      String?
+  director      String?
+  writers       String   @default("[]") // JSON array of name strings
+  cast          String   @default("[]") // JSON array of name strings
+  overview      String?
+  imdbRating    Float?
+  tmdbRating    Float?
+  trailer       String?
+  gallery       String   @default("[]") // JSON array of image URL strings
+  status        String   @default("watched") // watched | want | watching | dropped
+  favorite      Boolean  @default(false)
+  rewatchCount  Int      @default(0)
+  personalRating Float?
+  watchDate     String?
+  notes         String?
+  lifetimeRank  Int?
+  tags          String   @default("[]") // JSON array of tag strings
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([status])
+  @@index([year])
+  @@index([director])
+  @@index([country])
+  @@index([language])
+}
+
+model Collection {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  movieIds    String   @default("[]") // JSON array of movie ids (ordered)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model PersonalList {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  items       String   @default("[]") // JSON array of { movieId, rank, note? }
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}

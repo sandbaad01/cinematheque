@@ -1,0 +1,478 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import {
+  ArrowLeft, Star, Heart, Calendar, Clock, Globe, MapPin, User, PenLine,
+  Play, Trophy, Repeat, ExternalLink, Pencil, Trash2, Plus, Film, Sparkles, Tag,
+} from "lucide-react";
+import { toast } from "sonner";
+import { useFetch } from "@/lib/useFetch";
+import { useI18n } from "@/lib/i18n/context";
+import { useNav } from "@/lib/store";
+import type { Movie, Recommendation, MovieStatus } from "@/lib/movie/types";
+import { backdropUrl, posterUrl, youtubeEmbed } from "@/lib/movie/types";
+import { PosterImage } from "@/components/movie/PosterImage";
+import { RatingStars } from "@/components/movie/RatingStars";
+import { StatusBadge } from "@/components/movie/StatusBadge";
+import { RankBadge } from "@/components/movie/RankBadge";
+import { GenrePill } from "@/components/movie/GenrePill";
+import { SectionHeader } from "@/components/movie/SectionHeader";
+import { MovieRow } from "@/components/movie/MovieRow";
+import { AddMovieDialog } from "@/components/movie/AddMovieDialog";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { cn } from "@/lib/utils";
+
+export function MovieDetailView({ movieId }: { movieId: string }) {
+  const { t } = useI18n();
+  const { back, goGenre } = useNav();
+  const { data: movie, loading, refetch } = useFetch<Movie>(`/api/movies/${movieId}`);
+  const { data: recsData } = useFetch<{ items: Recommendation[] }>(
+    `/api/recommendations?movieId=${movieId}`
+  );
+
+  const [editOpen, setEditOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [savingField, setSavingField] = useState(false);
+
+  if (loading && !movie) {
+    return (
+      <div className="space-y-4 p-4 md:p-6">
+        <Skeleton className="h-8 w-24" />
+        <Skeleton className="h-72 w-full" />
+        <Skeleton className="h-64 w-full" />
+      </div>
+    );
+  }
+
+  if (!movie) {
+    return <div className="p-6 text-muted-foreground">Movie not found.</div>;
+  }
+
+  const recs = recsData?.items ?? [];
+  const trailerEmbed = youtubeEmbed(movie.trailer);
+
+  // Inline update helper
+  const update = async (patch: Partial<Movie>) => {
+    setSavingField(true);
+    try {
+      const res = await fetch(`/api/movies/${movie.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(patch),
+      });
+      if (!res.ok) throw new Error("update failed");
+      refetch();
+    } catch {
+      toast.error("Update failed");
+    } finally {
+      setSavingField(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    try {
+      const res = await fetch(`/api/movies/${movie.id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error();
+      toast.success(t("action_delete"));
+      back();
+    } catch {
+      toast.error("Delete failed");
+    }
+  };
+
+  const handleRewatch = async () => {
+    await update({ rewatchCount: movie.rewatchCount + 1 });
+    toast.success(`${t("movie_rewatch")}: ${movie.rewatchCount + 1}`);
+  };
+
+  return (
+    <div className="pb-10">
+      {/* Backdrop hero */}
+      <div className="relative h-56 w-full overflow-hidden md:h-80 lg:h-96">
+        {movie.backdrop ? (
+          <img
+            src={backdropUrl(movie.backdrop, "w1280") ?? undefined}
+            alt=""
+            className="size-full object-cover"
+          />
+        ) : (
+          <div className="size-full bg-gradient-to-br from-primary/30 to-secondary" />
+        )}
+        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/70 to-transparent" />
+        <div className="absolute left-4 top-4 md:left-6 md:top-6">
+          <Button variant="secondary" size="sm" onClick={back} className="gap-1.5">
+            <ArrowLeft className="size-4" />
+            {t("action_back")}
+          </Button>
+        </div>
+      </div>
+
+      <div className="mx-auto max-w-6xl px-4 md:px-6">
+        {/* Header: poster + title + meta */}
+        <div className="-mt-24 flex flex-col gap-5 md:-mt-32 md:flex-row md:gap-6">
+          <div className="w-32 shrink-0 md:w-48">
+            <div className="overflow-hidden rounded-xl shadow-2xl ring-1 ring-border">
+              <PosterImage src={movie.poster} alt={movie.title} size="w342" className="aspect-[2/3]" />
+            </div>
+          </div>
+
+          <div className="flex-1 space-y-3 pt-2 md:pt-32">
+            <div className="flex flex-wrap items-start gap-3">
+              <div className="flex-1">
+                <h1 className="text-2xl font-bold tracking-tight md:text-4xl">{movie.title}</h1>
+                {movie.originalTitle && movie.originalTitle !== movie.title && (
+                  <p className="text-sm text-muted-foreground md:text-base">{movie.originalTitle}</p>
+                )}
+              </div>
+              <div className="flex gap-2">
+                <Button variant="outline" size="icon" onClick={() => setEditOpen(true)} title={t("action_edit")}>
+                  <Pencil className="size-4" />
+                </Button>
+                <Button variant="outline" size="icon" onClick={() => setDeleteOpen(true)} title={t("action_delete")}>
+                  <Trash2 className="size-4 text-destructive" />
+                </Button>
+              </div>
+            </div>
+
+            {/* Quick meta row */}
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-sm text-muted-foreground">
+              {movie.year && <span className="flex items-center gap-1"><Calendar className="size-3.5" />{movie.year}</span>}
+              {movie.runtime && <span className="flex items-center gap-1"><Clock className="size-3.5" />{movie.runtime} {t("movie_min")}</span>}
+              {movie.country && <span className="flex items-center gap-1"><MapPin className="size-3.5" />{movie.country}</span>}
+              {movie.language && <span className="flex items-center gap-1"><Globe className="size-3.5" />{movie.language}</span>}
+              <StatusBadge status={movie.status} />
+            </div>
+
+            {/* Genres */}
+            <div className="flex flex-wrap gap-2">
+              {movie.genres.map((g) => (
+                <GenrePill key={g} name={g} onClick={() => goGenre(g)} />
+              ))}
+            </div>
+
+            {/* Ratings */}
+            <div className="flex flex-wrap items-center gap-3">
+              {movie.imdbRating != null && (
+                <Badge variant="outline" className="gap-1.5 bg-yellow-500/10">
+                  <Star className="size-3.5 fill-yellow-500 text-yellow-500" />
+                  <span className="font-semibold">{movie.imdbRating.toFixed(1)}</span>
+                  <span className="text-muted-foreground">IMDb</span>
+                </Badge>
+              )}
+              {movie.tmdbRating != null && (
+                <Badge variant="outline" className="gap-1.5">
+                  <Star className="size-3.5 fill-primary text-primary" />
+                  <span className="font-semibold">{movie.tmdbRating.toFixed(1)}</span>
+                  <span className="text-muted-foreground">TMDb</span>
+                </Badge>
+              )}
+              {movie.lifetimeRank != null && <RankBadge rank={movie.lifetimeRank} />}
+            </div>
+          </div>
+        </div>
+
+        {/* Body grid */}
+        <div className="mt-8 grid gap-6 lg:grid-cols-3">
+          {/* Left: story + details */}
+          <div className="space-y-6 lg:col-span-2">
+            {movie.overview && (
+              <section>
+                <SectionHeader title={t("movie_story")} icon={<PenLine className="size-4" />} />
+                <p className="mt-2 text-sm leading-relaxed text-muted-foreground md:text-base">
+                  {movie.overview}
+                </p>
+              </section>
+            )}
+
+            {/* Crew details */}
+            <Card className="p-5">
+              <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <Detail icon={User} label={t("movie_director")} value={movie.director} />
+                <Detail icon={PenLine} label={t("movie_writer")} value={movie.writers.join(", ")} />
+                <Detail icon={Calendar} label={t("movie_releaseDate")} value={movie.releaseDate} />
+                <Detail icon={Clock} label={t("movie_runtime")} value={movie.runtime ? `${movie.runtime} ${t("movie_min")}` : null} />
+                <Detail icon={MapPin} label={t("movie_country")} value={movie.country} />
+                <Detail icon={Globe} label={t("movie_language")} value={movie.language} />
+                <Detail icon={Film} label={t("movie_cast")} value={movie.cast.join(", ")} className="sm:col-span-2" />
+              </dl>
+            </Card>
+
+            {/* Trailer */}
+            {trailerEmbed && (
+              <section>
+                <SectionHeader title={t("movie_trailer")} icon={<Play className="size-4" />} />
+                <div className="mt-3 aspect-video overflow-hidden rounded-xl bg-black">
+                  <iframe
+                    src={trailerEmbed}
+                    title={movie.title}
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                    className="size-full"
+                  />
+                </div>
+              </section>
+            )}
+
+            {/* Gallery */}
+            {movie.gallery.length > 0 && (
+              <section>
+                <SectionHeader title={t("movie_gallery")} icon={<Film className="size-4" />} />
+                <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
+                  {movie.gallery.map((img, i) => (
+                    <div key={i} className="overflow-hidden rounded-lg">
+                      <img src={backdropUrl(img, "w780") ?? img} alt="" className="aspect-video w-full object-cover" loading="lazy" />
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {/* External links */}
+            <section className="flex flex-wrap gap-2">
+              {movie.imdbId && (
+                <a href={`https://www.imdb.com/title/${movie.imdbId}/`} target="_blank" rel="noopener noreferrer">
+                  <Button variant="outline" size="sm">
+                    <ExternalLink className="size-3.5" /> IMDb
+                  </Button>
+                </a>
+              )}
+              {movie.tmdbId && (
+                <a href={`https://www.themoviedb.org/movie/${movie.tmdbId}`} target="_blank" rel="noopener noreferrer">
+                  <Button variant="outline" size="sm">
+                    <ExternalLink className="size-3.5" /> TMDb
+                  </Button>
+                </a>
+              )}
+            </section>
+          </div>
+
+          {/* Right: personal info */}
+          <div className="space-y-4">
+            <Card className="space-y-5 p-5">
+              <SectionHeader title={t("movie_myInfo")} icon={<Heart className="size-4" />} />
+
+              {/* Favorite + status */}
+              <div className="flex items-center justify-between">
+                <Button
+                  variant={movie.favorite ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => update({ favorite: !movie.favorite })}
+                  disabled={savingField}
+                >
+                  <Heart className={cn("size-4", movie.favorite && "fill-current")} />
+                  {movie.favorite ? t("action_unmarkFavorite") : t("action_markFavorite")}
+                </Button>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-muted-foreground">{t("movie_status")}</label>
+                <Select value={movie.status} onValueChange={(v) => update({ status: v as MovieStatus })}>
+                  <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="watched">{t("status_watched")}</SelectItem>
+                    <SelectItem value="want">{t("status_want")}</SelectItem>
+                    <SelectItem value="watching">{t("status_watching")}</SelectItem>
+                    <SelectItem value="dropped">{t("status_dropped")}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Personal rating */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-muted-foreground">{t("movie_myRating")}</label>
+                <RatingStars value={movie.personalRating} onChange={(v) => update({ personalRating: v })} size="md" />
+              </div>
+
+              {/* Lifetime rank */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-muted-foreground">{t("movie_lifetimeRank")}</label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="number"
+                    min={1}
+                    value={movie.lifetimeRank ?? ""}
+                    placeholder={t("movie_noRank")}
+                    onChange={(e) => {
+                      const v = e.target.value ? parseInt(e.target.value, 10) : null;
+                      update({ lifetimeRank: v && v > 0 ? v : null });
+                    }}
+                    className="w-24"
+                  />
+                  {movie.lifetimeRank != null && (
+                    <Button variant="ghost" size="sm" onClick={() => update({ lifetimeRank: null })}>
+                      {t("action_clearRank")}
+                    </Button>
+                  )}
+                </div>
+              </div>
+
+              {/* Watch date */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-muted-foreground">{t("movie_watchDate")}</label>
+                <Input
+                  type="date"
+                  value={movie.watchDate ?? ""}
+                  onChange={(e) => update({ watchDate: e.target.value || null })}
+                />
+              </div>
+
+              {/* Rewatch */}
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground">{t("movie_rewatch")}</p>
+                  <p className="text-lg font-bold">{movie.rewatchCount}</p>
+                </div>
+                <Button variant="outline" size="sm" onClick={handleRewatch} disabled={savingField}>
+                  <Repeat className="size-4" />
+                  {t("action_addRewatch")}
+                </Button>
+              </div>
+
+              {/* Tags */}
+              {movie.tags.length > 0 && (
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-muted-foreground">{t("movie_tags")}</label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {movie.tags.map((tag) => (
+                      <Badge key={tag} variant="secondary" className="gap-1">
+                        <Tag className="size-3" />
+                        {tag}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </Card>
+
+            {/* Notes */}
+            <Card className="space-y-2 p-5">
+              <SectionHeader title={t("movie_notes")} icon={<PenLine className="size-4" />} />
+              <NotesEditor
+                value={movie.notes}
+                onSave={(v) => update({ notes: v })}
+              />
+            </Card>
+          </div>
+        </div>
+
+        {/* Recommendations */}
+        {recs.length > 0 && (
+          <div className="mt-10">
+            <MovieRow
+              title={t("movie_recommendations")}
+              icon={<Sparkles className="text-primary" />}
+              movies={recs.slice(0, 8).map((r) => r.movie)}
+            />
+            {/* Why recommended - show for top 3 */}
+            <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              {recs.slice(0, 3).map((r) => (
+                <button
+                  key={r.movie.id}
+                  onClick={() => useNav.getState().goMovie(r.movie.id)}
+                  className="flex items-start gap-2 rounded-lg border bg-card/50 p-3 text-left text-xs transition-colors hover:bg-accent"
+                >
+                  <Sparkles className="mt-0.5 size-3.5 shrink-0 text-primary" />
+                  <span className="text-muted-foreground">
+                    <span className="font-medium text-foreground">{r.movie.title}</span>
+                    {" — "}{r.reason}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      <AddMovieDialog open={editOpen} onOpenChange={setEditOpen} editMovie={movie} onSaved={refetch} />
+
+      <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("action_delete")}</AlertDialogTitle>
+            <AlertDialogDescription>{t("add_deleteConfirm")}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t("action_cancel")}</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              {t("action_delete")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+}
+
+function Detail({
+  icon: Icon, label, value, className,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  value: string | null | undefined;
+  className?: string;
+}) {
+  return (
+    <div className={className}>
+      <dt className="flex items-center gap-1.5 text-xs text-muted-foreground">
+        <Icon className="size-3.5" />
+        {label}
+      </dt>
+      <dd className="mt-0.5 text-sm font-medium">{value || "—"}</dd>
+    </div>
+  );
+}
+
+function NotesEditor({ value, onSave }: { value: string | null; onSave: (v: string | null) => void }) {
+  const { t } = useI18n();
+  const [text, setText] = useState(value ?? "");
+  const [editing, setEditing] = useState(false);
+  const [lastValue, setLastValue] = useState(value ?? "");
+
+  // Sync local text when the prop changes (React 19 "adjust during render" pattern)
+  if (value !== lastValue) {
+    setLastValue(value ?? "");
+    setText(value ?? "");
+  }
+
+  if (!editing) {
+    return (
+      <button
+        onClick={() => setEditing(true)}
+        className="block min-h-[3rem] w-full rounded-md p-2 text-left text-sm text-muted-foreground hover:bg-accent"
+      >
+        {text || <span className="flex items-center gap-1.5"><Plus className="size-3.5" />{t("movie_notes")}</span>}
+      </button>
+    );
+  }
+
+  return (
+    <div className="space-y-2">
+      <Textarea
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        rows={4}
+        autoFocus
+      />
+      <div className="flex gap-2">
+        <Button size="sm" onClick={() => { onSave(text.trim() || null); setEditing(false); }}>
+          {t("action_save")}
+        </Button>
+        <Button size="sm" variant="ghost" onClick={() => { setText(value ?? ""); setEditing(false); }}>
+          {t("action_cancel")}
+        </Button>
+      </div>
+    </div>
+  );
+}
