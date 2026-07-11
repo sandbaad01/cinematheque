@@ -147,3 +147,35 @@ Verification (agent-browser):
 Stage Summary:
 - New brand palette applied across the entire app (buttons, cards, sidebar, badges, charts, gradients)
 - Both light and dark themes verified working via theme toggle
+
+---
+Task ID: 8
+Agent: Main (Z.ai Code)
+Task: Implement smart auto-populating collections (user-provided logic)
+
+Work Log:
+- Rewrote POST /api/collections to use smart auto-assignment:
+  * When no explicit movieIds provided, the collection NAME is searched across title, originalTitle, director, cast, overview, genres, tags (added genres to user's field list since it's stored as JSON string and contains() matches genre members)
+  * Matched movie ids are deduplicated and injected into the new collection
+  * Response includes matchedCount + autoMatched so the UI can give feedback
+  * Explicit movieIds array still supported to create manual collections
+- Updated CollectionsView:
+  * Create dialog now has a Wand2 icon + a highlighted "Smart collection" hint box explaining the auto-matching behavior
+  * After creation, toast shows "Created 'Hitchcock' — 3 matching movies auto-added" when matches found
+  * Collection cards show a "Smart" badge (Sparkles icon) when they contain movies
+  * Added placeholder text with examples (Hitchcock, Noir, Kurosawa, Christmas...)
+- Added 6 new i18n keys to EN/FA/FR: collection_name_placeholder, collection_smart_hint, collection_smart_badge, collection_smart_created, collection_smart_matched
+- Fixed a French guillemet string syntax error in translations
+
+Verification (agent-browser):
+- Created "Hitchcock" collection → auto-matched 3 movies (Vertigo, Psycho, Rear Window) via director field ✓
+- Opened collection → confirmed all 3 Hitchcock films present ✓
+- Created "Horror" collection → auto-matched 2 movies (The Shining, Psycho) via genres field ✓
+- Smart hint text visible in dialog, Smart badges show on cards ✓
+- POST returns 201, no console errors, lint clean
+- Cleaned up both test collections via DELETE
+
+Stage Summary:
+- Collections are now "smart" by default: naming a collection after a director, genre, actor, theme, or tag auto-populates it with every matching movie in the archive
+- Still fully editable afterwards (add/remove movies in the collection detail view)
+- Works across all 3 languages with appropriate feedback toasts

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { FolderOpen, Plus, Trash2, Pencil } from "lucide-react";
+import { FolderOpen, Plus, Trash2, Sparkles, Wand2 } from "lucide-react";
 import { toast } from "sonner";
 import { useFetch } from "@/lib/useFetch";
 import { useI18n } from "@/lib/i18n/context";
@@ -10,6 +10,7 @@ import type { Collection } from "@/lib/movie/types";
 import { EmptyState } from "@/components/movie/EmptyState";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -36,11 +37,21 @@ export function CollectionsView() {
         body: JSON.stringify({ name: name.trim(), description: desc.trim() || null }),
       });
       if (!res.ok) throw new Error();
+      const data = await res.json();
+      const matched: number | undefined = data?.matchedCount;
+      const createdName: string = data?.name ?? name.trim();
       setName("");
       setDesc("");
       setCreateOpen(false);
       refetch();
-      toast.success(t("action_createCollection"));
+      // Smart feedback: tell the user how many movies were auto-added.
+      if (typeof matched === "number" && matched > 0) {
+        toast.success(
+          `${t("collection_smart_created", { name: createdName })} — ${t("collection_smart_matched", { count: matched })}`
+        );
+      } else {
+        toast.success(t("action_createCollection"));
+      }
     } catch {
       toast.error("Failed");
     } finally {
@@ -91,7 +102,15 @@ export function CollectionsView() {
                 <div className="mb-3 flex size-12 items-center justify-center rounded-lg bg-primary/15 text-primary">
                   <FolderOpen className="size-6" />
                 </div>
-                <h3 className="font-semibold">{c.name}</h3>
+                <div className="flex items-center gap-2">
+                  <h3 className="font-semibold">{c.name}</h3>
+                  {c.movieIds.length > 0 && (
+                    <Badge variant="secondary" className="gap-1 bg-primary/15 text-primary">
+                      <Sparkles className="size-3" />
+                      {t("collection_smart_badge")}
+                    </Badge>
+                  )}
+                </div>
                 {c.description && <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{c.description}</p>}
                 <p className="mt-2 text-xs text-muted-foreground">{t("collection_movies", { count: c.movieIds.length })}</p>
               </button>
@@ -109,12 +128,19 @@ export function CollectionsView() {
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{t("action_createCollection")}</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <Wand2 className="size-5 text-primary" />
+              {t("action_createCollection")}
+            </DialogTitle>
             <DialogDescription>{t("collections_subtitle")}</DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
-            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder={t("collections_title")} autoFocus />
+            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder={t("collection_name_placeholder")} autoFocus />
             <Textarea value={desc} onChange={(e) => setDesc(e.target.value)} placeholder={t("movie_notes")} rows={3} />
+            <div className="flex items-start gap-2 rounded-lg border border-primary/30 bg-primary/5 p-3 text-xs text-muted-foreground">
+              <Sparkles className="mt-0.5 size-4 shrink-0 text-primary" />
+              <span>{t("collection_smart_hint")}</span>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setCreateOpen(false)}>{t("action_cancel")}</Button>

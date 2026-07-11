@@ -184,6 +184,11 @@ const en: Dict = {
   collections_empty: "No collections yet.",
   collection_movies: "{count} movies",
   collection_empty: "This collection is empty.",
+  collection_name_placeholder: "e.g. Hitchcock, Noir, Kurosawa, Christmas...",
+  collection_smart_hint: "Smart collection: any movie whose title, director, cast, genres, overview or tags match this name is automatically added. You can refine it afterwards.",
+  collection_smart_badge: "Smart",
+  collection_smart_created: "Created \u201c{name}\u201d",
+  collection_smart_matched: "{count} matching movies auto-added",
 
   // Lists
   lists_title: "Personal Lists",
@@ -401,6 +406,11 @@ const fa: Dict = {
   collections_empty: "هنوز مجموعه‌ای وجود ندارد.",
   collection_movies: "{count} فیلم",
   collection_empty: "این مجموعه خالی است.",
+  collection_name_placeholder: "مثلاً هیتچکاک، نوآر، کوروساوا، کریسمس...",
+  collection_smart_hint: "مجموعه هوشمند: هر فیلمی که عنوان، کارگردان، بازیگر، ژانر، خلاصه یا برچسبش با این نام مطابقت داشته باشد به‌طور خودکار اضافه می‌شود. بعداً می‌توانید آن را ویرایش کنید.",
+  collection_smart_badge: "هوشمند",
+  collection_smart_created: "مجموعه «{name}» ساخته شد",
+  collection_smart_matched: "{count} فیلم منطبق خودکار اضافه شد",
 
   lists_title: "لیست‌های شخصی",
   lists_subtitle: "لیست‌های رتبه‌بندی‌شده مانند «۱۰ فیلم ترسناک برتر من» بسازید",
@@ -612,6 +622,11 @@ const fr: Dict = {
   collections_empty: "Aucune collection pour l'instant.",
   collection_movies: "{count} films",
   collection_empty: "Cette collection est vide.",
+  collection_name_placeholder: "ex. Hitchcock, Noir, Kurosawa, Noël...",
+  collection_smart_hint: "Collection intelligente : tout film dont le titre, le réalisateur, la distribution, les genres, le synopsis ou les étiquettes correspondent à ce nom est automatiquement ajouté. Vous pourrez l'affiner ensuite.",
+  collection_smart_badge: "Smart",
+  collection_smart_created: "Collection « {name} » créée",
+  collection_smart_matched: "{count} films correspondants ajoutés automatiquement",
 
   lists_title: "Listes personnelles",
   lists_subtitle: "Créez des listes classées comme « Mes 10 meilleurs films d'horreur »",
