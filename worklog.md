@@ -412,3 +412,41 @@ Stage Summary:
 - Recommendation engine completely transformed: from 3-4 generic local matches to 50 TMDb-powered collaborative-filtering recommendations with thematic keyword analysis
 - TMDb movies not in archive can be browsed in full detail and added with one click
 - All 7 UI fixes verified. Ready for next round of feedback.
+
+---
+Task ID: 15
+Agent: Main (Z.ai Code)
+Task: 4 fixes — crew color, app accent, remove reasons, Photothèque section
+
+Work Log:
+
+Fix 1 — Crew values complementary color:
+- Changed Detail component's <dd> from text-primary/80 (teal) to text-secondary/90 (terracotta).
+- Now non-clickable values (Release Date, Runtime, Country, Language) are in warm terracotta, clearly distinguishable from clickable teal director/writer/cast links. Complementary colors in the palette.
+
+Fix 2 — App name accent:
+- Changed "Cinematheque" to "Cinémathèque" in EN and FR translations + layout.tsx title.
+
+Fix 3 — Remove recommendation reasons:
+- Removed the "why recommended" reason text boxes from MovieDetailView. Now shows just a clean MovieRow with 12 recommendation cards (was 8). No more repetitive reason text.
+
+Fix 4 — Photothèque section:
+- Added `screenshots` field to Prisma Movie model (JSON array of paths), pushed schema, regenerated client.
+- Updated Movie type, parseMovie, movies POST/PUT routes, tmdb.ts payload, tmdb/details route, recommendations route, AddMovieDialog to include screenshots: [].
+- Created /api/movies/[id]/screenshots route: POST (FormData upload to public/screenshots/) + DELETE (remove by path).
+- Created Phototheque.tsx component: upload button, 2-column grid of screenshots, delete on hover, lightbox integration (click to enlarge + copy/download).
+- Added i18n keys: movie_phototheque, phototheque_empty, phototheque_upload, phototheque_uploading (EN/FA/FR).
+- Rewired MovieDetailView gallery: Gallery (2 columns) + Photothèque side-by-side in a lg:grid-cols-2 layout. Gallery was 3 columns, now 2 to leave room for Photothèque.
+- Uploaded a test screenshot via API → saved to /screenshots/ → confirmed displaying on Godfather page.
+
+Verification (agent-browser):
+- App name: "Cinémathèque" ✓
+- Crew values: text-secondary/90 (terracotta oklab 0.65 0.076 0.064 / 0.9) ✓
+- Gallery: 2 columns (7 images) ✓
+- Photothèque: section present, "1 screenshot images" confirmed on page ✓
+- Screenshot upload: POST returned 200 with screenshots array containing the path ✓
+- No recommendation reason text boxes ✓
+- Lint clean
+
+Stage Summary:
+- All 4 changes implemented and verified. Crew values are now clearly non-clickable (terracotta vs teal). App has proper accents. Recommendations are clean (no repetitive reasons). Photothèque allows uploading personal screenshots alongside the TMDb gallery.

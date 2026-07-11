@@ -43,6 +43,7 @@ export async function GET(req: NextRequest) {
       tmdbRating: payload.tmdbRating,
       trailer: payload.trailer,
       gallery: payload.gallery,
+      screenshots: [],
       status: "want",
       favorite: false,
       rewatchCount: 0,

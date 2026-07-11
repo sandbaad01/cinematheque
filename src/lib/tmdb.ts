@@ -251,5 +251,6 @@ export function tmdbToMoviePayload(d: TmdbMovieDetails) {
     tmdbRating: d.vote_average ?? null,
     trailer: pickTrailer(d.videos?.results),
     gallery,
+    screenshots: [] as string[],
   };
 }

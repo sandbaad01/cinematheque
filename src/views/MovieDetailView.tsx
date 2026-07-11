@@ -21,6 +21,7 @@ import { MovieRow } from "@/components/movie/MovieRow";
 import { AddMovieDialog } from "@/components/movie/AddMovieDialog";
 import { TranslatedStory } from "@/components/movie/TranslatedStory";
 import { GalleryLightbox } from "@/components/movie/GalleryLightbox";
+import { Phototheque } from "@/components/movie/Phototheque";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -397,35 +398,43 @@ export function MovieDetailView({ movieId }: { movieId: string }) {
               </section>
             )}
 
-            {/* Gallery */}
-            {movie.gallery.length > 0 && (
-              <section>
-                <SectionHeader title={t("movie_gallery")} icon={<Film className="size-4" />} />
-                <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
-                  {movie.gallery.map((img, i) => (
-                    <button
-                      key={i}
-                      onClick={() => setLightboxIndex(i)}
-                      className="group relative overflow-hidden rounded-lg"
-                    >
-                      <img
-                        src={backdropUrl(img, "w780") ?? img}
-                        alt={`Gallery ${i + 1}`}
-                        className="aspect-video w-full object-cover transition-transform group-hover:scale-105"
-                        loading="lazy"
-                      />
-                      <div className="absolute inset-0 bg-black/0 transition-colors group-hover:bg-black/20" />
-                    </button>
-                  ))}
-                </div>
-                <GalleryLightbox
-                  images={movie.gallery}
-                  open={lightboxIndex !== null}
-                  startIndex={lightboxIndex ?? 0}
-                  onOpenChange={(o) => { if (!o) setLightboxIndex(null); }}
-                />
-              </section>
-            )}
+            {/* Gallery (2 columns) + Photothèque side by side */}
+            <div className="grid gap-6 lg:grid-cols-2">
+              {/* Gallery */}
+              {movie.gallery.length > 0 && (
+                <section>
+                  <SectionHeader title={t("movie_gallery")} icon={<Film className="size-4" />} />
+                  <div className="mt-3 grid grid-cols-2 gap-2">
+                    {movie.gallery.map((img, i) => (
+                      <button
+                        key={i}
+                        onClick={() => setLightboxIndex(i)}
+                        className="group relative overflow-hidden rounded-lg"
+                      >
+                        <img
+                          src={backdropUrl(img, "w780") ?? img}
+                          alt={`Gallery ${i + 1}`}
+                          className="aspect-video w-full object-cover transition-transform group-hover:scale-105"
+                          loading="lazy"
+                        />
+                        <div className="absolute inset-0 bg-black/0 transition-colors group-hover:bg-black/20" />
+                      </button>
+                    ))}
+                  </div>
+                  <GalleryLightbox
+                    images={movie.gallery}
+                    open={lightboxIndex !== null}
+                    startIndex={lightboxIndex ?? 0}
+                    onOpenChange={(o) => { if (!o) setLightboxIndex(null); }}
+                  />
+                </section>
+              )}
+
+              {/* Photothèque — user-uploaded screenshots */}
+              {!isTmdbMovie && (
+                <Phototheque movie={movie} onUpdated={refetch} />
+              )}
+            </div>
           </div>
 
           {/* Right: personal info — hidden for TMDb-only movies (not in archive yet) */}
@@ -539,24 +548,8 @@ export function MovieDetailView({ movieId }: { movieId: string }) {
             <MovieRow
               title={t("movie_recommendations")}
               icon={<Sparkles className="text-primary" />}
-              movies={recs.slice(0, 8).map((r) => r.movie)}
+              movies={recs.slice(0, 12).map((r) => r.movie)}
             />
-            {/* Why recommended - show for top 3 */}
-            <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-              {recs.slice(0, 3).map((r) => (
-                <button
-                  key={r.movie.id}
-                  onClick={() => useNav.getState().goMovie(r.movie.id)}
-                  className="flex items-start gap-2 rounded-lg border bg-card/50 p-3 text-left text-xs transition-colors hover:bg-accent"
-                >
-                  <Sparkles className="mt-0.5 size-3.5 shrink-0 text-primary" />
-                  <span className="text-muted-foreground">
-                    <span className="font-medium text-foreground">{r.movie.title}</span>
-                    {" — "}{r.reason}
-                  </span>
-                </button>
-              ))}
-            </div>
           </div>
         )}
       </div>
@@ -595,7 +588,7 @@ function Detail({
         <Icon className="size-3.5" />
         {label}
       </dt>
-      <dd className="mt-0.5 text-sm font-normal text-primary/80">{value || "—"}</dd>
+      <dd className="mt-0.5 text-sm font-normal text-secondary/90">{value || "—"}</dd>
     </div>
   );
 }

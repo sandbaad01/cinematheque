@@ -56,6 +56,7 @@ export async function PUT(req: NextRequest, ctx: Ctx) {
     if (b.tmdbRating !== undefined) data.tmdbRating = typeof b.tmdbRating === "number" ? b.tmdbRating : null;
     if (b.trailer !== undefined) data.trailer = b.trailer ?? null;
     if (b.gallery !== undefined) data.gallery = JSON.stringify(Array.isArray(b.gallery) ? b.gallery : []);
+    if (b.screenshots !== undefined) data.screenshots = JSON.stringify(Array.isArray(b.screenshots) ? b.screenshots : []);
     if (b.status !== undefined) data.status = b.status;
     if (b.favorite !== undefined) data.favorite = !!b.favorite;
     if (b.rewatchCount !== undefined) data.rewatchCount = typeof b.rewatchCount === "number" ? b.rewatchCount : 0;

@@ -282,6 +282,7 @@ export function AddMovieDialog({
         tmdbRating: toNumber(form.tmdbRating),
         trailer: form.trailer.trim() || null,
         gallery: [] as string[],
+        screenshots: [] as string[],
         status: form.status,
         favorite: form.favorite,
         rewatchCount: editMovie?.rewatchCount ?? 0,

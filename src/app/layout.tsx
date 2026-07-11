@@ -22,7 +22,7 @@ const vazirmatn = Vazirmatn({
 });
 
 export const metadata: Metadata = {
-  title: "Cinematheque — Personal Movie Archive",
+  title: "Cinémathèque — Personal Movie Archive",
   description:
     "A lightweight, offline-first personal movie archive. Track watched films, discover recommendations, and build your lifetime favorites.",
   icons: {

@@ -13,7 +13,7 @@ type Dict = Record<string, string>;
 
 const en: Dict = {
   // App
-  appName: "Cinematheque",
+  appName: "Cinémathèque",
   appTagline: "Your Personal Movie Archive",
 
   // Navigation
@@ -100,6 +100,10 @@ const en: Dict = {
   movie_tmdbRating: "TMDb Rating",
   movie_trailer: "Trailer",
   movie_gallery: "Gallery",
+  movie_phototheque: "Photothèque",
+  phototheque_empty: "No screenshots yet. Upload your favorite shots from this film.",
+  phototheque_upload: "Upload Screenshot",
+  phototheque_uploading: "Uploading...",
   movie_related: "Related Movies",
   movie_similar: "Similar Movies",
   movie_myInfo: "My Information",
@@ -332,6 +336,10 @@ const fa: Dict = {
   movie_tmdbRating: "امتیاز TMDb",
   movie_trailer: "تیزر",
   movie_gallery: "گالری",
+  movie_phototheque: "Photothèque",
+  phototheque_empty: "هنوز اسکرین‌شاتی نیست. شات‌های مورد علاقه‌تان از این فیلم را آپلود کنید.",
+  phototheque_upload: "آپلود اسکرین‌شات",
+  phototheque_uploading: "در حال آپلود...",
   movie_related: "فیلم‌های مرتبط",
   movie_similar: "فیلم‌های مشابه",
   movie_myInfo: "اطلاعات من",
@@ -470,7 +478,7 @@ const fa: Dict = {
 };
 
 const fr: Dict = {
-  appName: "Cinematheque",
+  appName: "Cinémathèque",
   appTagline: "Votre archive personnelle de films",
 
   nav_home: "Accueil",
@@ -550,6 +558,10 @@ const fr: Dict = {
   movie_tmdbRating: "Note TMDb",
   movie_trailer: "Bande-annonce",
   movie_gallery: "Galerie",
+  movie_phototheque: "Photothèque",
+  phototheque_empty: "Aucune capture d'écran. Téléversez vos plans préférés de ce film.",
+  phototheque_upload: "Téléverser une capture",
+  phototheque_uploading: "Téléversement...",
   movie_related: "Films liés",
   movie_similar: "Films similaires",
   movie_myInfo: "Mes informations",

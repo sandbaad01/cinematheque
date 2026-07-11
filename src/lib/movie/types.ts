@@ -24,6 +24,7 @@ export interface Movie {
   tmdbRating: number | null;
   trailer: string | null;
   gallery: string[];
+  screenshots: string[];
   status: MovieStatus;
   favorite: boolean;
   rewatchCount: number;
@@ -90,6 +91,7 @@ export function parseMovie(raw: any): Movie {
     tmdbRating: raw.tmdbRating ?? null,
     trailer: raw.trailer ?? null,
     gallery: safeJsonArr(raw.gallery),
+    screenshots: safeJsonArr(raw.screenshots),
     status: (raw.status as MovieStatus) ?? "watched",
     favorite: raw.favorite ?? false,
     rewatchCount: raw.rewatchCount ?? 0,

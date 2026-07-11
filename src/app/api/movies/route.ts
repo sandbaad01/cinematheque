@@ -104,6 +104,7 @@ export async function POST(req: NextRequest) {
         tmdbRating: typeof b.tmdbRating === "number" ? b.tmdbRating : null,
         trailer: b.trailer ?? null,
         gallery: JSON.stringify(Array.isArray(b.gallery) ? b.gallery : []),
+        screenshots: JSON.stringify(Array.isArray(b.screenshots) ? b.screenshots : []),
         status: b.status ?? "watched",
         favorite: !!b.favorite,
         rewatchCount: typeof b.rewatchCount === "number" ? b.rewatchCount : 0,

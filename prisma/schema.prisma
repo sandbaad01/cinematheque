@@ -31,6 +31,7 @@ model Movie {
   tmdbRating    Float?
   trailer       String?
   gallery       String   @default("[]") // JSON array of image URL strings
+  screenshots   String   @default("[]") // JSON array of user-uploaded screenshot paths
   status        String   @default("watched") // watched | want | watching | dropped
   favorite      Boolean  @default(false)
   rewatchCount  Int      @default(0)

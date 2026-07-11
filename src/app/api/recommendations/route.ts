@@ -263,6 +263,7 @@ export async function GET(req: NextRequest) {
             tmdbRating: cand.item.vote_average ?? null,
             trailer: null,
             gallery: [],
+            screenshots: [],
             status: "want" as const,
             favorite: false,
             rewatchCount: 0,
