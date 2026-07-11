@@ -241,7 +241,11 @@ export function MovieDetailView({ movieId }: { movieId: string }) {
           {/* Left: story + details */}
           <div className="space-y-6 lg:col-span-2">
             {movie.overview && (
-              <TranslatedStory overview={movie.overview} movieId={movie.id} />
+              <TranslatedStory
+                overview={movie.overview}
+                movieId={movie.id}
+                context={{ title: movie.title, director: movie.director, year: movie.year }}
+              />
             )}
 
             {/* Crew details */}

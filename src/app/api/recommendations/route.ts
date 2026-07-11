@@ -200,7 +200,7 @@ export async function GET(req: NextRequest) {
     }
 
     scored.sort((a, b) => b.score - a.score);
-    const top = scored.slice(0, 12);
+    const top = scored.slice(0, 50);
 
     const items: Recommendation[] = top.map((s) => {
       const seed = (s as any)._seed as Movie | undefined;

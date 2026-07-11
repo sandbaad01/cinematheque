@@ -11,6 +11,8 @@ interface TranslatedStoryProps {
   overview: string;
   /** Movie id — used to reset state when navigating between movies. */
   movieId: string;
+  /** Movie context for better translation quality. */
+  context?: { title?: string; director?: string | null; year?: number | null };
 }
 
 interface TranslateResponse {
@@ -25,7 +27,7 @@ interface TranslateResponse {
  * stay in English; ONLY this synopsis is translated to the selected language.
  * When the target language is Persian, the paragraph becomes RTL.
  */
-export function TranslatedStory({ overview, movieId }: TranslatedStoryProps) {
+export function TranslatedStory({ overview, movieId, context }: TranslatedStoryProps) {
   const { t, lang } = useI18n();
   const [translated, setTranslated] = useState<string>(overview);
   const [loading, setLoading] = useState(false);
@@ -67,7 +69,7 @@ export function TranslatedStory({ overview, movieId }: TranslatedStoryProps) {
     fetch("/api/translate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text: overview, targetLang: lang }),
+      body: JSON.stringify({ text: overview, targetLang: lang, context }),
     })
       .then(async (res) => {
         if (!res.ok) throw new Error("translate failed");

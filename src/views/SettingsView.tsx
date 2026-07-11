@@ -65,10 +65,6 @@ export function SettingsView() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-6 p-4 md:p-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight md:text-3xl">{t("settings_title")}</h1>
-      </div>
-
       {/* Language & theme */}
       <Card className="space-y-4 p-5">
         <div className="flex items-center gap-2">

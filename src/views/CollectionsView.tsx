@@ -71,11 +71,7 @@ export function CollectionsView() {
 
   return (
     <div className="space-y-6 p-4 md:p-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight md:text-3xl">{t("collections_title")}</h1>
-          <p className="text-muted-foreground">{t("collections_subtitle")}</p>
-        </div>
+      <div className="flex items-center justify-end">
         <Button onClick={() => setCreateOpen(true)}>
           <Plus className="size-4" />
           <span className="hidden sm:inline">{t("action_createCollection")}</span>

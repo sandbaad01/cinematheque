@@ -21,6 +21,7 @@ import { ListView } from "@/views/ListView";
 import { SearchView } from "@/views/SearchView";
 import { SettingsView } from "@/views/SettingsView";
 import { RandomView } from "@/views/RandomView";
+import { RecommendationsView } from "@/views/RecommendationsView";
 import { Github, Heart } from "lucide-react";
 
 export default function Page() {
@@ -61,6 +62,7 @@ export default function Page() {
       case "search": return <SearchView key={searchQuery ?? "s"} initialQuery={searchQuery} />;
       case "settings": return <SettingsView />;
       case "random": return <RandomView />;
+      case "recommendations": return <RecommendationsView />;
       default: return <HomeView />;
     }
   };

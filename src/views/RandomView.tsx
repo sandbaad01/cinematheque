@@ -43,14 +43,7 @@ export function RandomView() {
 
   return (
     <div className="space-y-6 p-4 md:p-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight md:text-3xl">
-            <Shuffle className="size-7 text-primary" />
-            {t("random_title")}
-          </h1>
-          <p className="text-muted-foreground">{t("random_subtitle")}</p>
-        </div>
+      <div className="flex items-center justify-end">
         <Button onClick={pickAgain} variant="outline">
           <RefreshCw className="size-4" />
           <span className="hidden sm:inline">{t("random_again")}</span>

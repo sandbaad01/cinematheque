@@ -14,6 +14,7 @@ import {
   Settings,
   Plus,
   Film,
+  Sparkles,
   type LucideIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -58,6 +59,7 @@ const NAV_GROUPS: NavGroup[] = [
     titleKey: "section_discover",
     items: [
       { view: "search", labelKey: "nav_search", icon: Search },
+      { view: "recommendations", labelKey: "nav_recommendations", icon: Sparkles },
       { view: "lastWatched", labelKey: "nav_lastWatched", icon: Clock },
       { view: "timeline", labelKey: "nav_timeline", icon: CalendarRange },
     ],

@@ -87,11 +87,6 @@ export function WatchedView() {
 
   return (
     <div className="space-y-4 p-4 md:p-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight md:text-3xl">{t("watched_title")}</h1>
-        <p className="text-sm text-muted-foreground">{t("watched_count", { count: filtered.length })}</p>
-      </div>
-
       <FilterBar
         filters={filters}
         onChange={setFilters}

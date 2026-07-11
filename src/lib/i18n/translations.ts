@@ -27,6 +27,7 @@ const en: Dict = {
   nav_collections: "Collections",
   nav_lists: "Personal Lists",
   nav_search: "Search",
+  nav_recommendations: "Recommendations",
   nav_settings: "Settings",
   nav_add: "Add Movie",
 
@@ -51,6 +52,7 @@ const en: Dict = {
 
   // Watched
   watched_title: "Watched Movies",
+  watched_subtitle: "All the films you have watched",
   watched_count: "{count} movies",
   watched_empty: "No watched movies yet.",
   watched_sort: "Sort by",
@@ -263,6 +265,7 @@ const fa: Dict = {
   nav_collections: "مجموعه‌ها",
   nav_lists: "لیست‌های شخصی",
   nav_search: "جستجو",
+  nav_recommendations: "پیشنهادها",
   nav_settings: "تنظیمات",
   nav_add: "افزودن فیلم",
 
@@ -284,6 +287,7 @@ const fa: Dict = {
   home_empty_cta: "افزودن فیلم",
 
   watched_title: "فیلم‌های دیده‌شده",
+  watched_subtitle: "تمام فیلم‌هایی که دیده‌اید",
   watched_count: "{count} فیلم",
   watched_empty: "هنوز فیلمی دیده نشده است.",
   watched_sort: "مرتب‌سازی بر اساس",
@@ -479,6 +483,7 @@ const fr: Dict = {
   nav_collections: "Collections",
   nav_lists: "Listes personnelles",
   nav_search: "Recherche",
+  nav_recommendations: "Recommandations",
   nav_settings: "Paramètres",
   nav_add: "Ajouter un film",
 
@@ -500,6 +505,7 @@ const fr: Dict = {
   home_empty_cta: "Ajouter un film",
 
   watched_title: "Films vus",
+  watched_subtitle: "Tous les films que vous avez vus",
   watched_count: "{count} films",
   watched_empty: "Aucun film vu pour l'instant.",
   watched_sort: "Trier par",

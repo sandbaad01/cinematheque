@@ -54,14 +54,6 @@ export function TimelineView() {
 
   return (
     <div className="space-y-6 p-4 md:p-6">
-      <div>
-        <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight md:text-3xl">
-          <CalendarRange className="size-7 text-primary" />
-          {t("timeline_title")}
-        </h1>
-        <p className="text-muted-foreground">{t("timeline_subtitle")}</p>
-      </div>
-
       <div className="relative space-y-8 before:absolute before:left-[7px] before:top-2 before:h-full before:w-0.5 before:bg-border md:before:left-2">
         {groups.map(([key, list]) => (
           <div key={key} className="relative pl-7 md:pl-10">

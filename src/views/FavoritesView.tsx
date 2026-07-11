@@ -27,14 +27,6 @@ export function FavoritesView() {
 
   return (
     <div className="space-y-6 p-4 md:p-6">
-      <div>
-        <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight md:text-3xl">
-          <Trophy className="size-7 text-primary" />
-          {t("favorites_title")}
-        </h1>
-        <p className="text-muted-foreground">{t("favorites_subtitle")}</p>
-      </div>
-
       {loading ? (
         <div className="space-y-3">
           {Array.from({ length: 6 }).map((_, i) => (

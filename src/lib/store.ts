@@ -18,7 +18,8 @@ export type ViewName =
   | "list"
   | "search"
   | "settings"
-  | "random";
+  | "random"
+  | "recommendations";
 
 interface ViewState {
   view: ViewName;

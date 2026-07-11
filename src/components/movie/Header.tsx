@@ -31,14 +31,34 @@ const VIEW_TITLE_KEYS: Record<string, string> = {
   search: "search_title",
   settings: "settings_title",
   random: "random_title",
+  recommendations: "home_recommended",
 };
 
-/** Top sticky header with view title, search, random, language, theme. */
+const VIEW_SUBTITLE_KEYS: Record<string, string | null> = {
+  home: "home_welcome",
+  watched: "watched_subtitle",
+  movie: null,
+  genres: "genres_subtitle",
+  genre: null,
+  ratings: "ratings_subtitle",
+  favorites: "favorites_subtitle",
+  lastWatched: "lastWatched_subtitle",
+  timeline: "timeline_subtitle",
+  collections: "collections_subtitle",
+  collection: null,
+  lists: "lists_subtitle",
+  list: null,
+  search: null,
+  settings: null,
+  random: "random_subtitle",
+  recommendations: "rec_basedOn",
+};
+
+/** Top sticky header with view title, subtitle, search, random, language, theme. */
 export function Header({ onMenuClick, className }: HeaderProps) {
   const { t } = useI18n();
   const { view, goSearch, go } = useNav();
   const [search, setSearch] = useState("");
-  // Default to "dark" — layout.tsx always sets className="dark" on <html>.
   const [theme, setTheme] = useState<"dark" | "light">("dark");
 
   const toggleTheme = () => {
@@ -50,6 +70,7 @@ export function Header({ onMenuClick, className }: HeaderProps) {
   };
 
   const titleKey = VIEW_TITLE_KEYS[view] ?? "appName";
+  const subtitleKey = VIEW_SUBTITLE_KEYS[view] ?? null;
   const onSubmitSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (search.trim()) goSearch(search.trim());
@@ -58,7 +79,7 @@ export function Header({ onMenuClick, className }: HeaderProps) {
   return (
     <header
       className={cn(
-        "sticky top-0 z-30 flex h-14 items-center gap-2 border-b bg-background/80 px-3 backdrop-blur md:px-6",
+        "sticky top-0 z-30 flex h-16 items-center gap-2 border-b bg-background/80 px-3 backdrop-blur md:px-6",
         className
       )}
     >
@@ -76,10 +97,17 @@ export function Header({ onMenuClick, className }: HeaderProps) {
         </Button>
       )}
 
-      {/* Current view title */}
-      <h1 className="truncate text-base font-semibold tracking-tight md:text-lg">
-        {t(titleKey)}
-      </h1>
+      {/* Current view title + subtitle */}
+      <div className="flex min-w-0 flex-col">
+        <h1 className="truncate text-base font-semibold leading-tight tracking-tight md:text-lg">
+          {t(titleKey)}
+        </h1>
+        {subtitleKey && (
+          <p className="truncate text-xs leading-tight text-muted-foreground">
+            {t(subtitleKey)}
+          </p>
+        )}
+      </div>
 
       <div className="flex-1" />
 

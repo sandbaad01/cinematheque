@@ -29,10 +29,6 @@ export function SearchView({ initialQuery }: { initialQuery?: string }) {
 
   return (
     <div className="space-y-6 p-4 md:p-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight md:text-3xl">{t("search_title")}</h1>
-      </div>
-
       <form onSubmit={onSubmit} className="relative max-w-2xl">
         <SearchIcon className="pointer-events-none absolute left-3 top-1/2 size-5 -translate-y-1/2 text-muted-foreground" />
         <Input

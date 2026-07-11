@@ -26,11 +26,6 @@ export function RatingsView() {
 
   return (
     <div className="space-y-6 p-4 md:p-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight md:text-3xl">{t("ratings_title")}</h1>
-        <p className="text-muted-foreground">{t("ratings_subtitle")}</p>
-      </div>
-
       {loading ? (
         <div className="space-y-2">
           {Array.from({ length: 8 }).map((_, i) => (

@@ -20,11 +20,6 @@ export function GenresView() {
 
   return (
     <div className="space-y-6 p-4 md:p-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight md:text-3xl">{t("genres_title")}</h1>
-        <p className="text-muted-foreground">{t("genres_subtitle")}</p>
-      </div>
-
       {loading ? (
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
           {Array.from({ length: 8 }).map((_, i) => (

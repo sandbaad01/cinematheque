@@ -243,3 +243,47 @@ Stage Summary:
 - Add Movie: search → pick → all fields auto-fill from TMDb (poster, backdrop, cast, director, writers, genres, trailer, gallery, ratings, imdbId)
 - Refresh from TMDb: re-sync any movie's metadata while keeping personal data intact
 - IMDb rating field left for manual entry (TMDb doesn't provide IMDb ratings); imdbId is set so IMDb links work
+
+---
+Task ID: 11
+Agent: Main (Z.ai Code)
+Task: 4 UI/UX fixes — duplicate titles, dashboard layout, translation quality, hover highlight
+
+Work Log:
+
+Fix 1 — Remove duplicate page titles, move subtitle to Header:
+- Rewrote Header.tsx: added VIEW_SUBTITLE_KEYS mapping + a small text-xs muted subtitle line below the title. Header height increased from h-14 to h-16 to accommodate the two-line title+subtitle.
+- Added "recommendations" view to ViewName type, VIEW_TITLE_KEYS, VIEW_SUBTITLE_KEYS.
+- Added watched_subtitle i18n key (EN/FA/FR) and nav_recommendations key.
+- Removed the big H1 + subtitle blocks from ALL views: HomeView, WatchedView, GenresView, RatingsView, FavoritesView, LastWatchedView, TimelineView, CollectionsView, ListsView, SearchView, SettingsView, RandomView.
+- For Collections/Lists/Random views that had a title+action row, kept only the action button (right-aligned).
+
+Fix 2 — Dashboard restructure:
+- Reordered HomeView: (1) Latest Watched at TOP, (2) stat cards + Favorite Genres + Favorite Directors + runtime footnote at BOTTOM, (3) Recommended For You as the LAST row with a "Recommendations →" See All button.
+- Increased recommendations API limit from 12 to 50.
+- Created RecommendationsView.tsx: dedicated page showing all recommendations in a grid + "Why?" reasons section + Hide/Show Watched toggle.
+- Added "recommendations" to nav store, page.tsx router, and Sidebar (under Discover, with Sparkles icon).
+
+Fix 3 — Better Persian translation:
+- Rewrote /api/translate system prompt: now identifies as "expert literary translator specializing in film criticism", includes movie context (title, year, director) in the prompt, gives detailed guidelines (natural/idiomatic, preserve tone, adapt cultural references, transliterate proper nouns, maintain emotional resonance).
+- Enabled thinking: { type: "enabled" } for higher-quality reasoning.
+- Updated TranslatedStory component to accept and pass `context` prop (title, director, year) to the translate API.
+- Updated MovieDetailView to pass movie context to TranslatedStory.
+- maxDuration increased to 60s for thinking-enabled requests.
+
+Fix 4 — Tone down harsh hover highlight:
+- Changed --accent from vibrant teal (hsl 174 42% 54%) to subtle muted navy-gray:
+  * Dark: hsl(209 18% 22%) → #2e3842 (very dark, low saturation)
+  * Light: hsl(33 10% 88%) → very light, low saturation
+- Changed --accent-foreground to match (dark text on light, light text on dark).
+- Now hover:bg-accent produces a barely-visible subtle tint instead of a jarring teal flash.
+
+Verification (agent-browser):
+- Fix 1: Header shows "Dashboard" (h1) + "Welcome back to your archive" (subtitle). No duplicate big H1 in content. ✓
+- Fix 2: Home order = Latest Watched → Favorite Genres/Directors/stats → Recommended For You (last). "Recommendations" button navigates to dedicated page. ✓
+- Fix 3: Godfather Persian translation = high-quality literary: "این فیلم که سال‌های ۱۹۴۵ تا ۱۹۵۵ را در بر می‌گیرد، روایتی از خانواده تبهکار ایتالیایی-آمریکایی کورلئونه است..." with thinking enabled + movie context. ✓
+- Fix 4: --accent is now #2e3842 (muted navy) instead of #58bbb1 (vibrant teal). Hover is subtle. ✓
+- Lint clean, no console errors.
+
+Stage Summary:
+- All 4 fixes implemented and verified. Ready for user's next round of feedback.

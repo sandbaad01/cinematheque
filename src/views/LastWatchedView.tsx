@@ -20,14 +20,6 @@ export function LastWatchedView() {
 
   return (
     <div className="space-y-6 p-4 md:p-6">
-      <div>
-        <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight md:text-3xl">
-          <Clock className="size-7 text-primary" />
-          {t("lastWatched_title")}
-        </h1>
-        <p className="text-muted-foreground">{t("lastWatched_subtitle")}</p>
-      </div>
-
       {loading ? (
         <div className="space-y-2">
           {Array.from({ length: 8 }).map((_, i) => (
