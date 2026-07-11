@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Search, Loader2, Film, ArrowLeft, ArrowRight } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Search, Loader2, Film, ArrowLeft, ArrowRight, Star } from "lucide-react";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -36,18 +36,14 @@ interface AddMovieDialogProps {
   onSaved?: () => void;
 }
 
-interface WebResult {
+interface TmdbSearchResult {
+  tmdbId: number;
   title: string;
-  year?: number | string | null;
+  originalTitle?: string | null;
+  year?: number | null;
   overview?: string | null;
   poster?: string | null;
-  backdrop?: string | null;
-  director?: string | null;
-  genres?: string[] | null;
-  runtime?: number | null;
-  country?: string | null;
-  language?: string | null;
-  cast?: string[] | null;
+  tmdbRating?: number | null;
 }
 
 type FormState = {
@@ -143,7 +139,7 @@ function toNumber(s: string): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
-/** A two-step dialog for adding or editing a movie. */
+/** A two-step dialog for adding or editing a movie, powered by real TMDb data. */
 export function AddMovieDialog({
   open,
   onOpenChange,
@@ -156,7 +152,7 @@ export function AddMovieDialog({
   const [step, setStep] = useState<1 | 2>(isEdit ? 2 : 1);
   const [query, setQuery] = useState("");
   const [searching, setSearching] = useState(false);
-  const [results, setResults] = useState<WebResult[]>([]);
+  const [results, setResults] = useState<TmdbSearchResult[]>([]);
   const [searchError, setSearchError] = useState<string | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm);
   const [saving, setSaving] = useState(false);
@@ -186,16 +182,10 @@ export function AddMovieDialog({
     setSearchError(null);
     setResults([]);
     try {
-      const res = await fetch(
-        `/api/search-web?q=${encodeURIComponent(query.trim())}`
-      );
+      const res = await fetch(`/api/tmdb/search?q=${encodeURIComponent(query.trim())}`);
       if (!res.ok) throw new Error("search failed");
       const data = await res.json();
-      const list: WebResult[] = Array.isArray(data)
-        ? data
-        : Array.isArray(data?.results)
-          ? data.results
-          : [];
+      const list: TmdbSearchResult[] = Array.isArray(data?.results) ? data.results : [];
       setResults(list);
       if (list.length === 0) setSearchError(t("add_noResults"));
     } catch {
@@ -205,22 +195,65 @@ export function AddMovieDialog({
     }
   };
 
-  const pickResult = (r: WebResult) => {
-    setForm((prev) => ({
-      ...prev,
-      title: r.title ?? prev.title,
-      year: r.year != null ? String(r.year) : prev.year,
-      overview: r.overview ?? prev.overview,
-      poster: r.poster ?? prev.poster,
-      backdrop: r.backdrop ?? prev.backdrop,
-      director: r.director ?? prev.director,
-      runtime: r.runtime != null ? String(r.runtime) : prev.runtime,
-      country: r.country ?? prev.country,
-      language: r.language ?? prev.language,
-      genres: r.genres && r.genres.length ? r.genres.join(", ") : prev.genres,
-      cast: r.cast && r.cast.length ? r.cast.join(", ") : prev.cast,
-    }));
-    setStep(2);
+  // Refs to carry TMDb/IMDb ids from the picked result into the save payload.
+  const pendingTmdbId = useRef<number | null>(null);
+  const pendingImdbId = useRef<string | null>(null);
+
+  // When the dialog opens, seed the refs with the edit movie's ids (if any).
+  useEffect(() => {
+    if (open) {
+      pendingTmdbId.current = editMovie?.tmdbId ?? null;
+      pendingImdbId.current = editMovie?.imdbId ?? null;
+    }
+  }, [open, editMovie]);
+
+  // Fetch full TMDb details for the picked result and auto-fill the form.
+  const pickResult = async (r: TmdbSearchResult) => {
+    setSearching(true);
+    try {
+      const res = await fetch(`/api/tmdb/details?id=${r.tmdbId}`);
+      if (!res.ok) throw new Error("details failed");
+      const d = await res.json();
+      setForm((prev) => ({
+        ...prev,
+        title: d.title ?? r.title,
+        originalTitle: d.originalTitle ?? "",
+        poster: d.poster ?? "",
+        backdrop: d.backdrop ?? "",
+        releaseDate: d.releaseDate ?? "",
+        year: d.year != null ? String(d.year) : "",
+        genres: Array.isArray(d.genres) ? d.genres.join(", ") : "",
+        runtime: d.runtime != null ? String(d.runtime) : "",
+        country: d.country ?? "",
+        language: d.language ?? "",
+        director: d.director ?? "",
+        writers: Array.isArray(d.writers) ? d.writers.join(", ") : "",
+        cast: Array.isArray(d.cast) ? d.cast.join(", ") : "",
+        overview: d.overview ?? "",
+        tmdbRating: d.tmdbRating != null ? String(d.tmdbRating) : "",
+        trailer: d.trailer ?? "",
+      }));
+      pendingTmdbId.current = d.tmdbId ?? null;
+      pendingImdbId.current = d.imdbId ?? null;
+      setStep(2);
+      toast.success("Loaded from TMDb");
+    } catch {
+      // Fallback: just use the search result's basic info.
+      setForm((prev) => ({
+        ...prev,
+        title: r.title,
+        originalTitle: r.originalTitle ?? "",
+        overview: r.overview ?? "",
+        year: r.year != null ? String(r.year) : "",
+        tmdbRating: r.tmdbRating != null ? String(r.tmdbRating) : "",
+      }));
+      pendingTmdbId.current = r.tmdbId;
+      pendingImdbId.current = null;
+      setStep(2);
+      toast.error("Could not load full details — fill manually");
+    } finally {
+      setSearching(false);
+    }
   };
 
   const handleSave = async () => {
@@ -248,7 +281,7 @@ export function AddMovieDialog({
         imdbRating: toNumber(form.imdbRating),
         tmdbRating: toNumber(form.tmdbRating),
         trailer: form.trailer.trim() || null,
-        gallery: [],
+        gallery: [] as string[],
         status: form.status,
         favorite: form.favorite,
         rewatchCount: editMovie?.rewatchCount ?? 0,
@@ -257,8 +290,8 @@ export function AddMovieDialog({
         notes: form.notes.trim() || null,
         lifetimeRank: editMovie?.lifetimeRank ?? null,
         tags: splitList(form.tags),
-        tmdbId: editMovie?.tmdbId ?? null,
-        imdbId: editMovie?.imdbId ?? null,
+        tmdbId: pendingTmdbId.current ?? editMovie?.tmdbId ?? null,
+        imdbId: pendingImdbId.current ?? editMovie?.imdbId ?? null,
       };
 
       const url = isEdit ? `/api/movies/${editMovie.id}` : "/api/movies";
@@ -286,8 +319,13 @@ export function AddMovieDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>
-            {isEdit ? t("action_edit") : t("add_title")}
+          <DialogTitle className="flex items-center gap-2">
+            {isEdit ? t("action_edit") : (
+              <>
+                <Film className="size-5 text-primary" />
+                {t("add_title")}
+              </>
+            )}
           </DialogTitle>
           <DialogDescription>
             {step === 1
@@ -327,34 +365,54 @@ export function AddMovieDialog({
             )}
 
             {results.length > 0 && (
-              <ScrollArea className="max-h-[40vh] rounded-md border">
+              <ScrollArea className="max-h-[45vh] rounded-md border">
                 <div className="divide-y">
-                  {results.map((r, i) => (
+                  {results.map((r) => (
                     <button
-                      key={i}
+                      key={r.tmdbId}
                       type="button"
                       onClick={() => pickResult(r)}
-                      className="flex w-full gap-3 p-3 text-left transition-colors hover:bg-accent"
+                      disabled={searching}
+                      className="flex w-full gap-3 p-3 text-left transition-colors hover:bg-accent disabled:opacity-50"
                     >
-                      <div className="flex size-10 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
-                        <Film className="size-4" />
+                      <div className="h-16 w-12 shrink-0 overflow-hidden rounded bg-muted">
+                        {r.poster ? (
+                          <img
+                            src={r.poster}
+                            alt={r.title}
+                            className="h-full w-full object-cover"
+                            loading="lazy"
+                          />
+                        ) : (
+                          <div className="flex h-full items-center justify-center text-muted-foreground">
+                            <Film className="size-4" />
+                          </div>
+                        )}
                       </div>
                       <div className="min-w-0 flex-1">
                         <p className="line-clamp-1 text-sm font-medium">
                           {r.title}
                           {r.year != null && (
-                            <span className="ml-2 text-muted-foreground">
-                              ({r.year})
-                            </span>
+                            <span className="ml-2 text-muted-foreground">({r.year})</span>
                           )}
                         </p>
+                        {r.tmdbRating != null && (
+                          <p className="mt-0.5 flex items-center gap-1 text-xs text-primary">
+                            <Star className="size-3 fill-primary" />
+                            {r.tmdbRating.toFixed(1)}
+                          </p>
+                        )}
                         {r.overview && (
                           <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">
                             {r.overview}
                           </p>
                         )}
                       </div>
-                      <ArrowRight className="size-4 shrink-0 self-center text-muted-foreground" />
+                      {searching ? (
+                        <Loader2 className="size-4 shrink-0 self-center animate-spin text-muted-foreground" />
+                      ) : (
+                        <ArrowRight className="size-4 shrink-0 self-center text-muted-foreground" />
+                      )}
                     </button>
                   ))}
                 </div>
@@ -389,14 +447,14 @@ export function AddMovieDialog({
                     onChange={(e) => update("originalTitle", e.target.value)}
                   />
                 </Field>
-                <Field label="Poster URL">
+                <Field label="Poster Path / URL">
                   <Input
                     value={form.poster}
                     onChange={(e) => update("poster", e.target.value)}
                     placeholder="/abc.jpg or https://..."
                   />
                 </Field>
-                <Field label="Backdrop URL">
+                <Field label="Backdrop Path / URL">
                   <Input
                     value={form.backdrop}
                     onChange={(e) => update("backdrop", e.target.value)}

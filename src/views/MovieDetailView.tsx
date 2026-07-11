@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import {
   ArrowLeft, Star, Heart, Calendar, Clock, Globe, MapPin, User, PenLine,
-  Play, Trophy, Repeat, ExternalLink, Pencil, Trash2, Plus, Film, Sparkles, Tag,
+  Play, Trophy, Repeat, ExternalLink, Pencil, Trash2, Plus, Film, Sparkles, Tag, RefreshCw,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useFetch } from "@/lib/useFetch";
@@ -46,6 +46,7 @@ export function MovieDetailView({ movieId }: { movieId: string }) {
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [savingField, setSavingField] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   if (loading && !movie) {
     return (
@@ -98,6 +99,46 @@ export function MovieDetailView({ movieId }: { movieId: string }) {
     toast.success(`${t("movie_rewatch")}: ${movie.rewatchCount + 1}`);
   };
 
+  // Re-fetch fresh metadata (poster, cast, director, trailer, gallery, ratings)
+  // from TMDb and merge it into the existing movie, preserving personal fields.
+  const refreshFromTmdb = async () => {
+    if (!movie.tmdbId) {
+      toast.error("This movie has no TMDb id — cannot refresh.");
+      return;
+    }
+    setRefreshing(true);
+    try {
+      const res = await fetch(`/api/tmdb/details?id=${movie.tmdbId}`);
+      if (!res.ok) throw new Error("fetch failed");
+      const d = await res.json();
+      await update({
+        title: d.title ?? movie.title,
+        originalTitle: d.originalTitle ?? movie.originalTitle,
+        poster: d.poster ?? movie.poster,
+        backdrop: d.backdrop ?? movie.backdrop,
+        releaseDate: d.releaseDate ?? movie.releaseDate,
+        year: d.year ?? movie.year,
+        genres: Array.isArray(d.genres) ? d.genres : movie.genres,
+        runtime: d.runtime ?? movie.runtime,
+        country: d.country ?? movie.country,
+        language: d.language ?? movie.language,
+        director: d.director ?? movie.director,
+        writers: Array.isArray(d.writers) ? d.writers : movie.writers,
+        cast: Array.isArray(d.cast) ? d.cast : movie.cast,
+        overview: d.overview ?? movie.overview,
+        tmdbRating: d.tmdbRating ?? movie.tmdbRating,
+        imdbId: d.imdbId ?? movie.imdbId,
+        trailer: d.trailer ?? movie.trailer,
+        gallery: Array.isArray(d.gallery) ? d.gallery : movie.gallery,
+      });
+      toast.success("Refreshed from TMDb");
+    } catch {
+      toast.error("TMDb refresh failed");
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   return (
     <div className="pb-10">
       {/* Backdrop hero */}
@@ -138,6 +179,17 @@ export function MovieDetailView({ movieId }: { movieId: string }) {
                 )}
               </div>
               <div className="flex gap-2">
+                {movie.tmdbId && (
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={refreshFromTmdb}
+                    disabled={refreshing}
+                    title="Refresh from TMDb"
+                  >
+                    <RefreshCw className={cn("size-4", refreshing && "animate-spin")} />
+                  </Button>
+                )}
                 <Button variant="outline" size="icon" onClick={() => setEditOpen(true)} title={t("action_edit")}>
                   <Pencil className="size-4" />
                 </Button>
@@ -434,21 +486,14 @@ function NotesEditor({ value, onSave }: { value: string | null; onSave: (v: stri
   const { t } = useI18n();
   const [text, setText] = useState(value ?? "");
   const [editing, setEditing] = useState(false);
-  const [lastValue, setLastValue] = useState(value ?? "");
-
-  // Sync local text when the prop changes (React 19 "adjust during render" pattern)
-  if (value !== lastValue) {
-    setLastValue(value ?? "");
-    setText(value ?? "");
-  }
 
   if (!editing) {
     return (
       <button
-        onClick={() => setEditing(true)}
+        onClick={() => { setText(value ?? ""); setEditing(true); }}
         className="block min-h-[3rem] w-full rounded-md p-2 text-left text-sm text-muted-foreground hover:bg-accent"
       >
-        {text || <span className="flex items-center gap-1.5"><Plus className="size-3.5" />{t("movie_notes")}</span>}
+        {value || <span className="flex items-center gap-1.5"><Plus className="size-3.5" />{t("movie_notes")}</span>}
       </button>
     );
   }

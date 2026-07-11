@@ -206,3 +206,40 @@ Stage Summary:
 - App UI and all movie metadata remain in English/original at all times
 - Persian story is RTL (right-aligned, Vazirmatn font); French/English story is LTR
 - LLM-powered translation with server-side caching for instant repeat visits
+
+---
+Task ID: 10
+Agent: Main (Z.ai Code)
+Task: Integrate real TMDb API for movie data (search + full details + refresh)
+
+Work Log:
+- Added TMDB_API_KEY and TMDB_READ_ACCESS_TOKEN to .env
+- Created src/lib/tmdb.ts: TMDb v3 API helpers using Bearer token auth
+  * searchMovies(query) — /search/movie
+  * getMovieDetails(id) — /movie/{id}?append_to_response=credits,videos,images,external_ids
+  * pickTrailer(videos) — picks best official YouTube Trailer/Teaser
+  * extractCrew(crew) — director + writers (Writer/Screenplay/Story/Novel jobs)
+  * extractCast(cast) — top 12 billed
+  * tmdbToMoviePayload(details) — converts full TMDb response to our Movie shape
+  * posterUrl/backdropUrl — CDN image URL builders
+- Created /api/tmdb/search — GET ?q= returns normalized list with poster URLs, year, rating, overview
+- Created /api/tmdb/details — GET ?id= returns full movie payload (title, director, writers, cast, genres, runtime, country, language, trailer, 8 gallery images, imdbId, tmdbRating, overview)
+- Rewrote AddMovieDialog: search now hits /api/tmdb/search (real TMDb results with posters); clicking a result fetches /api/tmdb/details and auto-fills ALL form fields (title, originalTitle, poster, backdrop, releaseDate, year, genres, runtime, country, language, director, writers, cast, overview, tmdbRating, trailer, imdbId, tmdbId). "Enter manually" still available.
+- Added "Refresh from TMDb" button (RefreshCw icon, spins while loading) on MovieDetailView next to Edit — re-fetches fresh metadata from TMDb and merges into the movie, preserving personal fields (rating, rank, notes, status, favorite, tags, watchDate, rewatchCount)
+- Fixed NotesEditor: removed render-time setState pattern that caused a client-side crash on movies created via API; now uses value prop directly for display and seeds text on edit-click
+- Fixed React hooks order (moved refreshing useState before early return)
+
+Verification (agent-browser + curl):
+- GET /api/tmdb/search?q=Dark Knight → real TMDb results with posters ✓
+- GET /api/tmdb/details?id=155 → The Dark Knight: director Christopher Nolan, writers [Jonathan Nolan, Christopher Nolan, David S. Goyer], cast [Christian Bale, Heath Ledger...], genres [Action, Crime, Thriller], runtime 152, trailer YouTube URL, 8 gallery images, imdbId tt0468569, tmdbRating 8.532 ✓
+- Add Movie dialog: searched "Interstellar" → real results → clicked → form auto-filled with all 20+ fields from TMDb ✓
+- Full pipeline: TMDb details → POST /api/movies → saved to DB with 12 cast, director, trailer, gallery ✓
+- Movie detail page: Refresh from TMDb button works (PUT 200, SQL UPDATE ran, all metadata refreshed) ✓
+- Trailer embed, gallery, recommendations all render ✓
+- Lint clean, no console errors after NotesEditor fix
+
+Stage Summary:
+- App now uses REAL TMDb API for all movie data (not hand-seeded or web-search guesses)
+- Add Movie: search → pick → all fields auto-fill from TMDb (poster, backdrop, cast, director, writers, genres, trailer, gallery, ratings, imdbId)
+- Refresh from TMDb: re-sync any movie's metadata while keeping personal data intact
+- IMDb rating field left for manual entry (TMDb doesn't provide IMDb ratings); imdbId is set so IMDb links work

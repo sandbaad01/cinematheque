@@ -1,0 +1,208 @@
+// TMDb API v3 helpers — server-side only.
+// Docs: https://developer.themoviedb.org/reference
+
+const TMDB_BASE = "https://api.themoviedb.org/3";
+export const TMDB_IMG = "https://image.tmdb.org/t/p";
+
+function authHeaders(): HeadersInit {
+  const token = process.env.TMDB_READ_ACCESS_TOKEN;
+  if (token) {
+    return {
+      Authorization: `Bearer ${token}`,
+      Accept: "application/json",
+    };
+  }
+  // Fallback to API key query param if no bearer token.
+  return { Accept: "application/json" };
+}
+
+function withApiKey(url: string): string {
+  if (process.env.TMDB_READ_ACCESS_TOKEN) return url;
+  const key = process.env.TMDB_API_KEY;
+  if (!key) return url;
+  const sep = url.includes("?") ? "&" : "?";
+  return `${url}${sep}api_key=${key}`;
+}
+
+async function tmdbFetch<T>(path: string, params: Record<string, string> = {}): Promise<T> {
+  const url = withApiKey(
+    `${TMDB_BASE}${path}?${new URLSearchParams({ language: "en-US", ...params }).toString()}`
+  );
+  const res = await fetch(url, { headers: authHeaders() });
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`TMDb ${res.status}: ${body.slice(0, 200)}`);
+  }
+  return res.json() as Promise<T>;
+}
+
+// ---------- Types ----------
+
+export interface TmdbSearchResult {
+  id: number;
+  title: string;
+  original_title?: string;
+  release_date?: string;
+  overview?: string;
+  poster_path?: string | null;
+  backdrop_path?: string | null;
+  vote_average?: number;
+  genre_ids?: number[];
+}
+
+export interface TmdbSearchResponse {
+  page: number;
+  results: TmdbSearchResult[];
+  total_pages: number;
+  total_results: number;
+}
+
+export interface TmdbGenre {
+  id: number;
+  name: string;
+}
+
+export interface TmdbCastMember {
+  id: number;
+  name: string;
+  character?: string;
+  order: number;
+}
+
+export interface TmdbCrewMember {
+  id: number;
+  name: string;
+  job: string;
+  department: string;
+}
+
+export interface TmdbVideo {
+  id: string;
+  key: string;
+  site: string;
+  type: string;
+  name: string;
+  official: boolean;
+}
+
+export interface TmdbImage {
+  file_path: string;
+  vote_average: number;
+}
+
+export interface TmdbMovieDetails {
+  id: number;
+  imdb_id?: string;
+  title: string;
+  original_title?: string;
+  tagline?: string;
+  overview?: string;
+  poster_path?: string | null;
+  backdrop_path?: string | null;
+  release_date?: string;
+  runtime?: number;
+  genres?: TmdbGenre[];
+  production_countries?: { iso_3166_1: string; name: string }[];
+  spoken_languages?: { english_name: string; name: string }[];
+  vote_average?: number;
+  vote_count?: number;
+  credits?: { cast: TmdbCastMember[]; crew: TmdbCrewMember[] };
+  videos?: { results: TmdbVideo[] };
+  images?: { backdrops: TmdbImage[]; posters: TmdbImage[] };
+}
+
+// ---------- Public API ----------
+
+/** Search TMDb for movies by title. */
+export async function searchMovies(query: string, page = 1): Promise<TmdbSearchResponse> {
+  return tmdbFetch<TmdbSearchResponse>("/search/movie", {
+    query,
+    page: String(page),
+    include_adult: "false",
+  });
+}
+
+/** Get full movie details (with credits, videos, images appended). */
+export async function getMovieDetails(tmdbId: number): Promise<TmdbMovieDetails> {
+  return tmdbFetch<TmdbMovieDetails>(`/movie/${tmdbId}`, {
+    append_to_response: "credits,videos,images,external_ids",
+    include_image_language: "en,null",
+  });
+}
+
+// ---------- Image URL helpers ----------
+
+export function posterUrl(path: string | null | undefined, size: "w200" | "w342" | "w500" = "w342"): string | null {
+  if (!path) return null;
+  if (path.startsWith("http")) return path;
+  return `${TMDB_IMG}/${size}${path}`;
+}
+
+export function backdropUrl(path: string | null | undefined, size: "w780" | "w1280" | "original" = "w780"): string | null {
+  if (!path) return null;
+  if (path.startsWith("http")) return path;
+  return `${TMDB_IMG}/${size}${path}`;
+}
+
+/** Pick the best YouTube trailer from a videos list. */
+export function pickTrailer(videos?: TmdbVideo[]): string | null {
+  if (!videos || videos.length === 0) return null;
+  const yt = videos.filter((v) => v.site === "YouTube");
+  // Prefer official Trailer → Teaser → any YouTube video
+  const pref = ["Trailer", "Teaser"];
+  for (const t of pref) {
+    const v = yt.find((x) => x.type === t && x.official) ?? yt.find((x) => x.type === t);
+    if (v) return `https://www.youtube.com/watch?v=${v.key}`;
+  }
+  if (yt[0]) return `https://www.youtube.com/watch?v=${yt[0].key}`;
+  return null;
+}
+
+/** Extract director + writers from crew. */
+export function extractCrew(crew: TmdbCrewMember[] = []): { director: string | null; writers: string[] } {
+  const director = crew.find((c) => c.job === "Director")?.name ?? null;
+  const writerJobs = new Set(["Writer", "Screenplay", "Story", "Novel"]);
+  const writers = Array.from(
+    new Set(crew.filter((c) => writerJobs.has(c.job)).map((c) => c.name))
+  );
+  return { director, writers };
+}
+
+/** Top-billed cast (first 12). */
+export function extractCast(cast: TmdbCastMember[] = []): string[] {
+  return [...cast]
+    .sort((a, b) => a.order - b.order)
+    .slice(0, 12)
+    .map((c) => c.name);
+}
+
+/** Convert a TmdbMovieDetails into the shape used by our Movie model / API. */
+export function tmdbToMoviePayload(d: TmdbMovieDetails) {
+  const { director, writers } = extractCrew(d.credits?.crew);
+  const gallery = (d.images?.backdrops ?? [])
+    .sort((a, b) => b.vote_average - a.vote_average)
+    .slice(0, 8)
+    .map((img) => img.file_path);
+
+  return {
+    tmdbId: d.id,
+    imdbId: d.imdb_id ?? null,
+    title: d.title,
+    originalTitle: d.original_title ?? null,
+    poster: d.poster_path ?? null,
+    backdrop: d.backdrop_path ?? null,
+    releaseDate: d.release_date ?? null,
+    year: d.release_date ? parseInt(d.release_date.slice(0, 4), 10) || null : null,
+    genres: (d.genres ?? []).map((g) => g.name),
+    runtime: d.runtime ?? null,
+    country: d.production_countries?.[0]?.name ?? null,
+    language: d.spoken_languages?.[0]?.english_name ?? null,
+    director,
+    writers,
+    cast: extractCast(d.credits?.cast),
+    overview: d.overview ?? null,
+    tmdbRating: d.vote_average ?? null,
+    trailer: pickTrailer(d.videos?.results),
+    gallery,
+  };
+}
