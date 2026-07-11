@@ -25,7 +25,7 @@ import { Github, Heart } from "lucide-react";
 
 export default function Page() {
   const { view, movieId, genreName, collectionId, listId, searchQuery } = useNav();
-  const { t, dir } = useI18n();
+  const { t } = useI18n();
   const [mobileOpen, setMobileOpen] = useState(false);
   const mainRef = useRef<HTMLDivElement>(null);
 
@@ -35,11 +35,13 @@ export default function Page() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, [view, movieId, genreName, collectionId, listId, searchQuery]);
 
-  // Set <html> dir + lang attributes when language changes
+  // The app UI is always English / LTR. The selected language only affects
+  // the movie "Story" translation (handled inside MovieDetailView), so we
+  // keep the document direction locked to LTR.
   useEffect(() => {
-    document.documentElement.dir = dir;
-    document.documentElement.lang = dir === "rtl" ? "fa" : "en";
-  }, [dir]);
+    document.documentElement.dir = "ltr";
+    document.documentElement.lang = "en";
+  }, []);
 
   const renderView = () => {
     switch (view) {

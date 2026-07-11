@@ -179,3 +179,30 @@ Stage Summary:
 - Collections are now "smart" by default: naming a collection after a director, genre, actor, theme, or tag auto-populates it with every matching movie in the archive
 - Still fully editable afterwards (add/remove movies in the collection detail view)
 - Works across all 3 languages with appropriate feedback toasts
+
+---
+Task ID: 9
+Agent: Main (Z.ai Code)
+Task: Language switch translates ONLY the movie Story (overview); UI + movie info stay English; Persian story becomes RTL
+
+Work Log:
+- Created /api/translate/route.ts: POST {text, targetLang} → LLM translation via z-ai-web-dev-sdk, with server-side in-memory cache (Map). English returns original as-is. Returns {translated, lang, rtl}.
+- Modified src/lib/i18n/context.tsx: t() now ALWAYS returns English regardless of selected lang. Removed the app-wide dir wrapper. Kept lang/setLang so the movie detail knows which language to translate the story to.
+- Modified src/app/page.tsx: removed the dir/lang effect that flipped the whole app to RTL. Document is now locked to dir="ltr" lang="en" permanently.
+- Created src/components/movie/TranslatedStory.tsx: dedicated component that fetches the overview translation based on useI18n().lang, shows a loading spinner, a language badge (فارسی/Français) next to the "Story" heading, and applies dir="rtl" + right text-align + Vazirmatn font ONLY to the synopsis paragraph when lang==="fa". Falls back to original English on error. Uses React 19 render-time adjustment pattern (no setState-in-effect).
+- Modified src/views/MovieDetailView.tsx: replaced inline overview <p> with <TranslatedStory overview={movie.overview} movieId={movie.id} />.
+
+Verification (agent-browser):
+- Vertigo detail in English: Story shows original English synopsis, html dir=ltr ✓
+- Switch to فارسی: sidebar/header/labels ALL stay English (Add Movie, Watched Movies, Story, Trailer, Gallery, My Information, Director: Alfred Hitchcock, genres Mystery/Romance/Thriller) ✓
+- Only the Story synopsis translated to Persian: "یک کارآگاه بازنشسته سانفرانسیسکو که از آکروفوبیا رنج می‌برد..." ✓
+- Story paragraph dir="rtl" (RTL + right-aligned + Vazirmatn font), html dir stays "ltr" ✓
+- Switch to Français: Story translated to French ("Un détective à la retraite..."), dir="ltr" ✓
+- Switch back to فارسی: server cache hit — 12ms vs 1953ms first time ✓
+- No console errors, lint clean
+
+Stage Summary:
+- Language switcher now controls ONLY the movie Story translation
+- App UI and all movie metadata remain in English/original at all times
+- Persian story is RTL (right-aligned, Vazirmatn font); French/English story is LTR
+- LLM-powered translation with server-side caching for instant repeat visits

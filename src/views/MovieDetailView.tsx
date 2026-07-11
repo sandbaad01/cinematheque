@@ -19,6 +19,7 @@ import { GenrePill } from "@/components/movie/GenrePill";
 import { SectionHeader } from "@/components/movie/SectionHeader";
 import { MovieRow } from "@/components/movie/MovieRow";
 import { AddMovieDialog } from "@/components/movie/AddMovieDialog";
+import { TranslatedStory } from "@/components/movie/TranslatedStory";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -188,12 +189,7 @@ export function MovieDetailView({ movieId }: { movieId: string }) {
           {/* Left: story + details */}
           <div className="space-y-6 lg:col-span-2">
             {movie.overview && (
-              <section>
-                <SectionHeader title={t("movie_story")} icon={<PenLine className="size-4" />} />
-                <p className="mt-2 text-sm leading-relaxed text-muted-foreground md:text-base">
-                  {movie.overview}
-                </p>
-              </section>
+              <TranslatedStory overview={movie.overview} movieId={movie.id} />
             )}
 
             {/* Crew details */}
