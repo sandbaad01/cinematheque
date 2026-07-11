@@ -330,3 +330,36 @@ Verification (agent-browser):
 
 Stage Summary:
 - All 5 movie-page fixes implemented and verified. Crew names are now fully navigable to dedicated filmography pages with sorting. Ready for the "cinematic recommendations" topic.
+
+---
+Task ID: 13
+Agent: Main (Z.ai Code)
+Task: 3 movie-page fixes — remove header title, soften Back button, constrain My Info box
+
+Work Log:
+
+Fix 1 — Remove "movie" title from header on movie page:
+- In Header.tsx, wrapped the title+subtitle block in a conditional: `{view !== "movie" && titleKey && (...)}`. On the movie detail page, the header now shows only the search box + random + language + theme buttons — no duplicate "movie" title. The movie's own title is already shown large in the content area.
+
+Fix 2 — Soften the Back button:
+- Changed from `variant="secondary"` (solid high-contrast) to `variant="ghost"` with custom classes: `bg-background/40 text-foreground/80 backdrop-blur-sm hover:bg-background/60 hover:text-foreground`.
+- Result: 40% opacity background, 80% opacity text, subtle blur — blends with the backdrop image instead of standing out as a solid block. Hover gently increases to 60% bg + full text.
+
+Fix 3 — My Information box: equal-width items, aligned, 2/3 width:
+- Wrapped the Card in a constrainer: `<div className="mx-auto w-full max-w-[260px]">` — card is now 260px wide (~2/3 of the previous ~390px column), centered.
+- Made ALL items full-width and consistently aligned:
+  * Favorite button: added `w-full`
+  * Status select: already `w-full`
+  * Rank input: changed from `w-24` to `w-full min-w-0 flex-1` (fills the row, Clear Rank button stays compact beside it)
+  * Watch date input: added `w-full`
+  * Rewatch: changed from split label/button row to a labeled full-width button ("Rewatches (N)" label + full-width "Log Rewatch" button)
+- All items now have equal left/right edges, creating a clean aligned column.
+
+Verification (agent-browser):
+- Fix 1: Header on movie page has NO "movie" h1. First heading is the movie title "The Godfather" in content. ✓
+- Fix 2: Back button has bg rgba(0.21/0.4) — soft 40% opacity, text 80% opacity, backdrop-blur. Much lower contrast than before. ✓
+- Fix 3: My Info card width = 260px (was ~390px). Wrapper has mx-auto max-w-[260px]. Favorite/Status/Rank/WatchDate/Rewatch all have w-full. ✓
+- No console errors, lint clean.
+
+Stage Summary:
+- All 3 fixes implemented and verified. Movie page header is clean, Back button is soft, My Information is a tidy narrow aligned box.

@@ -154,7 +154,12 @@ export function MovieDetailView({ movieId }: { movieId: string }) {
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-background via-background/70 to-transparent" />
         <div className="absolute left-4 top-4 md:left-6 md:top-6">
-          <Button variant="secondary" size="sm" onClick={back} className="gap-1.5">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={back}
+            className="gap-1.5 bg-background/40 text-foreground/80 backdrop-blur-sm hover:bg-background/60 hover:text-foreground"
+          >
             <ArrowLeft className="size-4" />
             {t("action_back")}
           </Button>
@@ -344,23 +349,24 @@ export function MovieDetailView({ movieId }: { movieId: string }) {
             )}
           </div>
 
-          {/* Right: personal info */}
+          {/* Right: personal info — constrained to 2/3 of column width,
+              all items full-width and left/right aligned for consistency */}
           <div className="space-y-4">
+            <div className="mx-auto w-full max-w-[260px]">
             <Card className="space-y-2.5 p-5">
               <h2 className="text-center text-lg font-semibold">{t("movie_myInfo")}</h2>
 
-              {/* Favorite + status */}
-              <div className="flex items-center justify-between">
-                <Button
-                  variant={movie.favorite ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => update({ favorite: !movie.favorite })}
-                  disabled={savingField}
-                >
-                  <Heart className={cn("size-4", movie.favorite && "fill-current")} />
-                  {movie.favorite ? t("action_unmarkFavorite") : t("action_markFavorite")}
-                </Button>
-              </div>
+              {/* Favorite — full width button */}
+              <Button
+                variant={movie.favorite ? "default" : "outline"}
+                size="sm"
+                onClick={() => update({ favorite: !movie.favorite })}
+                disabled={savingField}
+                className="w-full"
+              >
+                <Heart className={cn("size-4", movie.favorite && "fill-current")} />
+                {movie.favorite ? t("action_unmarkFavorite") : t("action_markFavorite")}
+              </Button>
 
               <div className="space-y-1">
                 <label className="text-xs font-medium text-muted-foreground">{t("movie_status")}</label>
@@ -381,7 +387,7 @@ export function MovieDetailView({ movieId }: { movieId: string }) {
                 <RatingStars value={movie.personalRating} onChange={(v) => update({ personalRating: v })} size="md" />
               </div>
 
-              {/* Lifetime rank */}
+              {/* Lifetime rank — full width */}
               <div className="space-y-1">
                 <label className="text-xs font-medium text-muted-foreground">{t("movie_lifetimeRank")}</label>
                 <div className="flex items-center gap-2">
@@ -394,10 +400,10 @@ export function MovieDetailView({ movieId }: { movieId: string }) {
                       const v = e.target.value ? parseInt(e.target.value, 10) : null;
                       update({ lifetimeRank: v && v > 0 ? v : null });
                     }}
-                    className="w-24"
+                    className="w-full min-w-0 flex-1"
                   />
                   {movie.lifetimeRank != null && (
-                    <Button variant="ghost" size="sm" onClick={() => update({ lifetimeRank: null })}>
+                    <Button variant="ghost" size="sm" onClick={() => update({ lifetimeRank: null })} className="shrink-0">
                       {t("action_clearRank")}
                     </Button>
                   )}
@@ -411,16 +417,14 @@ export function MovieDetailView({ movieId }: { movieId: string }) {
                   type="date"
                   value={movie.watchDate ?? ""}
                   onChange={(e) => update({ watchDate: e.target.value || null })}
+                  className="w-full"
                 />
               </div>
 
-              {/* Rewatch */}
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-medium text-muted-foreground">{t("movie_rewatch")}</p>
-                  <p className="text-lg font-bold">{movie.rewatchCount}</p>
-                </div>
-                <Button variant="outline" size="sm" onClick={handleRewatch} disabled={savingField}>
+              {/* Rewatch — full width button */}
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-muted-foreground">{t("movie_rewatch")} ({movie.rewatchCount})</label>
+                <Button variant="outline" size="sm" onClick={handleRewatch} disabled={savingField} className="w-full">
                   <Repeat className="size-4" />
                   {t("action_addRewatch")}
                 </Button>
@@ -441,6 +445,7 @@ export function MovieDetailView({ movieId }: { movieId: string }) {
                 </div>
               )}
             </Card>
+            </div>
 
             {/* Notes */}
             <Card className="space-y-2 p-5">

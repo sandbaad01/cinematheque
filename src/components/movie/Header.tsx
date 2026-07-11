@@ -99,17 +99,20 @@ export function Header({ onMenuClick, className }: HeaderProps) {
         </Button>
       )}
 
-      {/* Current view title + subtitle */}
-      <div className="flex min-w-0 flex-col">
-        <h1 className="truncate text-base font-semibold leading-tight tracking-tight md:text-lg">
-          {t(titleKey)}
-        </h1>
-        {subtitleKey && (
-          <p className="truncate text-xs leading-tight text-muted-foreground">
-            {t(subtitleKey)}
-          </p>
-        )}
-      </div>
+      {/* Current view title + subtitle — hidden on movie detail page
+          (the movie title is already shown large in the content area) */}
+      {view !== "movie" && titleKey && (
+        <div className="flex min-w-0 flex-col">
+          <h1 className="truncate text-base font-semibold leading-tight tracking-tight md:text-lg">
+            {t(titleKey)}
+          </h1>
+          {subtitleKey && (
+            <p className="truncate text-xs leading-tight text-muted-foreground">
+              {t(subtitleKey)}
+            </p>
+          )}
+        </div>
+      )}
 
       <div className="flex-1" />
 
