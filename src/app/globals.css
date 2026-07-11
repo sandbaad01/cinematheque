@@ -43,76 +43,94 @@
   --radius-xl: calc(var(--radius) + 4px);
 }
 
-/* Cinematic dark theme by default */
+/* ===== Light theme (default :root) =====
+   Cream/bone background, teal tile primary, terracotta secondary */
 :root {
   --radius: 0.75rem;
-  /* Dark mode is the default (cinema feel) */
-  --background: oklch(0.16 0.008 280);
-  --foreground: oklch(0.96 0.005 280);
-  --card: oklch(0.205 0.01 280);
-  --card-foreground: oklch(0.96 0.005 280);
-  --popover: oklch(0.205 0.01 280);
-  --popover-foreground: oklch(0.96 0.005 280);
-  --primary: oklch(0.72 0.19 60); /* warm amber/gold */
-  --primary-foreground: oklch(0.16 0.008 280);
-  --secondary: oklch(0.27 0.012 280);
-  --secondary-foreground: oklch(0.96 0.005 280);
-  --muted: oklch(0.25 0.01 280);
-  --muted-foreground: oklch(0.68 0.012 280);
-  --accent: oklch(0.3 0.015 280);
-  --accent-foreground: oklch(0.96 0.005 280);
-  --destructive: oklch(0.65 0.22 25);
-  --border: oklch(1 0 0 / 8%);
-  --input: oklch(1 0 0 / 12%);
-  --ring: oklch(0.72 0.19 60);
-  --chart-1: oklch(0.72 0.19 60);
-  --chart-2: oklch(0.65 0.18 350);
-  --chart-3: oklch(0.7 0.15 160);
-  --chart-4: oklch(0.7 0.16 200);
-  --chart-5: oklch(0.75 0.18 30);
-  --sidebar: oklch(0.185 0.008 280);
-  --sidebar-foreground: oklch(0.96 0.005 280);
-  --sidebar-primary: oklch(0.72 0.19 60);
-  --sidebar-primary-foreground: oklch(0.16 0.008 280);
-  --sidebar-accent: oklch(0.27 0.012 280);
-  --sidebar-accent-foreground: oklch(0.96 0.005 280);
-  --sidebar-border: oklch(1 0 0 / 8%);
-  --sidebar-ring: oklch(0.72 0.19 60);
+
+  --background: hsl(33 20% 90%);
+  --foreground: hsl(210 11% 15%);
+  --card: hsl(0 0% 100%);
+  --card-foreground: hsl(210 11% 15%);
+  --popover: hsl(0 0% 100%);
+  --popover-foreground: hsl(210 11% 15%);
+
+  --primary: hsl(174 40% 45%);
+  --primary-foreground: hsl(0 0% 100%);
+
+  --secondary: hsl(16 50% 60%);
+  --secondary-foreground: hsl(0 0% 100%);
+
+  --muted: hsl(33 15% 85%);
+  --muted-foreground: hsl(210 11% 40%);
+  --accent: hsl(174 40% 45%);
+  --accent-foreground: hsl(0 0% 100%);
+
+  --destructive: hsl(0 84.2% 60.2%);
+  --destructive-foreground: hsl(210 40% 98%);
+  --border: hsl(33 15% 80%);
+  --input: hsl(33 15% 80%);
+  --ring: hsl(174 40% 45%);
+
+  /* Chart palette: teal, terracotta, gold, muted purple, sage */
+  --chart-1: hsl(174 40% 45%);
+  --chart-2: hsl(16 50% 60%);
+  --chart-3: hsl(45 70% 55%);
+  --chart-4: hsl(280 35% 60%);
+  --chart-5: hsl(140 30% 55%);
+
+  --sidebar: hsl(33 20% 87%);
+  --sidebar-foreground: hsl(210 11% 15%);
+  --sidebar-primary: hsl(174 40% 45%);
+  --sidebar-primary-foreground: hsl(0 0% 100%);
+  --sidebar-accent: hsl(33 15% 82%);
+  --sidebar-accent-foreground: hsl(210 11% 15%);
+  --sidebar-border: hsl(33 15% 80%);
+  --sidebar-ring: hsl(174 40% 45%);
 }
 
-/* Light theme override */
-.light {
-  --background: oklch(0.985 0.002 280);
-  --foreground: oklch(0.2 0.01 280);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.2 0.01 280);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.2 0.01 280);
-  --primary: oklch(0.6 0.18 55);
-  --primary-foreground: oklch(0.99 0 0);
-  --secondary: oklch(0.96 0.004 280);
-  --secondary-foreground: oklch(0.2 0.01 280);
-  --muted: oklch(0.96 0.004 280);
-  --muted-foreground: oklch(0.5 0.01 280);
-  --accent: oklch(0.94 0.006 280);
-  --accent-foreground: oklch(0.2 0.01 280);
-  --destructive: oklch(0.58 0.24 27);
-  --border: oklch(0.9 0.004 280);
-  --input: oklch(0.9 0.004 280);
-  --ring: oklch(0.6 0.18 55);
-  --chart-1: oklch(0.6 0.18 55);
-  --chart-2: oklch(0.55 0.2 350);
-  --chart-3: oklch(0.6 0.15 160);
-  --chart-4: oklch(0.55 0.16 200);
-  --chart-5: oklch(0.65 0.18 30);
-  --sidebar: oklch(0.97 0.003 280);
-  --sidebar-foreground: oklch(0.2 0.01 280);
-  --sidebar-primary: oklch(0.6 0.18 55);
-  --sidebar-primary-foreground: oklch(0.99 0 0);
-  --sidebar-accent: oklch(0.94 0.006 280);
-  --sidebar-accent-foreground: oklch(0.2 0.01 280);
-  --sidebar-border: oklch(0.9 0.004 280);
-  --sidebar-ring: oklch(0.6 0.18 55);
+/* ===== Dark theme (default on load via <html class="dark">) =====
+   Deep navy/lajvardi background, navy cards, brighter teal primary */
+.dark {
+  --background: hsl(208 29% 10%);
+  --foreground: hsl(210 40% 98%);
+
+  --card: hsl(209 28% 16%);
+  --card-foreground: hsl(210 40% 98%);
+  --popover: hsl(209 28% 16%);
+  --popover-foreground: hsl(210 40% 98%);
+
+  --primary: hsl(174 42% 54%);
+  --primary-foreground: hsl(208 29% 10%);
+
+  --secondary: hsl(16 45% 57%);
+  --secondary-foreground: hsl(210 40% 98%);
+
+  --muted: hsl(209 28% 25%);
+  --muted-foreground: hsl(210 40% 70%);
+  --accent: hsl(174 42% 54%);
+  --accent-foreground: hsl(208 29% 10%);
+
+  --destructive: hsl(0 62.8% 30.6%);
+  --destructive-foreground: hsl(210 40% 98%);
+  --border: hsl(209 28% 25%);
+  --input: hsl(209 28% 25%);
+  --ring: hsl(174 42% 54%);
+
+  --chart-1: hsl(174 42% 54%);
+  --chart-2: hsl(16 45% 57%);
+  --chart-3: hsl(45 75% 60%);
+  --chart-4: hsl(280 40% 65%);
+  --chart-5: hsl(140 35% 60%);
+
+  --sidebar: hsl(208 29% 12%);
+  --sidebar-foreground: hsl(210 40% 98%);
+  --sidebar-primary: hsl(174 42% 54%);
+  --sidebar-primary-foreground: hsl(208 29% 10%);
+  --sidebar-accent: hsl(209 28% 20%);
+  --sidebar-accent-foreground: hsl(210 40% 98%);
+  --sidebar-border: hsl(209 28% 25%);
+  --sidebar-ring: hsl(174 42% 54%);
 }
 
 @layer base {
@@ -158,9 +176,9 @@
   transform: translateY(-4px);
 }
 
-/* Gradient text */
+/* Gradient text — teal to terracotta */
 .text-gradient {
-  background: linear-gradient(135deg, var(--primary), oklch(0.8 0.15 30));
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;

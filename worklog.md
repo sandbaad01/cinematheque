@@ -123,3 +123,27 @@ Stage Summary:
 - Dark cinematic theme with amber/gold accent, light mode toggle
 - Lint passes clean (0 errors, 0 warnings)
 - App is fully interactive and production-ready
+
+---
+Task ID: 7
+Agent: Main (Z.ai Code)
+Task: Apply user-provided custom color palette (teal/terracotta/cream + navy dark)
+
+Work Log:
+- Replaced :root (light) and .dark color blocks in globals.css with user's HSL palette
+- Light: cream/bone background (hsl 33 20% 90%), teal tile primary (hsl 174 40% 45%), terracotta secondary (hsl 16 50% 60%), soft borders
+- Dark: deep navy/lajvardi background (hsl 208 29% 10%), navy cards (hsl 209 28% 16%), brighter teal primary (hsl 174 42% 54%)
+- Removed the old .light override block (no longer needed: :root defines light, .dark overrides)
+- Derived matching chart palette (teal, terracotta, gold, muted purple, sage) and sidebar colors for both themes
+- Updated .text-gradient to use primary→secondary (teal→terracotta) instead of hardcoded oklch
+- Theme toggle in Header already works: adds/removes "dark" class; "light" class falls back to :root values
+
+Verification (agent-browser):
+- Dark mode (default): --primary=#58bbb1 (teal), card=#1d2934 (navy), secondary=#c37a60 (terracotta) ✓
+- Light mode (toggle): --primary=#45a197 (teal), card=#fff (white), htmlClass=light ✓
+- Navigated watched + movie detail in light mode — renders cleanly, no console errors
+- Lint passes clean
+
+Stage Summary:
+- New brand palette applied across the entire app (buttons, cards, sidebar, badges, charts, gradients)
+- Both light and dark themes verified working via theme toggle
