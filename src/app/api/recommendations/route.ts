@@ -1,216 +1,291 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { parseMovie, type Movie, type Recommendation } from "@/lib/movie/types";
+import {
+  getRecommendations,
+  getSimilarMovies,
+  getMovieKeywords,
+  getMovieDetails,
+  tmdbToMoviePayload,
+  posterUrl,
+  type TmdbRecommendationItem,
+} from "@/lib/tmdb";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
-interface Scored {
-  movie: Movie;
+// A candidate from TMDb, with a score and the seeds that recommended it.
+interface TmdbCandidate {
+  tmdbId: number;
+  item: TmdbRecommendationItem;
   score: number;
-  reasons: string[];
+  seeds: string[]; // titles of seed movies that recommended this
+  source: "recommendation" | "similar";
+  keywordOverlap: number;
 }
 
-// Compute a similarity score between a candidate and a seed movie.
-function scoreCandidate(candidate: Movie, seed: Movie): { score: number; reasons: string[] } {
-  let score = 0;
-  const reasons: string[] = [];
-
-  // +3 same director
-  if (
-    seed.director &&
-    candidate.director &&
-    seed.director.toLowerCase() === candidate.director.toLowerCase()
-  ) {
-    score += 3;
-    reasons.push(`same director (${seed.director})`);
-  }
-
-  // +2 per shared actor, max +6
-  const seedCast = new Set(seed.cast.map((c) => c.toLowerCase()));
-  const sharedActors = candidate.cast.filter((c) =>
-    seedCast.has(c.toLowerCase())
-  );
-  if (sharedActors.length > 0) {
-    score += Math.min(sharedActors.length * 2, 6);
-    reasons.push(
-      `shares ${sharedActors.length} actor${sharedActors.length > 1 ? "s" : ""}`
-    );
-  }
-
-  // +1.5 per shared genre, max +4.5
-  const seedGenres = new Set(seed.genres.map((g) => g.toLowerCase()));
-  const sharedGenres = candidate.genres.filter((g) =>
-    seedGenres.has(g.toLowerCase())
-  );
-  if (sharedGenres.length > 0) {
-    score += Math.min(sharedGenres.length * 1.5, 4.5);
-    reasons.push(
-      `shares ${sharedGenres.length} genre${sharedGenres.length > 1 ? "s" : ""} (${sharedGenres.join(", ")})`
-    );
-  }
-
-  // +1 same country
-  if (
-    seed.country &&
-    candidate.country &&
-    seed.country.toLowerCase() === candidate.country.toLowerCase()
-  ) {
-    score += 1;
-    reasons.push(`same country (${seed.country})`);
-  }
-
-  // +1 similar personalRating (both exist, within 1.5)
-  if (
-    typeof seed.personalRating === "number" &&
-    typeof candidate.personalRating === "number" &&
-    Math.abs(seed.personalRating - candidate.personalRating) <= 1.5
-  ) {
-    score += 1;
-    reasons.push(
-      `similar rating (${candidate.personalRating}/10 vs ${seed.personalRating}/10)`
-    );
-  }
-
-  // +0.5 shares a tag
-  const seedTags = new Set(seed.tags.map((t) => t.toLowerCase()));
-  const sharedTags = candidate.tags.filter((t) =>
-    seedTags.has(t.toLowerCase())
-  );
-  if (sharedTags.length > 0) {
-    score += 0.5;
-    reasons.push(`shares tag "${sharedTags[0]}"`);
-  }
-
-  return { score, reasons };
-}
-
-function buildReason(movie: Movie, seed: Movie, reasons: string[]): string {
-  if (reasons.length === 0) {
-    return `"${movie.title}" might appeal to you based on your archive.`;
-  }
-  // If single seed (movieId), build specific sentences
-  const sharedGenres = (() => {
-    const sg = new Set(seed.genres.map((g) => g.toLowerCase()));
-    return movie.genres.filter((g) => sg.has(g.toLowerCase()));
-  })();
-
-  if (reasons.length === 1) {
-    const r = reasons[0];
-    if (r.startsWith("same director")) {
-      return `Same director as "${seed.title}".`;
-    }
-    if (r.startsWith("shares") && r.includes("genre")) {
-      return `Similar ${sharedGenres.slice(0, 2).join("/")} to "${seed.title}".`;
-    }
-    return `Recommended because it ${r} with "${seed.title}".`;
-  }
-
-  // Multiple reasons — combine top two
-  const top = reasons.slice(0, 2);
-  const hasDirector = top.some((r) => r.startsWith("same director"));
-  const hasGenre = top.some((r) => r.includes("genre"));
-  if (hasDirector && hasGenre && sharedGenres.length > 0) {
-    return `Same director and ${sharedGenres.slice(0, 2).join("/")} as "${seed.title}".`;
-  }
-  return `Recommended because it ${top.join(" and ")} with "${seed.title}".`;
-}
-
-// GET /api/recommendations
+/**
+ * GET /api/recommendations
+ * Params:
+ *   movieId — get recommendations based on a specific movie
+ *   genre   — get recommendations within a genre
+ *   (none)  — global recommendations based on the user's top-rated movies
+ *
+ * Uses TMDb's collaborative-filtering recommendation engine as the PRIMARY
+ * signal (movies that millions of TMDb users watched after the seed movie),
+ * supplemented by TMDb keyword overlap (thematic similarity) and local
+ * archive signals (shared director/actors/genres).
+ *
+ * Candidates that are already in the user's archive are filtered out
+ * (unless hideWatched=false).
+ */
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const movieId = searchParams.get("movieId");
     const genre = searchParams.get("genre");
-    const hideWatched = searchParams.get("hideWatched") === "true";
+    const hideWatched = searchParams.get("hideWatched") !== "false";
 
     const all = await db.movie.findMany();
-    const movies: Movie[] = all.map(parseMovie);
+    const archiveMovies: Movie[] = all.map(parseMovie);
 
-    let seeds: Movie[];
-    let candidates: Movie[];
+    // Build a set of tmdbIds already in the archive (for filtering)
+    const archiveTmdbIds = new Set(
+      archiveMovies.filter((m) => m.tmdbId != null).map((m) => m.tmdbId!)
+    );
+    // Also build a normalized title+year set for fuzzy matching
+    const archiveTitleKeys = new Set(
+      archiveMovies.map((m) =>
+        `${m.title.toLowerCase().trim()}|${m.year ?? ""}`
+      )
+    );
+
+    // ---------- Determine seed movies ----------
+    let seedMovies: Movie[] = [];
+    let seedContext: { title: string; director: string | null; year: number | null }[] = [];
 
     if (movieId) {
-      const seed = movies.find((m) => m.id === movieId);
-      if (!seed) {
-        return NextResponse.json(
-          { error: "Seed movie not found" },
-          { status: 404 }
-        );
+      // Handle TMDb-only movies (not yet in the archive)
+      if (movieId.startsWith("tmdb-")) {
+        const tmdbId = parseInt(movieId.replace("tmdb-", ""), 10);
+        if (!tmdbId) {
+          return NextResponse.json({ error: "Invalid TMDb id" }, { status: 400 });
+        }
+        try {
+          const details = await getMovieDetails(tmdbId);
+          const payload = tmdbToMoviePayload(details);
+          const seedMovie: Movie = {
+            id: movieId,
+            ...payload,
+            poster: payload.poster,
+            backdrop: payload.backdrop,
+            imdbRating: null,
+            status: "want",
+            favorite: false,
+            rewatchCount: 0,
+            personalRating: null,
+            watchDate: null,
+            notes: null,
+            lifetimeRank: null,
+            tags: [],
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          } as Movie;
+          seedMovies = [seedMovie];
+        } catch {
+          return NextResponse.json({ error: "TMDb movie not found" }, { status: 404 });
+        }
+      } else {
+        const seed = archiveMovies.find((m) => m.id === movieId);
+        if (!seed) {
+          return NextResponse.json({ error: "Seed movie not found" }, { status: 404 });
+        }
+        seedMovies = [seed];
       }
-      seeds = [seed];
-      candidates = movies.filter((m) => m.id !== seed.id);
     } else if (genre) {
       const gLower = genre.toLowerCase();
-      seeds = movies.filter(
+      seedMovies = archiveMovies.filter(
         (m) =>
           m.status === "watched" &&
           m.genres.some((g) => g.toLowerCase() === gLower)
       );
-      candidates = movies.filter((m) =>
-        m.genres.some((g) => g.toLowerCase() === gLower)
-      );
     } else {
-      // global
-      seeds = movies.filter(
-        (m) => m.status === "watched" && (m.personalRating ?? 0) >= 7
-      );
-      if (seeds.length === 0) {
-        // fallback: any watched
-        seeds = movies.filter((m) => m.status === "watched");
-      }
-      let notWatched = movies.filter((m) => m.status !== "watched");
-      if (notWatched.length < 4) {
-        // too few — fall back to all
-        candidates = movies.filter((m) => !seeds.includes(m));
-      } else {
-        candidates = notWatched;
+      // Global: use top-rated watched movies (rating >= 7), or top 8 by rating
+      seedMovies = archiveMovies
+        .filter((m) => m.status === "watched" && m.personalRating != null)
+        .sort((a, b) => (b.personalRating ?? 0) - (a.personalRating ?? 0))
+        .slice(0, 8);
+      if (seedMovies.length === 0) {
+        seedMovies = archiveMovies.filter((m) => m.status === "watched").slice(0, 8);
       }
     }
 
-    if (seeds.length === 0 || candidates.length === 0) {
+    if (seedMovies.length === 0) {
       return NextResponse.json({ items: [] });
     }
 
-    const scored: Scored[] = [];
-    for (const cand of candidates) {
-      let bestScore = 0;
-      let bestReasons: string[] = [];
-      let bestSeed: Movie | null = null;
-      for (const seed of seeds) {
-        if (cand.id === seed.id) continue;
-        const { score, reasons } = scoreCandidate(cand, seed);
-        if (score > bestScore) {
-          bestScore = score;
-          bestReasons = reasons;
-          bestSeed = seed;
-        }
+    seedContext = seedMovies.map((m) => ({
+      title: m.title,
+      director: m.director,
+      year: m.year,
+    }));
+
+    // ---------- Fetch TMDb recommendations for each seed ----------
+    const candidateMap = new Map<number, TmdbCandidate>();
+
+    // Collect seed keywords for keyword-overlap scoring
+    const seedKeywordSets: Map<string, Set<string>> = new Map(); // seedTitle -> keywords
+    const allSeedKeywords = new Set<string>();
+
+    for (const seed of seedMovies) {
+      if (!seed.tmdbId) continue;
+      try {
+        const [recs, similar, keywords] = await Promise.all([
+          getRecommendations(seed.tmdbId),
+          getSimilarMovies(seed.tmdbId),
+          getMovieKeywords(seed.tmdbId),
+        ]);
+
+        const kwSet = new Set(keywords.map((k) => k.name.toLowerCase()));
+        seedKeywordSets.set(seed.title, kwSet);
+        kwSet.forEach((k) => allSeedKeywords.add(k));
+
+        // Score recommendations higher than similar
+        const processItems = (items: TmdbRecommendationItem[], source: "recommendation" | "similar") => {
+          for (const item of items) {
+            if (!item.id || archiveTmdbIds.has(item.id)) continue;
+            // Fuzzy title match to catch duplicates without tmdbId
+            const titleKey = `${item.title.toLowerCase().trim()}|${item.release_date ? item.release_date.slice(0, 4) : ""}`;
+            if (archiveTitleKeys.has(titleKey)) continue;
+
+            const baseScore = source === "recommendation" ? 10 : 6;
+            // Weight by the seed's personal rating (higher-rated seeds count more)
+            const ratingWeight = seed.personalRating != null ? 1 + seed.personalRating / 20 : 1;
+            const score = baseScore * ratingWeight + (item.vote_average ?? 0) * 0.3;
+
+            const existing = candidateMap.get(item.id);
+            if (existing) {
+              existing.score += score;
+              existing.seeds.push(seed.title);
+            } else {
+              candidateMap.set(item.id, {
+                tmdbId: item.id,
+                item,
+                score,
+                seeds: [seed.title],
+                source,
+                keywordOverlap: 0,
+              });
+            }
+          }
+        };
+        processItems(recs, "recommendation");
+        processItems(similar, "similar");
+      } catch (err) {
+        console.error(`TMDb fetch failed for ${seed.title} (${seed.tmdbId})`, err);
       }
-      if (bestScore <= 0) continue;
-      if (cand.status === "watched") {
-        if (hideWatched) continue;
-        bestScore *= 0.1;
-      }
-      scored.push({
-        movie: cand,
-        score: bestScore,
-        reasons: bestReasons,
-        // bestSeed stored on the object for reason building
-        ...(bestSeed ? { _seed: bestSeed } : {}),
-      } as Scored & { _seed?: Movie });
     }
 
-    scored.sort((a, b) => b.score - a.score);
-    const top = scored.slice(0, 50);
+    // ---------- Keyword overlap scoring for top candidates ----------
+    // Fetch keywords for the top 15 candidates and score by overlap with seed keywords
+    const topCandidates = [...candidateMap.values()]
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 15);
 
-    const items: Recommendation[] = top.map((s) => {
-      const seed = (s as any)._seed as Movie | undefined;
-      const reason = seed
-        ? buildReason(s.movie, seed, s.reasons)
-        : s.reasons.length > 0
-        ? `Recommended because it ${s.reasons.join(", ")}.`
-        : `Recommended based on your archive.`;
-      return { movie: s.movie, score: Math.round(s.score * 100) / 100, reason };
-    });
+    await Promise.all(
+      topCandidates.map(async (cand) => {
+        try {
+          const candKeywords = await getMovieKeywords(cand.tmdbId);
+          const candKwSet = new Set(candKeywords.map((k) => k.name.toLowerCase()));
+          let overlap = 0;
+          for (const kw of candKwSet) {
+            if (allSeedKeywords.has(kw)) overlap++;
+          }
+          cand.keywordOverlap = overlap;
+          // Boost score by keyword overlap
+          cand.score += overlap * 1.5;
+        } catch {
+          // ignore
+        }
+      })
+    );
+
+    // ---------- Build final recommendation list ----------
+    const sorted = [...candidateMap.values()].sort((a, b) => b.score - a.score);
+    const top = sorted.slice(0, 50);
+
+    // Fetch full details for the top candidates to get genres, director, etc.
+    const items: Recommendation[] = await Promise.all(
+      top.map(async (cand) => {
+        // Try to fetch full details; if it fails, use the basic recommendation item
+        let movieData: Partial<Movie> & { poster: string | null; backdrop: string | null; title: string; year: number | null; genres: string[]; director: string | null; overview: string | null; tmdbRating: number | null };
+        try {
+          const details = await getMovieDetails(cand.tmdbId);
+          const payload = tmdbToMoviePayload(details);
+          movieData = {
+            id: `tmdb-${cand.tmdbId}`,
+            ...payload,
+            poster: posterUrl(payload.poster, "w342"),
+            backdrop: payload.backdrop,
+            imdbRating: null,
+            status: "want" as const,
+            favorite: false,
+            rewatchCount: 0,
+            personalRating: null,
+            watchDate: null,
+            notes: null,
+            lifetimeRank: null,
+            tags: [],
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          } as any;
+        } catch {
+          // Fallback to basic data from the recommendation item
+          movieData = {
+            id: `tmdb-${cand.tmdbId}`,
+            tmdbId: cand.tmdbId,
+            imdbId: null,
+            title: cand.item.title,
+            originalTitle: cand.item.original_title ?? null,
+            poster: posterUrl(cand.item.poster_path, "w342"),
+            backdrop: cand.item.backdrop_path ?? null,
+            releaseDate: cand.item.release_date ?? null,
+            year: cand.item.release_date ? parseInt(cand.item.release_date.slice(0, 4), 10) || null : null,
+            genres: [],
+            runtime: null,
+            country: null,
+            language: null,
+            director: null,
+            writers: [],
+            cast: [],
+            overview: cand.item.overview ?? null,
+            imdbRating: null,
+            tmdbRating: cand.item.vote_average ?? null,
+            trailer: null,
+            gallery: [],
+            status: "want" as const,
+            favorite: false,
+            rewatchCount: 0,
+            personalRating: null,
+            watchDate: null,
+            notes: null,
+            lifetimeRank: null,
+            tags: [],
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          } as any;
+        }
+
+        // Build a meaningful reason
+        const reason = buildReason(cand, seedContext);
+
+        return {
+          movie: movieData as Movie,
+          score: Math.round(cand.score * 100) / 100,
+          reason,
+        };
+      })
+    );
 
     return NextResponse.json({ items });
   } catch (err) {
@@ -220,4 +295,34 @@ export async function GET(req: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+/** Build a human-readable reason for why a movie was recommended. */
+function buildReason(
+  cand: TmdbCandidate,
+  seeds: { title: string; director: string | null; year: number | null }[]
+): string {
+  const seedTitles = cand.seeds;
+  const topSeeds = seedTitles.slice(0, 3);
+
+  if (topSeeds.length === 0) {
+    return `Recommended based on your taste profile.`;
+  }
+
+  if (topSeeds.length === 1) {
+    const seed = seeds.find((s) => s.title === topSeeds[0]);
+    if (cand.keywordOverlap > 2) {
+      return `Fans of "${topSeeds[0]}" also loved this — shares thematic elements.`;
+    }
+    if (cand.source === "recommendation") {
+      return `TMDb users who watched "${topSeeds[0]}" also recommended this.`;
+    }
+    return `Similar in style and tone to "${topSeeds[0]}".`;
+  }
+
+  if (topSeeds.length === 2) {
+    return `Loved by fans of both "${topSeeds[0]}" and "${topSeeds[1]}".`;
+  }
+
+  return `Recommended based on "${topSeeds[0]}", "${topSeeds[1]}", and ${topSeeds.length - 2} more films you rated highly.`;
 }

@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import {
   ArrowLeft, Star, Heart, Calendar, Clock, Globe, MapPin, User, PenLine,
-  Play, Trophy, Repeat, ExternalLink, Pencil, Trash2, Plus, Film, Sparkles, Tag, RefreshCw,
+  Play, Trophy, Repeat, ExternalLink, Pencil, Trash2, Plus, Film, Sparkles, Tag, RefreshCw, Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useFetch } from "@/lib/useFetch";
@@ -20,6 +20,7 @@ import { SectionHeader } from "@/components/movie/SectionHeader";
 import { MovieRow } from "@/components/movie/MovieRow";
 import { AddMovieDialog } from "@/components/movie/AddMovieDialog";
 import { TranslatedStory } from "@/components/movie/TranslatedStory";
+import { GalleryLightbox } from "@/components/movie/GalleryLightbox";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -38,15 +39,32 @@ import { cn } from "@/lib/utils";
 export function MovieDetailView({ movieId }: { movieId: string }) {
   const { t } = useI18n();
   const { back, goGenre, goPerson } = useNav();
-  const { data: movie, loading, refetch } = useFetch<Movie>(`/api/movies/${movieId}`);
+
+  // Detect if this is a TMDb-only movie (not yet in the archive)
+  const isTmdbMovie = movieId.startsWith("tmdb-");
+  const tmdbId = isTmdbMovie ? parseInt(movieId.replace("tmdb-", ""), 10) : null;
+
+  const { data: dbMovie, loading: dbLoading, refetch } = useFetch<Movie>(
+    isTmdbMovie ? null : `/api/movies/${movieId}`
+  );
+  const { data: tmdbMovie, loading: tmdbLoading } = useFetch<Movie>(
+    tmdbId ? `/api/tmdb/details?id=${tmdbId}` : null
+  );
+
+  const movie = isTmdbMovie ? tmdbMovie : dbMovie;
+  const loading = isTmdbMovie ? tmdbLoading : dbLoading;
   const { data: recsData } = useFetch<{ items: Recommendation[] }>(
-    `/api/recommendations?movieId=${movieId}`
+    isTmdbMovie
+      ? `/api/recommendations?movieId=tmdb-${tmdbId}`
+      : `/api/recommendations?movieId=${movieId}`
   );
 
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [savingField, setSavingField] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const [adding, setAdding] = useState(false);
 
   if (loading && !movie) {
     return (
@@ -91,6 +109,27 @@ export function MovieDetailView({ movieId }: { movieId: string }) {
       back();
     } catch {
       toast.error("Delete failed");
+    }
+  };
+
+  // Add a TMDb-only movie to the archive
+  const addToArchive = async (status: "watched" | "want") => {
+    setAdding(true);
+    try {
+      const res = await fetch("/api/movies", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...movie, status, rewatchCount: 0 }),
+      });
+      if (!res.ok) throw new Error();
+      const saved = await res.json();
+      toast.success(t("add_success"));
+      // Navigate to the newly created DB movie
+      useNav.getState().goMovie(saved.id);
+    } catch {
+      toast.error("Failed to add");
+    } finally {
+      setAdding(false);
     }
   };
 
@@ -184,23 +223,46 @@ export function MovieDetailView({ movieId }: { movieId: string }) {
                 )}
               </div>
               <div className="flex gap-2">
-                {movie.tmdbId && (
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={refreshFromTmdb}
-                    disabled={refreshing}
-                    title="Refresh from TMDb"
-                  >
-                    <RefreshCw className={cn("size-4", refreshing && "animate-spin")} />
-                  </Button>
+                {isTmdbMovie ? (
+                  <>
+                    <Button
+                      size="sm"
+                      onClick={() => addToArchive("want")}
+                      disabled={adding}
+                      variant="outline"
+                    >
+                      {t("status_want")}
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={() => addToArchive("watched")}
+                      disabled={adding}
+                    >
+                      {adding ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />}
+                      {t("action_add")}
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    {movie.tmdbId && (
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={refreshFromTmdb}
+                        disabled={refreshing}
+                        title="Refresh from TMDb"
+                      >
+                        <RefreshCw className={cn("size-4", refreshing && "animate-spin")} />
+                      </Button>
+                    )}
+                    <Button variant="outline" size="icon" onClick={() => setEditOpen(true)} title={t("action_edit")}>
+                      <Pencil className="size-4" />
+                    </Button>
+                    <Button variant="outline" size="icon" onClick={() => setDeleteOpen(true)} title={t("action_delete")}>
+                      <Trash2 className="size-4 text-destructive" />
+                    </Button>
+                  </>
                 )}
-                <Button variant="outline" size="icon" onClick={() => setEditOpen(true)} title={t("action_edit")}>
-                  <Pencil className="size-4" />
-                </Button>
-                <Button variant="outline" size="icon" onClick={() => setDeleteOpen(true)} title={t("action_delete")}>
-                  <Trash2 className="size-4 text-destructive" />
-                </Button>
               </div>
             </div>
 
@@ -282,10 +344,11 @@ export function MovieDetailView({ movieId }: { movieId: string }) {
               </dl>
             </Card>
 
-            {/* Trailer — no header, just the embedded video + centered links below */}
+            {/* Trailer */}
             {trailerEmbed && (
               <section>
-                <div className="aspect-video overflow-hidden rounded-xl bg-black">
+                <SectionHeader title={t("movie_trailer")} icon={<Play className="size-4" />} />
+                <div className="mt-3 aspect-video overflow-hidden rounded-xl bg-black">
                   <iframe
                     src={trailerEmbed}
                     title={movie.title}
@@ -340,19 +403,34 @@ export function MovieDetailView({ movieId }: { movieId: string }) {
                 <SectionHeader title={t("movie_gallery")} icon={<Film className="size-4" />} />
                 <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
                   {movie.gallery.map((img, i) => (
-                    <div key={i} className="overflow-hidden rounded-lg">
-                      <img src={backdropUrl(img, "w780") ?? img} alt="" className="aspect-video w-full object-cover" loading="lazy" />
-                    </div>
+                    <button
+                      key={i}
+                      onClick={() => setLightboxIndex(i)}
+                      className="group relative overflow-hidden rounded-lg"
+                    >
+                      <img
+                        src={backdropUrl(img, "w780") ?? img}
+                        alt={`Gallery ${i + 1}`}
+                        className="aspect-video w-full object-cover transition-transform group-hover:scale-105"
+                        loading="lazy"
+                      />
+                      <div className="absolute inset-0 bg-black/0 transition-colors group-hover:bg-black/20" />
+                    </button>
                   ))}
                 </div>
+                <GalleryLightbox
+                  images={movie.gallery}
+                  open={lightboxIndex !== null}
+                  startIndex={lightboxIndex ?? 0}
+                  onOpenChange={(o) => { if (!o) setLightboxIndex(null); }}
+                />
               </section>
             )}
           </div>
 
-          {/* Right: personal info — constrained to 2/3 of column width,
-              all items full-width and left/right aligned for consistency */}
+          {/* Right: personal info — hidden for TMDb-only movies (not in archive yet) */}
+          {!isTmdbMovie && (
           <div className="space-y-4">
-            <div className="mx-auto w-full max-w-[260px]">
             <Card className="space-y-2.5 p-5">
               <h2 className="text-center text-lg font-semibold">{t("movie_myInfo")}</h2>
 
@@ -387,9 +465,12 @@ export function MovieDetailView({ movieId }: { movieId: string }) {
                 <RatingStars value={movie.personalRating} onChange={(v) => update({ personalRating: v })} size="md" />
               </div>
 
-              {/* Lifetime rank — full width */}
+              {/* Lifetime rank + Rewatch — compact row, rank input left, rewatch count + buttons right */}
               <div className="space-y-1">
-                <label className="text-xs font-medium text-muted-foreground">{t("movie_lifetimeRank")}</label>
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-medium text-muted-foreground">{t("movie_lifetimeRank")}</label>
+                  <span className="text-xs text-muted-foreground">{t("movie_rewatch")}: <span className="font-semibold text-foreground">{movie.rewatchCount}</span></span>
+                </div>
                 <div className="flex items-center gap-2">
                   <Input
                     type="number"
@@ -400,13 +481,16 @@ export function MovieDetailView({ movieId }: { movieId: string }) {
                       const v = e.target.value ? parseInt(e.target.value, 10) : null;
                       update({ lifetimeRank: v && v > 0 ? v : null });
                     }}
-                    className="w-full min-w-0 flex-1"
+                    className="min-w-0 flex-1"
                   />
                   {movie.lifetimeRank != null && (
                     <Button variant="ghost" size="sm" onClick={() => update({ lifetimeRank: null })} className="shrink-0">
                       {t("action_clearRank")}
                     </Button>
                   )}
+                  <Button variant="ghost" size="sm" onClick={handleRewatch} disabled={savingField} className="shrink-0" title={t("action_addRewatch")}>
+                    <Repeat className="size-4" />
+                  </Button>
                 </div>
               </div>
 
@@ -419,15 +503,6 @@ export function MovieDetailView({ movieId }: { movieId: string }) {
                   onChange={(e) => update({ watchDate: e.target.value || null })}
                   className="w-full"
                 />
-              </div>
-
-              {/* Rewatch — full width button */}
-              <div className="space-y-1">
-                <label className="text-xs font-medium text-muted-foreground">{t("movie_rewatch")} ({movie.rewatchCount})</label>
-                <Button variant="outline" size="sm" onClick={handleRewatch} disabled={savingField} className="w-full">
-                  <Repeat className="size-4" />
-                  {t("action_addRewatch")}
-                </Button>
               </div>
 
               {/* Tags */}
@@ -445,7 +520,6 @@ export function MovieDetailView({ movieId }: { movieId: string }) {
                 </div>
               )}
             </Card>
-            </div>
 
             {/* Notes */}
             <Card className="space-y-2 p-5">
@@ -456,6 +530,7 @@ export function MovieDetailView({ movieId }: { movieId: string }) {
               />
             </Card>
           </div>
+          )}
         </div>
 
         {/* Recommendations */}
@@ -520,7 +595,7 @@ function Detail({
         <Icon className="size-3.5" />
         {label}
       </dt>
-      <dd className="mt-0.5 text-sm font-medium">{value || "—"}</dd>
+      <dd className="mt-0.5 text-sm font-normal text-primary/80">{value || "—"}</dd>
     </div>
   );
 }
@@ -550,7 +625,7 @@ function DetailWithLinks({
             <span key={n} className="flex items-center gap-1.5">
               <button
                 onClick={() => goPerson(n, role)}
-                className="text-primary/90 underline-offset-2 transition-colors hover:text-primary hover:underline"
+                className="text-primary/80 underline-offset-2 transition-colors hover:text-primary hover:underline"
               >
                 {n}
               </button>

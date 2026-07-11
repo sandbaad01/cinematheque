@@ -363,3 +363,52 @@ Verification (agent-browser):
 
 Stage Summary:
 - All 3 fixes implemented and verified. Movie page header is clean, Back button is soft, My Information is a tidy narrow aligned box.
+
+---
+Task ID: 14
+Agent: Main (Z.ai Code)
+Task: 7 movie-page fixes — MI box, rewatch, crew colors, trailer header, gallery lightbox, rename, recommendation engine
+
+Work Log:
+
+Fix 1 — MI box width: removed the max-w-[260px] constraint; card now matches Notes card width (~315px). Rating stars no longer overflow.
+
+Fix 2 — Rewatch compact: merged Lifetime Rank + Rewatch into one section. Label row: "Lifetime Rank" (left) + "Rewatches: N" (right). Input row: rank input (flex-1) + Clear Rank ghost button + Log Rewatch ghost icon button. All compact, right-aligned like Clear Rank.
+
+Fix 3 — Crew detail values color: changed Detail component's <dd> from "text-sm font-medium" (white) to "text-sm font-normal text-primary/80" (soft teal at 80% opacity). Also changed DetailWithLinks from text-primary/90 to text-primary/80 for consistency. Values are now soft teal, not bold, matching the link intensity.
+
+Fix 4 — Trailer header restored: added back <SectionHeader title="Trailer" icon={<Play/>}> above the video iframe.
+
+Fix 5 — Gallery lightbox: created GalleryLightbox component (full-screen dialog with prev/next navigation, copy-to-clipboard, download). Gallery images are now clickable buttons that open the lightbox. Keyboard navigation (arrows + escape) supported.
+
+Fix 6 — Renamed app: replaced "Cinéthèque" with "Cinematheque" in translations.ts (EN/FA/FR) and layout.tsx title.
+
+Fix 7 — MAJOR: Rewrote recommendation engine:
+- Added TMDb API functions: getRecommendations(), getSimilarMovies(), getMovieKeywords()
+- Rewrote /api/recommendations to use TMDb collaborative filtering as PRIMARY signal:
+  * For each seed movie (by tmdbId), fetches TMDb /recommendations + /similar (movies that millions of TMDb users watched after the seed)
+  * Scores: recommendation source = 10pts, similar source = 6pts, weighted by seed's personal rating
+  * Keyword overlap: fetches TMDb keywords for seed + top 15 candidates; +1.5pts per shared keyword (thematic similarity)
+  * Filters out movies already in the archive (by tmdbId + fuzzy title match)
+  * Fetches full details (director, cast, genres, trailer, gallery) for top 50 candidates
+  * Returns 50 recommendations (was 3-4 before)
+- Reasons are meaningful: "Loved by fans of both Godfather and GoodFellas", "Fans of Mad Max: Fury Road also loved this — shares thematic elements"
+- TMDb-only movies (not in archive) get id="tmdb-{id}" and can be opened in MovieDetailView
+- MovieDetailView updated: detects tmdb- prefix, fetches from /api/tmdb/details, shows "Want to Watch" + "Add Movie" buttons instead of edit/delete, hides personal info card
+- /api/tmdb/details route updated to return complete Movie-shaped object
+
+Verification (agent-browser + curl):
+- Global recommendations: 50 results (was 3-4). Top: Casino, The Irishman, Silence of the Lambs — all perfect for Godfather/GoodFellas/Se7en fans ✓
+- Movie-specific (Mad Max): 40 results including Mad Max 2, Matrix, post-apocalyptic films ✓
+- TMDb movie detail (Casino): shows title, story, trailer, gallery + "Want to Watch"/"Add Movie" buttons ✓
+- MI box: 315px (matches Notes), rating fits ✓
+- Crew values: oklab teal at 80% opacity, font-normal ✓
+- Trailer header: "Trailer" h2 restored ✓
+- Gallery lightbox: "Image 1 of 8" + Copy/Download/Close ✓
+- App name: "Cinematheque" ✓
+- Lint clean
+
+Stage Summary:
+- Recommendation engine completely transformed: from 3-4 generic local matches to 50 TMDb-powered collaborative-filtering recommendations with thematic keyword analysis
+- TMDb movies not in archive can be browsed in full detail and added with one click
+- All 7 UI fixes verified. Ready for next round of feedback.

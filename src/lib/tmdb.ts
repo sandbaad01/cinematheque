@@ -130,6 +130,53 @@ export async function getMovieDetails(tmdbId: number): Promise<TmdbMovieDetails>
   });
 }
 
+export interface TmdbRecommendationItem {
+  id: number;
+  title: string;
+  original_title?: string;
+  release_date?: string;
+  overview?: string;
+  poster_path?: string | null;
+  backdrop_path?: string | null;
+  vote_average?: number;
+  genre_ids?: number[];
+  popularity?: number;
+}
+
+export interface TmdbRecommendationResponse {
+  page: number;
+  results: TmdbRecommendationItem[];
+  total_pages: number;
+  total_results: number;
+}
+
+/** TMDb's curated recommendations for a movie (collaborative filtering). */
+export async function getRecommendations(tmdbId: number): Promise<TmdbRecommendationItem[]> {
+  const data = await tmdbFetch<TmdbRecommendationResponse>(`/movie/${tmdbId}/recommendations`, {
+    page: "1",
+  });
+  return data.results ?? [];
+}
+
+/** TMDb's "similar movies" (algorithmic similarity). */
+export async function getSimilarMovies(tmdbId: number): Promise<TmdbRecommendationItem[]> {
+  const data = await tmdbFetch<TmdbRecommendationResponse>(`/movie/${tmdbId}/similar`, {
+    page: "1",
+  });
+  return data.results ?? [];
+}
+
+export interface TmdbKeyword {
+  id: number;
+  name: string;
+}
+
+/** TMDb keywords for a movie (thematic tags like "obsession", "neo-noir"). */
+export async function getMovieKeywords(tmdbId: number): Promise<TmdbKeyword[]> {
+  const data = await tmdbFetch<{ id: number; keywords: TmdbKeyword[] }>(`/movie/${tmdbId}/keywords`);
+  return data.keywords ?? [];
+}
+
 // ---------- Image URL helpers ----------
 
 export function posterUrl(path: string | null | undefined, size: "w200" | "w342" | "w500" = "w342"): string | null {

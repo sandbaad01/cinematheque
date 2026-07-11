@@ -13,7 +13,7 @@ type Dict = Record<string, string>;
 
 const en: Dict = {
   // App
-  appName: "Cinéthèque",
+  appName: "Cinematheque",
   appTagline: "Your Personal Movie Archive",
 
   // Navigation
@@ -208,7 +208,7 @@ const en: Dict = {
   settings_theme: "Theme",
   settings_data: "Data Management",
   settings_about: "About",
-  settings_about_desc: "Cinéthèque is a lightweight, offline-first personal movie archive.",
+  settings_about_desc: "Cinematheque is a lightweight, offline-first personal movie archive.",
 
   // Random
   random_title: "Random Pick",
@@ -470,7 +470,7 @@ const fa: Dict = {
 };
 
 const fr: Dict = {
-  appName: "Cinéthèque",
+  appName: "Cinematheque",
   appTagline: "Votre archive personnelle de films",
 
   nav_home: "Accueil",
@@ -648,7 +648,7 @@ const fr: Dict = {
   settings_theme: "Thème",
   settings_data: "Gestion des données",
   settings_about: "À propos",
-  settings_about_desc: "Cinéthèque est une archive personnelle de films, légère et hors-ligne.",
+  settings_about_desc: "Cinematheque est une archive personnelle de films, légère et hors-ligne.",
 
   random_title: "Choix aléatoire",
   random_subtitle: "Une surprise de votre liste À voir",
