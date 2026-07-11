@@ -32,6 +32,7 @@ const VIEW_TITLE_KEYS: Record<string, string> = {
   settings: "settings_title",
   random: "random_title",
   recommendations: "home_recommended",
+  person: "movie",
 };
 
 const VIEW_SUBTITLE_KEYS: Record<string, string | null> = {
@@ -52,6 +53,7 @@ const VIEW_SUBTITLE_KEYS: Record<string, string | null> = {
   settings: null,
   random: "random_subtitle",
   recommendations: "rec_basedOn",
+  person: null,
 };
 
 /** Top sticky header with view title, subtitle, search, random, language, theme. */

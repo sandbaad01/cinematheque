@@ -287,3 +287,46 @@ Verification (agent-browser):
 
 Stage Summary:
 - All 4 fixes implemented and verified. Ready for user's next round of feedback.
+
+---
+Task ID: 12
+Agent: Main (Z.ai Code)
+Task: 5 movie-page fixes — language badge, My Info, clickable crew, trailer header, link centering
+
+Work Log:
+
+Fix 1 — Remove language badge (فارسی/Français box) from Story:
+- Removed the Badge + Languages icon from TranslatedStory.tsx. The language is now implicit from the translated text itself.
+- Removed unused Badge + Languages imports.
+
+Fix 2 — My Information: remove Heart icon, center title, halve spacing:
+- Replaced <SectionHeader icon={Heart}> with a plain centered <h2 className="text-center text-lg font-semibold">My Information</h2>.
+- Changed card spacing from space-y-5 to space-y-2.5 (halved) and each field's internal label-to-input gap from space-y-1.5 to space-y-1.
+- The Heart icon now only appears on the Favorite action button (where it belongs), not on the section header.
+
+Fix 3 — PersonView (director/actor/writer filmography page):
+- Added "person" to ViewName + personName/personRole to ViewState + goPerson() to nav store.
+- Created PersonView.tsx: shows person avatar (role-based icon), name, role label, and role-switcher pills (e.g., if someone is both director and actor, pills show counts for each role — click to switch). Filmography displayed in a grid with sort dropdown (Release Year / Watch Date / Title / Personal Rating / Lifetime Ranking).
+- Added PersonView to page.tsx router and Header title mapping.
+
+Fix 4 — Clickable crew names:
+- Created DetailWithLinks component: renders each director/writer/cast name as a clickable button that calls goPerson(name, role) → navigates to PersonView.
+- Names styled as primary-colored links with hover underline.
+- Replaced the Director, Writer, and Cast Detail rows in MovieDetailView with DetailWithLinks.
+
+Fix 5 — Trailer header removed, links centered:
+- Removed the "Trailer" SectionHeader + Play icon. The video now appears without any label.
+- Moved the IMDb/TMDb external links to be centered (justify-center) directly below the video.
+- Added a fallback: if there's no trailer, links still show centered.
+
+Verification (agent-browser):
+- Godfather detail: no Trailer heading, video shows bare, IMDb+TMDb buttons centered below ✓
+- My Information: "My Information" heading is text-align center, no Heart icon in header, card has space-y-2.5 ✓
+- Director "Francis Ford Coppola" is a clickable button → PersonView shows "Francis Ford Coppola" + "Director 1" pill + The Godfather ✓
+- Cast "Al Pacino" clickable → PersonView shows "Al Pacino" + "Cast 2" pill + Heat + The Godfather ✓
+- Sort dropdown on PersonView: Release Year / Watch Date / Title / Personal Rating / Lifetime Ranking ✓
+- No language badge on Story ✓
+- No console errors, lint clean
+
+Stage Summary:
+- All 5 movie-page fixes implemented and verified. Crew names are now fully navigable to dedicated filmography pages with sorting. Ready for the "cinematic recommendations" topic.

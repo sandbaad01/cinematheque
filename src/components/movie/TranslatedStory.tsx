@@ -1,10 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Loader2, PenLine, Languages } from "lucide-react";
+import { Loader2, PenLine } from "lucide-react";
 import { useI18n } from "@/lib/i18n/context";
 import { SectionHeader } from "@/components/movie/SectionHeader";
-import { Badge } from "@/components/ui/badge";
 
 interface TranslatedStoryProps {
   /** The original (English) overview. */
@@ -98,15 +97,7 @@ export function TranslatedStory({ overview, movieId, context }: TranslatedStoryP
 
   return (
     <section>
-      <div className="flex items-center justify-between">
-        <SectionHeader title={t("movie_story")} icon={<PenLine className="size-4" />} />
-        {lang !== "en" && (
-          <Badge variant="outline" className="gap-1.5 bg-primary/10 text-primary">
-            <Languages className="size-3" />
-            {lang === "fa" ? "فارسی" : lang === "fr" ? "Français" : lang.toUpperCase()}
-          </Badge>
-        )}
-      </div>
+      <SectionHeader title={t("movie_story")} icon={<PenLine className="size-4" />} />
       <p
         dir={isRtl ? "rtl" : "ltr"}
         className="mt-2 text-sm leading-relaxed text-muted-foreground md:text-base"

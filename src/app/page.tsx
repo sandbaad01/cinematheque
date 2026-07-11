@@ -22,10 +22,11 @@ import { SearchView } from "@/views/SearchView";
 import { SettingsView } from "@/views/SettingsView";
 import { RandomView } from "@/views/RandomView";
 import { RecommendationsView } from "@/views/RecommendationsView";
+import { PersonView } from "@/views/PersonView";
 import { Github, Heart } from "lucide-react";
 
 export default function Page() {
-  const { view, movieId, genreName, collectionId, listId, searchQuery } = useNav();
+  const { view, movieId, genreName, collectionId, listId, searchQuery, personName, personRole } = useNav();
   const { t } = useI18n();
   const [mobileOpen, setMobileOpen] = useState(false);
   const mainRef = useRef<HTMLDivElement>(null);
@@ -63,6 +64,9 @@ export default function Page() {
       case "settings": return <SettingsView />;
       case "random": return <RandomView />;
       case "recommendations": return <RecommendationsView />;
+      case "person": return personName && personRole ? (
+        <PersonView key={personName + personRole} name={personName} role={personRole} />
+      ) : <HomeView />;
       default: return <HomeView />;
     }
   };

@@ -19,7 +19,8 @@ export type ViewName =
   | "search"
   | "settings"
   | "random"
-  | "recommendations";
+  | "recommendations"
+  | "person";
 
 interface ViewState {
   view: ViewName;
@@ -28,6 +29,8 @@ interface ViewState {
   collectionId?: string;
   listId?: string;
   searchQuery?: string;
+  personName?: string;
+  personRole?: "director" | "actor" | "writer";
   // scroll restoration
   scrollY?: number;
 }
@@ -39,6 +42,7 @@ interface NavState extends ViewState {
   goCollection: (collectionId: string) => void;
   goList: (listId: string) => void;
   goSearch: (query: string) => void;
+  goPerson: (name: string, role: "director" | "actor" | "writer") => void;
   back: () => void;
   canGoBack: boolean;
 }
@@ -50,6 +54,8 @@ interface HistoryEntry {
   collectionId?: string;
   listId?: string;
   searchQuery?: string;
+  personName?: string;
+  personRole?: "director" | "actor" | "writer";
 }
 
 const history: HistoryEntry[] = [];
@@ -68,6 +74,8 @@ export const useNav = create<NavState>((set, get) => ({
       collectionId: current.collectionId,
       listId: current.listId,
       searchQuery: current.searchQuery,
+      personName: current.personName,
+      personRole: current.personRole,
     });
     set({ ...params, view, scrollY: 0 });
   },
@@ -86,6 +94,9 @@ export const useNav = create<NavState>((set, get) => ({
   },
   goSearch: (query) => {
     get().go("search", { searchQuery: query });
+  },
+  goPerson: (name, role) => {
+    get().go("person", { personName: name, personRole: role });
   },
 
   back: () => {

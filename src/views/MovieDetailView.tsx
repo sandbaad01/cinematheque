@@ -37,7 +37,7 @@ import { cn } from "@/lib/utils";
 
 export function MovieDetailView({ movieId }: { movieId: string }) {
   const { t } = useI18n();
-  const { back, goGenre } = useNav();
+  const { back, goGenre, goPerson } = useNav();
   const { data: movie, loading, refetch } = useFetch<Movie>(`/api/movies/${movieId}`);
   const { data: recsData } = useFetch<{ items: Recommendation[] }>(
     `/api/recommendations?movieId=${movieId}`
@@ -251,21 +251,36 @@ export function MovieDetailView({ movieId }: { movieId: string }) {
             {/* Crew details */}
             <Card className="p-5">
               <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <Detail icon={User} label={t("movie_director")} value={movie.director} />
-                <Detail icon={PenLine} label={t("movie_writer")} value={movie.writers.join(", ")} />
+                <DetailWithLinks
+                  icon={User}
+                  label={t("movie_director")}
+                  names={movie.director ? [movie.director] : []}
+                  role="director"
+                />
+                <DetailWithLinks
+                  icon={PenLine}
+                  label={t("movie_writer")}
+                  names={movie.writers}
+                  role="writer"
+                />
                 <Detail icon={Calendar} label={t("movie_releaseDate")} value={movie.releaseDate} />
                 <Detail icon={Clock} label={t("movie_runtime")} value={movie.runtime ? `${movie.runtime} ${t("movie_min")}` : null} />
                 <Detail icon={MapPin} label={t("movie_country")} value={movie.country} />
                 <Detail icon={Globe} label={t("movie_language")} value={movie.language} />
-                <Detail icon={Film} label={t("movie_cast")} value={movie.cast.join(", ")} className="sm:col-span-2" />
+                <DetailWithLinks
+                  icon={Film}
+                  label={t("movie_cast")}
+                  names={movie.cast}
+                  role="actor"
+                  className="sm:col-span-2"
+                />
               </dl>
             </Card>
 
-            {/* Trailer */}
+            {/* Trailer — no header, just the embedded video + centered links below */}
             {trailerEmbed && (
               <section>
-                <SectionHeader title={t("movie_trailer")} icon={<Play className="size-4" />} />
-                <div className="mt-3 aspect-video overflow-hidden rounded-xl bg-black">
+                <div className="aspect-video overflow-hidden rounded-xl bg-black">
                   <iframe
                     src={trailerEmbed}
                     title={movie.title}
@@ -274,6 +289,43 @@ export function MovieDetailView({ movieId }: { movieId: string }) {
                     className="size-full"
                   />
                 </div>
+                {/* External links — centered below the video */}
+                <div className="mt-3 flex flex-wrap justify-center gap-2">
+                  {movie.imdbId && (
+                    <a href={`https://www.imdb.com/title/${movie.imdbId}/`} target="_blank" rel="noopener noreferrer">
+                      <Button variant="outline" size="sm">
+                        <ExternalLink className="size-3.5" /> IMDb
+                      </Button>
+                    </a>
+                  )}
+                  {movie.tmdbId && (
+                    <a href={`https://www.themoviedb.org/movie/${movie.tmdbId}`} target="_blank" rel="noopener noreferrer">
+                      <Button variant="outline" size="sm">
+                        <ExternalLink className="size-3.5" /> TMDb
+                      </Button>
+                    </a>
+                  )}
+                </div>
+              </section>
+            )}
+
+            {/* External links — shown here too if there's no trailer, centered */}
+            {!trailerEmbed && (movie.imdbId || movie.tmdbId) && (
+              <section className="flex flex-wrap justify-center gap-2">
+                {movie.imdbId && (
+                  <a href={`https://www.imdb.com/title/${movie.imdbId}/`} target="_blank" rel="noopener noreferrer">
+                    <Button variant="outline" size="sm">
+                      <ExternalLink className="size-3.5" /> IMDb
+                    </Button>
+                  </a>
+                )}
+                {movie.tmdbId && (
+                  <a href={`https://www.themoviedb.org/movie/${movie.tmdbId}`} target="_blank" rel="noopener noreferrer">
+                    <Button variant="outline" size="sm">
+                      <ExternalLink className="size-3.5" /> TMDb
+                    </Button>
+                  </a>
+                )}
               </section>
             )}
 
@@ -290,30 +342,12 @@ export function MovieDetailView({ movieId }: { movieId: string }) {
                 </div>
               </section>
             )}
-
-            {/* External links */}
-            <section className="flex flex-wrap gap-2">
-              {movie.imdbId && (
-                <a href={`https://www.imdb.com/title/${movie.imdbId}/`} target="_blank" rel="noopener noreferrer">
-                  <Button variant="outline" size="sm">
-                    <ExternalLink className="size-3.5" /> IMDb
-                  </Button>
-                </a>
-              )}
-              {movie.tmdbId && (
-                <a href={`https://www.themoviedb.org/movie/${movie.tmdbId}`} target="_blank" rel="noopener noreferrer">
-                  <Button variant="outline" size="sm">
-                    <ExternalLink className="size-3.5" /> TMDb
-                  </Button>
-                </a>
-              )}
-            </section>
           </div>
 
           {/* Right: personal info */}
           <div className="space-y-4">
-            <Card className="space-y-5 p-5">
-              <SectionHeader title={t("movie_myInfo")} icon={<Heart className="size-4" />} />
+            <Card className="space-y-2.5 p-5">
+              <h2 className="text-center text-lg font-semibold">{t("movie_myInfo")}</h2>
 
               {/* Favorite + status */}
               <div className="flex items-center justify-between">
@@ -328,7 +362,7 @@ export function MovieDetailView({ movieId }: { movieId: string }) {
                 </Button>
               </div>
 
-              <div className="space-y-1.5">
+              <div className="space-y-1">
                 <label className="text-xs font-medium text-muted-foreground">{t("movie_status")}</label>
                 <Select value={movie.status} onValueChange={(v) => update({ status: v as MovieStatus })}>
                   <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
@@ -342,13 +376,13 @@ export function MovieDetailView({ movieId }: { movieId: string }) {
               </div>
 
               {/* Personal rating */}
-              <div className="space-y-1.5">
+              <div className="space-y-1">
                 <label className="text-xs font-medium text-muted-foreground">{t("movie_myRating")}</label>
                 <RatingStars value={movie.personalRating} onChange={(v) => update({ personalRating: v })} size="md" />
               </div>
 
               {/* Lifetime rank */}
-              <div className="space-y-1.5">
+              <div className="space-y-1">
                 <label className="text-xs font-medium text-muted-foreground">{t("movie_lifetimeRank")}</label>
                 <div className="flex items-center gap-2">
                   <Input
@@ -371,7 +405,7 @@ export function MovieDetailView({ movieId }: { movieId: string }) {
               </div>
 
               {/* Watch date */}
-              <div className="space-y-1.5">
+              <div className="space-y-1">
                 <label className="text-xs font-medium text-muted-foreground">{t("movie_watchDate")}</label>
                 <Input
                   type="date"
@@ -394,7 +428,7 @@ export function MovieDetailView({ movieId }: { movieId: string }) {
 
               {/* Tags */}
               {movie.tags.length > 0 && (
-                <div className="space-y-1.5">
+                <div className="space-y-1">
                   <label className="text-xs font-medium text-muted-foreground">{t("movie_tags")}</label>
                   <div className="flex flex-wrap gap-1.5">
                     {movie.tags.map((tag) => (
@@ -482,6 +516,44 @@ function Detail({
         {label}
       </dt>
       <dd className="mt-0.5 text-sm font-medium">{value || "—"}</dd>
+    </div>
+  );
+}
+
+/** A detail row where each name is a clickable link to that person's filmography. */
+function DetailWithLinks({
+  icon: Icon, label, names, role, className,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  names: string[];
+  role: "director" | "actor" | "writer";
+  className?: string;
+}) {
+  const { goPerson } = useNav();
+  return (
+    <div className={className}>
+      <dt className="flex items-center gap-1.5 text-xs text-muted-foreground">
+        <Icon className="size-3.5" />
+        {label}
+      </dt>
+      <dd className="mt-0.5 flex flex-wrap gap-x-1.5 gap-y-1 text-sm font-medium">
+        {names.length === 0 ? (
+          <span className="text-muted-foreground">—</span>
+        ) : (
+          names.map((n, i) => (
+            <span key={n} className="flex items-center gap-1.5">
+              <button
+                onClick={() => goPerson(n, role)}
+                className="text-primary/90 underline-offset-2 transition-colors hover:text-primary hover:underline"
+              >
+                {n}
+              </button>
+              {i < names.length - 1 && <span className="text-muted-foreground">,</span>}
+            </span>
+          ))
+        )}
+      </dd>
     </div>
   );
 }
