@@ -42,11 +42,15 @@ export function Phototheque({ movie, onUpdated }: PhotothequeProps) {
         method: "POST",
         body: formData,
       });
-      if (!res.ok) throw new Error("upload failed");
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || `Upload failed (${res.status})`);
+      }
       toast.success("Screenshot added");
       onUpdated();
-    } catch {
-      toast.error("Upload failed");
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Upload failed";
+      toast.error(msg);
     } finally {
       setUploading(false);
     }

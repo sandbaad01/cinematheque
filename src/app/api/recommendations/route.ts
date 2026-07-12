@@ -212,6 +212,13 @@ export async function GET(req: NextRequest) {
 
     // ---------- Build final recommendation list ----------
     const sorted = [...candidateMap.values()].sort((a, b) => b.score - a.score);
+
+    // If TMDb returned no candidates (e.g., API key expired), fall back to
+    // local recommendations based on shared director/actors/genres.
+    if (sorted.length === 0) {
+      return NextResponse.json({ items: localRecommendations(seedMovies, archiveMovies, hideWatched) });
+    }
+
     const top = sorted.slice(0, 50);
 
     // Fetch full details for the top candidates to get genres, director, etc.
@@ -327,3 +334,72 @@ function buildReason(
 
   return `Recommended based on "${topSeeds[0]}", "${topSeeds[1]}", and ${topSeeds.length - 2} more films you rated highly.`;
 }
+
+/**
+ * Local fallback: recommend movies from the user's own archive based on
+ * shared director, actors, genres, and similar ratings. Used when TMDb is
+ * unavailable (e.g., API key expired).
+ */
+function localRecommendations(
+  seedMovies: Movie[],
+  allMovies: Movie[],
+  hideWatched: boolean
+): Recommendation[] {
+  const seedIds = new Set(seedMovies.map((m) => m.id));
+  const candidates = allMovies.filter((m) => !seedIds.has(m.id));
+
+  const scored: { movie: Movie; score: number; reason: string }[] = [];
+
+  for (const cand of candidates) {
+    let score = 0;
+    const reasons: string[] = [];
+
+    for (const seed of seedMovies) {
+      // Same director
+      if (seed.director && cand.director &&
+          seed.director.toLowerCase() === cand.director.toLowerCase()) {
+        score += 3;
+        reasons.push(`same director (${cand.director})`);
+      }
+      // Shared actors
+      const seedCast = new Set(seed.cast.map((c) => c.toLowerCase()));
+      const sharedActors = cand.cast.filter((c) => seedCast.has(c.toLowerCase()));
+      if (sharedActors.length > 0) {
+        score += Math.min(sharedActors.length * 2, 6);
+        reasons.push(`shares ${sharedActors.length} actor(s)`);
+      }
+      // Shared genres
+      const seedGenres = new Set(seed.genres.map((g) => g.toLowerCase()));
+      const sharedGenres = cand.genres.filter((g) => seedGenres.has(g.toLowerCase()));
+      if (sharedGenres.length > 0) {
+        score += Math.min(sharedGenres.length * 1.5, 4.5);
+        reasons.push(`shares ${sharedGenres.length} genre(s)`);
+      }
+      // Similar rating
+      if (seed.personalRating != null && cand.personalRating != null &&
+          Math.abs(seed.personalRating - cand.personalRating) <= 1.5) {
+        score += 1;
+      }
+    }
+
+    if (score <= 0) continue;
+    if (cand.status === "watched" && hideWatched) continue;
+    if (cand.status === "watched") score *= 0.1;
+
+    scored.push({
+      movie: cand,
+      score,
+      reason: reasons.length > 0
+        ? `Recommended because it ${reasons.slice(0, 2).join(" and ")}.`
+        : "Recommended based on your archive.",
+    });
+  }
+
+  scored.sort((a, b) => b.score - a.score);
+  return scored.slice(0, 50).map((s) => ({
+    movie: s.movie,
+    score: Math.round(s.score * 100) / 100,
+    reason: s.reason,
+  }));
+}
+

@@ -5,7 +5,7 @@ import { writeFile, mkdir, unlink } from "fs/promises";
 import path from "path";
 
 export const dynamic = "force-dynamic";
-export const maxDuration = 30;
+export const maxDuration = 60;
 
 /**
  * POST /api/movies/[id]/screenshots
@@ -17,8 +17,10 @@ export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  let movieId = "unknown";
   try {
     const { id } = await params;
+    movieId = id;
     const movie = await db.movie.findUnique({ where: { id } });
     if (!movie) {
       return NextResponse.json({ error: "Movie not found" }, { status: 404 });
@@ -32,12 +34,18 @@ export async function POST(
 
     // Validate file type
     if (!file.type.startsWith("image/")) {
-      return NextResponse.json({ error: "File must be an image" }, { status: 400 });
+      return NextResponse.json(
+        { error: `File must be an image (got ${file.type})` },
+        { status: 400 }
+      );
     }
 
-    // Limit to 10MB
-    if (file.size > 10 * 1024 * 1024) {
-      return NextResponse.json({ error: "File too large (max 10MB)" }, { status: 400 });
+    // Limit to 20MB (screenshots can be large)
+    if (file.size > 20 * 1024 * 1024) {
+      return NextResponse.json(
+        { error: `File too large: ${(file.size / 1024 / 1024).toFixed(1)}MB (max 20MB)` },
+        { status: 400 }
+      );
     }
 
     // Generate filename
@@ -51,7 +59,8 @@ export async function POST(
 
     // Write file
     const bytes = await file.arrayBuffer();
-    await writeFile(filepath, Buffer.from(bytes));
+    const buffer = Buffer.from(bytes);
+    await writeFile(filepath, buffer);
 
     // Add to screenshots array
     const screenshotPath = `/screenshots/${filename}`;
@@ -64,8 +73,9 @@ export async function POST(
 
     return NextResponse.json(parseMovie(updated));
   } catch (err) {
-    console.error("POST /api/movies/[id]/screenshots error", err);
-    return NextResponse.json({ error: "Upload failed" }, { status: 500 });
+    console.error(`POST /api/movies/${movieId}/screenshots error:`, err);
+    const message = err instanceof Error ? err.message : "Upload failed";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
 

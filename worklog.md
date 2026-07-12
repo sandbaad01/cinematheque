@@ -450,3 +450,30 @@ Verification (agent-browser):
 
 Stage Summary:
 - All 4 changes implemented and verified. Crew values are now clearly non-clickable (terracotta vs teal). App has proper accents. Recommendations are clean (no repetitive reasons). Photothèque allows uploading personal screenshots alongside the TMDb gallery.
+
+---
+Task ID: 16
+Agent: Main (Z.ai Code)
+Task: Fix upload failure + TMDb API key 401 fallback
+
+Work Log:
+- Investigated "Upload failed" error:
+  * Upload route works correctly via curl (HTTP 200) and browser fetch (tested via eval)
+  * The failure was caused by the dev server crashing between requests in the sandbox environment
+  * Improved error handling in Phototheque.tsx: now shows the actual error message (e.g., "File too large" or network error) instead of generic "Upload failed"
+  * Increased file size limit from 10MB to 20MB (screenshots can be large)
+  * Added better error logging in the screenshots route (logs movieId + actual error message)
+  * Added maxDuration: 60 to the route
+
+- Discovered TMDb API key is returning 401 "Invalid API key" errors:
+  * All TMDb API calls (recommendations, similar, keywords) are failing
+  * This was causing the recommendations to return empty results and flooding the dev log with errors
+  * Added localRecommendations() fallback function: when TMDb returns no candidates (due to 401 or network errors), the route falls back to local matching (shared director/actors/genres/ratings) from the user's own archive
+  * Verified: recommendations now return 3 local results (Heat, Once Upon a Time in America, Oldboy) even with TMDb down
+
+Verification:
+- Upload: POST /api/movies/[id]/screenshots 200 ✓ (4 screenshots now saved for Godfather)
+- Recommendations fallback: 3 local results returned when TMDb is down ✓
+- Lint clean
+
+Note: The TMDb API key (39adf355a4930c90981a9d8abc608dec) is returning 401 "Invalid API key". The user may need to regenerate it at https://www.themoviedb.org/settings/api. Until then, the app uses local fallback recommendations.
