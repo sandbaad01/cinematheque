@@ -28,12 +28,17 @@ async function tmdbFetch<T>(path: string, params: Record<string, string> = {}): 
   const url = withApiKey(
     `${TMDB_BASE}${path}?${new URLSearchParams({ language: "en-US", ...params }).toString()}`
   );
-  const res = await fetch(url, { headers: authHeaders() });
-  if (!res.ok) {
-    const body = await res.text().catch(() => "");
-    throw new Error(`TMDb ${res.status}: ${body.slice(0, 200)}`);
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 5000);
+  try {
+    const res = await fetch(url, { headers: authHeaders(), signal: controller.signal });
+    if (!res.ok) {
+      throw new Error(`TMDb ${res.status}`);
+    }
+    return res.json() as Promise<T>;
+  } finally {
+    clearTimeout(timeout);
   }
-  return res.json() as Promise<T>;
 }
 
 // ---------- Types ----------

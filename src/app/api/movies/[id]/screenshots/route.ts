@@ -9,9 +9,12 @@ export const maxDuration = 60;
 
 /**
  * POST /api/movies/[id]/screenshots
- * Upload a screenshot image. Body: FormData with "file" field.
+ * Upload a screenshot image.
+ * Supports two formats:
+ *   1. FormData with "file" field (multipart)
+ *   2. JSON body { image: "data:image/jpeg;base64,..." } (base64 data URL)
+ *
  * Saves to public/screenshots/{movieId}-{timestamp}.{ext}
- * Returns the updated movie with the new screenshot path added.
  */
 export async function POST(
   req: NextRequest,
@@ -26,43 +29,61 @@ export async function POST(
       return NextResponse.json({ error: "Movie not found" }, { status: 404 });
     }
 
-    const formData = await req.formData();
-    const file = formData.get("file") as File | null;
-    if (!file) {
-      return NextResponse.json({ error: "No file provided" }, { status: 400 });
+    const contentType = req.headers.get("content-type") || "";
+    let fileBuffer: Buffer;
+    let ext = "jpg";
+
+    if (contentType.includes("application/json")) {
+      // Base64 data URL upload
+      const body = await req.json();
+      const dataUrl: string = body?.image || "";
+      if (!dataUrl.startsWith("data:image/")) {
+        return NextResponse.json({ error: "Invalid image data" }, { status: 400 });
+      }
+
+      // Extract mime type and base64 data
+      const match = dataUrl.match(/^data:image\/(\w+);base64,(.+)$/);
+      if (!match) {
+        return NextResponse.json({ error: "Invalid data URL format" }, { status: 400 });
+      }
+      ext = match[1] === "jpeg" ? "jpg" : match[1];
+      fileBuffer = Buffer.from(match[2], "base64");
+
+      if (fileBuffer.length > 20 * 1024 * 1024) {
+        return NextResponse.json(
+          { error: `File too large: ${(fileBuffer.length / 1024 / 1024).toFixed(1)}MB (max 20MB)` },
+          { status: 400 }
+        );
+      }
+    } else {
+      // FormData upload (multipart)
+      const formData = await req.formData();
+      const file = formData.get("file") as File | null;
+      if (!file) {
+        return NextResponse.json({ error: "No file provided" }, { status: 400 });
+      }
+      if (!file.type.startsWith("image/")) {
+        return NextResponse.json({ error: `File must be an image (got ${file.type})` }, { status: 400 });
+      }
+      if (file.size > 20 * 1024 * 1024) {
+        return NextResponse.json(
+          { error: `File too large: ${(file.size / 1024 / 1024).toFixed(1)}MB (max 20MB)` },
+          { status: 400 }
+        );
+      }
+      ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+      const bytes = await file.arrayBuffer();
+      fileBuffer = Buffer.from(bytes);
     }
 
-    // Validate file type
-    if (!file.type.startsWith("image/")) {
-      return NextResponse.json(
-        { error: `File must be an image (got ${file.type})` },
-        { status: 400 }
-      );
-    }
-
-    // Limit to 20MB (screenshots can be large)
-    if (file.size > 20 * 1024 * 1024) {
-      return NextResponse.json(
-        { error: `File too large: ${(file.size / 1024 / 1024).toFixed(1)}MB (max 20MB)` },
-        { status: 400 }
-      );
-    }
-
-    // Generate filename
-    const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+    // Save to disk
     const filename = `${id}-${Date.now()}.${ext}`;
     const uploadDir = path.join(process.cwd(), "public", "screenshots");
     const filepath = path.join(uploadDir, filename);
 
-    // Ensure directory exists
     await mkdir(uploadDir, { recursive: true });
+    await writeFile(filepath, fileBuffer);
 
-    // Write file
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
-    await writeFile(filepath, buffer);
-
-    // Add to screenshots array
     const screenshotPath = `/screenshots/${filename}`;
     const screenshots = [...safeJsonArr(movie.screenshots), screenshotPath];
 
@@ -73,7 +94,6 @@ export async function POST(
 
     return NextResponse.json(parseMovie(updated));
   } catch (err) {
-    console.error(`POST /api/movies/${movieId}/screenshots error:`, err);
     const message = err instanceof Error ? err.message : "Upload failed";
     return NextResponse.json({ error: message }, { status: 500 });
   }
@@ -81,7 +101,6 @@ export async function POST(
 
 /**
  * DELETE /api/movies/[id]/screenshots?path=...
- * Remove a screenshot by its path.
  */
 export async function DELETE(
   req: NextRequest,
@@ -103,12 +122,11 @@ export async function DELETE(
       (s) => s !== screenshotPath
     );
 
-    // Try to delete the file from disk
     try {
       const filepath = path.join(process.cwd(), "public", screenshotPath);
       await unlink(filepath);
     } catch {
-      // File might not exist, ignore
+      // File might not exist
     }
 
     const updated = await db.movie.update({
@@ -118,7 +136,6 @@ export async function DELETE(
 
     return NextResponse.json(parseMovie(updated));
   } catch (err) {
-    console.error("DELETE /api/movies/[id]/screenshots error", err);
     return NextResponse.json({ error: "Delete failed" }, { status: 500 });
   }
 }

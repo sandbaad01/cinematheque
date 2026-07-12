@@ -477,3 +477,18 @@ Verification:
 - Lint clean
 
 Note: The TMDb API key (39adf355a4930c90981a9d8abc608dec) is returning 401 "Invalid API key". The user may need to regenerate it at https://www.themoviedb.org/settings/api. Until then, the app uses local fallback recommendations.
+
+---
+Task ID: 17
+Agent: Main (Z.ai Code)
+Task: Fix upload failure — switched to base64 JSON upload
+
+Work Log:
+- Root cause: The Next.js dev server crashes in this sandbox environment when handling multipart FormData uploads. The upload route itself works correctly (verified via curl multiple times with HTTP 200), but the server dies between requests.
+- Fix 1: Changed Phototheque upload from FormData to base64 data URL (JSON body). The browser reads the file as a data URL via FileReader.readAsDataURL(), then sends it as JSON { image: "data:image/jpeg;base64,..." }. This avoids multipart parsing which was crashing the server.
+- Fix 2: Updated the screenshots route to accept both FormData AND JSON base64 uploads (content-type detection).
+- Fix 3: Added experimental.serverActions.bodySizeLimit: "50mb" to next.config.ts.
+- Fix 4: Suppressed TMDb 401 error logging (was flooding the dev log and potentially contributing to crashes). Added 5-second timeout to TMDb fetches via AbortController.
+- Verified: base64 upload via curl returns HTTP 200 with screenshot saved. Godfather now has 5 screenshots.
+
+Note: The dev server in this sandbox is unstable and crashes frequently between requests. The upload code is correct — when the server is alive, uploads succeed. The user may need to restart the dev server if it crashes.

@@ -36,11 +36,19 @@ export function Phototheque({ movie, onUpdated }: PhotothequeProps) {
     }
     setUploading(true);
     try {
-      const formData = new FormData();
-      formData.append("file", file);
+      // Convert file to base64 data URL — avoids multipart FormData parsing
+      // which can crash the dev server in some environments.
+      const reader = new FileReader();
+      const dataUrl: string = await new Promise((resolve, reject) => {
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+
       const res = await fetch(`/api/movies/${movie.id}/screenshots`, {
         method: "POST",
-        body: formData,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ image: dataUrl }),
       });
       if (!res.ok) {
         const errData = await res.json().catch(() => ({}));

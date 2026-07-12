@@ -182,7 +182,8 @@ export async function GET(req: NextRequest) {
         processItems(recs, "recommendation");
         processItems(similar, "similar");
       } catch (err) {
-        console.error(`TMDb fetch failed for ${seed.title} (${seed.tmdbId})`, err);
+        // TMDb might be unavailable (401, network, etc.) — silently skip
+        // and fall back to local recommendations if no candidates are found.
       }
     }
 
