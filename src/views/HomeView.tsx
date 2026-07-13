@@ -7,7 +7,6 @@ import { useNav } from "@/lib/store";
 import type { Movie, Recommendation } from "@/lib/movie/types";
 import { MovieRow } from "@/components/movie/MovieRow";
 import { PosterCarousel } from "@/components/movie/PosterCarousel";
-import { RewatchReminder } from "@/components/movie/RewatchReminder";
 import { EmptyState } from "@/components/movie/EmptyState";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -77,9 +76,6 @@ export function HomeView() {
           <p className="py-8 text-center text-sm text-muted-foreground">—</p>
         )}
       </section>
-
-      {/* 1b. Rewatch reminder — gentle nudge for loved films watched long ago */}
-      <RewatchReminder />
 
       {/* 2. Stats + Favorite Genres + Favorite Directors — BOTTOM */}
       <div className="space-y-6">
