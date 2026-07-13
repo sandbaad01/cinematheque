@@ -27,7 +27,7 @@ export function SettingsView() {
   const csvInputRef = useRef<HTMLInputElement>(null);
   const [csvText, setCsvText] = useState("");
   const [listName, setListName] = useState("");
-  const [listType, setListType] = useState<"watch" | "watched">("watched");
+  const [listType, setListType] = useState<"watch" | "watched">("watch");
   const [busy, setBusy] = useState(false);
 
   const exportBackup = () => {
@@ -70,7 +70,7 @@ export function SettingsView() {
       toast.success(`Imported ${result.imported} movies, skipped ${result.skipped} duplicates → "${listName.trim() || "IMDb List"}"`);
       setCsvText("");
       setListName("");
-      setListType("watched");
+      setListType("watch");
       triggerRefresh();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Import failed");
@@ -148,8 +148,8 @@ export function SettingsView() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="watched">Watched List</SelectItem>
               <SelectItem value="watch">Watchlist</SelectItem>
+              <SelectItem value="watched">Watched List</SelectItem>
             </SelectContent>
           </Select>
         </div>
