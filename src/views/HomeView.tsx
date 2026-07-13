@@ -1,6 +1,6 @@
 "use client";
 
-import { Film, Star, Heart, Calendar, TrendingUp, Clapperboard, Sparkles, ArrowRight, Clock } from "lucide-react";
+import { Film, Star, Heart, Calendar, Clapperboard, Sparkles, ArrowRight, Clock } from "lucide-react";
 import { useFetch } from "@/lib/useFetch";
 import { useI18n } from "@/lib/i18n/context";
 import { useNav } from "@/lib/store";
@@ -80,12 +80,11 @@ export function HomeView() {
       {/* 2. Stats + Favorite Genres + Favorite Directors — BOTTOM */}
       <div className="space-y-6">
         {/* Stat cards */}
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-5">
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
           <StatCard icon={Film} label={t("home_stat_total")} value={stats?.totalWatched ?? 0} accent />
           <StatCard icon={Calendar} label={t("home_stat_thisYear")} value={stats?.thisYear ?? 0} />
           <StatCard icon={Calendar} label={t("home_stat_thisMonth")} value={stats?.thisMonth ?? 0} />
           <StatCard icon={Heart} label={t("home_stat_favorites")} value={stats?.favorites ?? 0} />
-          <StatCard icon={TrendingUp} label={t("rated")} value={stats?.avgRating ? stats.avgRating.toFixed(1) : "—"} />
         </div>
 
         {/* Top genres + directors */}
