@@ -4,8 +4,10 @@ import { useRef, useState } from "react";
 import { Download, Upload, FileText, Info, Database, Film, Globe, Palette } from "lucide-react";
 import { toast } from "sonner";
 import { useI18n } from "@/lib/i18n/context";
+import { useNav } from "@/lib/store";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { LanguageSwitcher } from "@/components/movie/LanguageSwitcher";
@@ -13,9 +15,11 @@ import { Separator } from "@/components/ui/separator";
 
 export function SettingsView() {
   const { t, lang } = useI18n();
+  const { triggerRefresh } = useNav();
   const backupInputRef = useRef<HTMLInputElement>(null);
   const csvInputRef = useRef<HTMLInputElement>(null);
   const [csvText, setCsvText] = useState("");
+  const [listName, setListName] = useState("");
   const [busy, setBusy] = useState(false);
 
   const exportBackup = () => {
@@ -51,13 +55,16 @@ export function SettingsView() {
       const res = await fetch("/api/import-imdb", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ csv: csvText }),
+        body: JSON.stringify({ csv: csvText, listName: listName.trim() || "IMDb List" }),
       });
       const result = await res.json();
-      toast.success(`Imported ${result.imported} movies, skipped ${result.skipped} duplicates`);
+      if (result.error) throw new Error(result.error);
+      toast.success(`Imported ${result.imported} movies, skipped ${result.skipped} duplicates → "${listName.trim() || "IMDb List"}"`);
       setCsvText("");
-    } catch {
-      toast.error("Import failed");
+      setListName("");
+      triggerRefresh();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Import failed");
     } finally {
       setBusy(false);
     }
@@ -120,6 +127,12 @@ export function SettingsView() {
           <h3 className="font-semibold">{t("settings_import_imdb")}</h3>
         </div>
         <p className="text-sm text-muted-foreground">{t("settings_import_imdb_desc")}</p>
+        <Input
+          value={listName}
+          onChange={(e) => setListName(e.target.value)}
+          placeholder="List name (e.g. My Watchlist, Favorite Movies)"
+          className="text-sm"
+        />
         <Textarea
           value={csvText}
           onChange={(e) => setCsvText(e.target.value)}

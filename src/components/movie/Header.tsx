@@ -33,6 +33,7 @@ const VIEW_TITLE_KEYS: Record<string, string> = {
   random: "random_title",
   recommendations: "home_recommended",
   person: "movie",
+  imdbLists: "imdb_lists_title",
 };
 
 const VIEW_SUBTITLE_KEYS: Record<string, string | null> = {
@@ -54,6 +55,7 @@ const VIEW_SUBTITLE_KEYS: Record<string, string | null> = {
   random: "random_subtitle",
   recommendations: "rec_basedOn",
   person: null,
+  imdbLists: "imdb_lists_subtitle",
 };
 
 /** Top sticky header with view title, subtitle, search, random, language, theme. */

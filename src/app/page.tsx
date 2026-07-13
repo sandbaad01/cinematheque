@@ -23,6 +23,7 @@ import { SettingsView } from "@/views/SettingsView";
 import { RandomView } from "@/views/RandomView";
 import { RecommendationsView } from "@/views/RecommendationsView";
 import { PersonView } from "@/views/PersonView";
+import { ImdbListsView } from "@/views/ImdbListsView";
 import { Github, Heart } from "lucide-react";
 
 export default function Page() {
@@ -67,6 +68,7 @@ export default function Page() {
       case "person": return personName && personRole ? (
         <PersonView key={personName + personRole} name={personName} role={personRole} />
       ) : <HomeView />;
+      case "imdbLists": return <ImdbListsView />;
       default: return <HomeView />;
     }
   };

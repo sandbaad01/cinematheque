@@ -6,7 +6,6 @@ import {
   Home,
   Star,
   Heart,
-  Clock,
   CalendarRange,
   Search,
   FolderOpen,
@@ -60,7 +59,6 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { view: "search", labelKey: "nav_search", icon: Search },
       { view: "recommendations", labelKey: "nav_recommendations", icon: Sparkles },
-      { view: "lastWatched", labelKey: "nav_lastWatched", icon: Clock },
       { view: "timeline", labelKey: "nav_timeline", icon: CalendarRange },
     ],
   },
@@ -69,6 +67,7 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { view: "ratings", labelKey: "nav_ratings", icon: Star },
       { view: "favorites", labelKey: "nav_favorites", icon: Heart },
+      { view: "imdbLists", labelKey: "nav_imdbLists", icon: Clapperboard },
       { view: "collections", labelKey: "nav_collections", icon: FolderOpen },
       { view: "lists", labelKey: "nav_lists", icon: ListOrdered },
     ],
@@ -131,7 +130,7 @@ export function Sidebar({ mobileOpen, onMobileOpenChange }: SidebarProps) {
         <nav className="space-y-4 pb-4">
           {NAV_GROUPS.map((group) => (
             <div key={group.titleKey} className="space-y-1">
-              <p className="px-3 py-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              <p className="px-3 py-1 text-xs font-semibold uppercase tracking-wider text-secondary/70">
                 {t(group.titleKey)}
               </p>
               {group.items.map((item) => (

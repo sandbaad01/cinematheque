@@ -11,7 +11,6 @@ function parseCsv(text: string): string[][] {
   let field = "";
   let inQuotes = false;
   let i = 0;
-  // Normalize CRLF -> LF
   const t = text.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
   while (i < t.length) {
     const ch = t[i];
@@ -30,7 +29,6 @@ function parseCsv(text: string): string[][] {
       i++;
       continue;
     }
-    // not in quotes
     if (ch === '"') {
       inQuotes = true;
       i++;
@@ -53,12 +51,10 @@ function parseCsv(text: string): string[][] {
     field += ch;
     i++;
   }
-  // last field
   if (field.length > 0 || cur.length > 0) {
     cur.push(field);
     rows.push(cur);
   }
-  // drop trailing empty rows
   return rows.filter((r) => r.some((c) => c.trim() !== ""));
 }
 
@@ -67,11 +63,14 @@ function headerIndex(headers: string[], name: string): number {
   return lower.indexOf(name.toLowerCase());
 }
 
-// POST /api/import-imdb { csv: string }
+// POST /api/import-imdb { csv: string, listName?: string }
+// Creates movies from an IMDb CSV export AND adds them to a named collection.
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const csv: string = typeof body?.csv === "string" ? body.csv : "";
+    const listName: string = (body?.listName ?? "IMDb List").toString().trim() || "IMDb List";
+
     if (!csv.trim()) {
       return NextResponse.json(
         { error: "csv text is required" },
@@ -81,7 +80,7 @@ export async function POST(req: NextRequest) {
 
     const rows = parseCsv(csv);
     if (rows.length < 2) {
-      return NextResponse.json({ imported: 0, skipped: 0 });
+      return NextResponse.json({ imported: 0, skipped: 0, listId: null });
     }
 
     const headers = rows[0];
@@ -99,6 +98,7 @@ export async function POST(req: NextRequest) {
 
     let imported = 0;
     let skipped = 0;
+    const movieIds: string[] = [];
 
     for (let r = 1; r < rows.length; r++) {
       const row = rows[r];
@@ -110,10 +110,7 @@ export async function POST(req: NextRequest) {
       const year = yearStr ? Number(yearStr) : null;
       const genresStr = get(idx.genres);
       const genres = genresStr
-        ? genresStr
-            .split(",")
-            .map((g) => g.trim())
-            .filter(Boolean)
+        ? genresStr.split(",").map((g) => g.trim()).filter(Boolean)
         : [];
       const directorsStr = get(idx.directors);
       const director = directorsStr ? directorsStr.split(",")[0].trim() : null;
@@ -122,7 +119,6 @@ export async function POST(req: NextRequest) {
       const imdbRating = imdbRatingStr ? Number(imdbRatingStr) : null;
       const runtimeStr = get(idx.runtime);
       const runtime = runtimeStr ? Number(runtimeStr) : null;
-      const url = get(idx.url) || null;
 
       if (!title) {
         skipped++;
@@ -136,12 +132,13 @@ export async function POST(req: NextRequest) {
           select: { id: true },
         });
         if (exists) {
+          movieIds.push(exists.id);
           skipped++;
           continue;
         }
       }
 
-      await db.movie.create({
+      const created = await db.movie.create({
         data: {
           imdbId: imdbId || null,
           title,
@@ -166,14 +163,27 @@ export async function POST(req: NextRequest) {
           cast: JSON.stringify([]),
           gallery: JSON.stringify([]),
           tags: JSON.stringify([]),
+          screenshots: JSON.stringify([]),
         },
       });
-      // url stored nowhere meaningful for now; could be added to tags
-      void url;
+      movieIds.push(created.id);
       imported++;
     }
 
-    return NextResponse.json({ imported, skipped });
+    // Create a collection with the imported movie IDs
+    let listId = null;
+    if (movieIds.length > 0) {
+      const collection = await db.collection.create({
+        data: {
+          name: listName,
+          description: `Imported from IMDb (${imported} movies, ${skipped} already in archive)`,
+          movieIds: JSON.stringify(movieIds),
+        },
+      });
+      listId = collection.id;
+    }
+
+    return NextResponse.json({ imported, skipped, listId });
   } catch (err) {
     console.error("POST /api/import-imdb error", err);
     return NextResponse.json(

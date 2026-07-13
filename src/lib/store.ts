@@ -10,7 +10,6 @@ export type ViewName =
   | "genre"
   | "ratings"
   | "favorites"
-  | "lastWatched"
   | "timeline"
   | "collections"
   | "collection"
@@ -20,7 +19,8 @@ export type ViewName =
   | "settings"
   | "random"
   | "recommendations"
-  | "person";
+  | "person"
+  | "imdbLists";
 
 interface ViewState {
   view: ViewName;
