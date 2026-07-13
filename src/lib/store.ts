@@ -20,7 +20,9 @@ export type ViewName =
   | "random"
   | "recommendations"
   | "person"
-  | "imdbLists";
+  | "imdbLists"
+  | "yearlyStats"
+  | "report";
 
 interface ViewState {
   view: ViewName;

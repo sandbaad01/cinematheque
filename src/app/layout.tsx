@@ -1,9 +1,10 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Vazirmatn } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { I18nProvider } from "@/lib/i18n/context";
+import { ServiceWorkerRegistrar } from "@/components/ServiceWorkerRegistrar";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -25,9 +26,14 @@ export const metadata: Metadata = {
   title: "Cinémathèque — Personal Movie Archive",
   description:
     "A lightweight, offline-first personal movie archive. Track watched films, discover recommendations, and build your lifetime favorites.",
+  manifest: "/manifest.webmanifest",
   icons: {
     icon: "https://z-cdn.chatglm.cn/z-ai/static/logo.svg",
   },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#3bb5a3",
 };
 
 export default function RootLayout({
@@ -40,7 +46,10 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${vazirmatn.variable} antialiased bg-background text-foreground`}
       >
-        <I18nProvider>{children}</I18nProvider>
+        <I18nProvider>
+          {children}
+          <ServiceWorkerRegistrar />
+        </I18nProvider>
         <Toaster />
         <Sonner />
       </body>

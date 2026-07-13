@@ -14,6 +14,8 @@ import {
   Plus,
   Film,
   Sparkles,
+  BarChart3,
+  FileText,
   type LucideIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -61,6 +63,7 @@ const NAV_GROUPS: NavGroup[] = [
       { view: "recommendations", labelKey: "nav_recommendations", icon: Sparkles },
       { view: "timeline", labelKey: "nav_timeline", icon: CalendarRange },
       { view: "imdbLists", labelKey: "nav_imdbLists", icon: Clapperboard },
+      { view: "yearlyStats", labelKey: "nav_yearlyStats", icon: BarChart3 },
     ],
   },
   {
@@ -70,6 +73,7 @@ const NAV_GROUPS: NavGroup[] = [
       { view: "favorites", labelKey: "nav_favorites", icon: Heart },
       { view: "collections", labelKey: "nav_collections", icon: FolderOpen },
       { view: "lists", labelKey: "nav_lists", icon: ListOrdered },
+      { view: "report", labelKey: "nav_report", icon: FileText },
     ],
   },
 ];
@@ -164,7 +168,7 @@ export function Sidebar({ mobileOpen, onMobileOpenChange }: SidebarProps) {
   return (
     <>
       {/* Desktop */}
-      <aside className="hidden w-60 shrink-0 border-r bg-sidebar md:flex md:flex-col">
+      <aside className="hidden w-60 shrink-0 border-r bg-sidebar print:hidden md:flex md:flex-col">
         {content}
       </aside>
 

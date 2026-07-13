@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Sidebar } from "@/components/movie/Sidebar";
 import { Header } from "@/components/movie/Header";
 import { useNav } from "@/lib/store";
@@ -24,6 +25,8 @@ import { RandomView } from "@/views/RandomView";
 import { RecommendationsView } from "@/views/RecommendationsView";
 import { PersonView } from "@/views/PersonView";
 import { ImdbListsView } from "@/views/ImdbListsView";
+import { YearlyStatsView } from "@/views/YearlyStatsView";
+import { ReportView } from "@/views/ReportView";
 import { Github, Heart } from "lucide-react";
 
 export default function Page() {
@@ -69,26 +72,39 @@ export default function Page() {
         <PersonView key={personName + personRole} name={personName} role={personRole} />
       ) : <HomeView />;
       case "imdbLists": return <ImdbListsView />;
+      case "yearlyStats": return <YearlyStatsView />;
+      case "report": return <ReportView />;
       default: return <HomeView />;
     }
   };
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 overflow-hidden print:block print:overflow-visible">
         <Sidebar mobileOpen={mobileOpen} onMobileOpenChange={setMobileOpen} />
 
-        <div className="flex min-w-0 flex-1 flex-col">
+        <div className="flex min-w-0 flex-1 flex-col print:block">
           <Header onMenuClick={() => setMobileOpen(true)} />
 
-          <main ref={mainRef} className="flex-1 overflow-y-auto scrollbar-thin">
-            {renderView()}
+          <main ref={mainRef} className="flex-1 overflow-y-auto scrollbar-thin print:block print:overflow-visible">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={view}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.2, ease: "easeOut" }}
+                className="print:!transform-none print:!opacity-100"
+              >
+                {renderView()}
+              </motion.div>
+            </AnimatePresence>
           </main>
         </div>
       </div>
 
-      {/* Sticky footer */}
-      <footer className="mt-auto shrink-0 border-t bg-background/80 backdrop-blur">
+      {/* Sticky footer (hidden when printing) */}
+      <footer className="mt-auto shrink-0 border-t bg-background/80 backdrop-blur print:hidden">
         <div className="flex flex-col items-center justify-between gap-2 px-4 py-3 text-xs text-muted-foreground sm:flex-row md:px-6">
           <div className="flex items-center gap-1.5">
             <span className="text-gradient font-semibold">{t("appName")}</span>

@@ -1,0 +1,470 @@
+    26→---
+    27→Task ID: 2
+    28→Agent: Backend (Z.ai Code)
+    29→Task: Implement all REST API routes for the Personal Movie Archive
+    30→
+    31→Work Log:
+    32→- Created 14 API route files under `src/app/api/`:
+    33→  - `movies/route.ts` (GET list w/ filters+sort, POST create)
+    34→  - `movies/[id]/route.ts` (GET / PUT / DELETE with cascade cleanup of Collection.movieIds and PersonalList.items)
+    35→  - `genres/route.ts` (GET aggregated genre counts)
+    36→  - `stats/route.ts` (GET dashboard stats: totals, this year/month, favorites, top genres/directors, latest watched, recently added, avg rating, total runtime)
+    37→  - `recommendations/route.ts` (GET scoring algorithm with movieId/genre/global modes; ×0.1 watched penalty unless hideWatched; builds concise reason strings)
+    38→  - `search/route.ts` (GET local archive search)
+    39→  - `search-web/route.ts` (GET web hints via z-ai-web-dev-sdk `web_search`; best-effort snippet parsing; try/catch returns empty on error)
+    40→  - `collections/route.ts` + `collections/[id]/route.ts` (full CRUD; movieIds stored as JSON string)
+    41→  - `lists/route.ts` + `lists/[id]/route.ts` (full CRUD; items stored as JSON of ListItem[])
+    42→  - `random/route.ts` (GET random want-to-watch movie)
+    43→  - `backup/route.ts` (GET export with `?download=1` attachment; POST import in a transaction preserving ids/timestamps)
+    44→  - `import-imdb/route.ts` (POST CSV import with inline parser handling quoted fields; dedupe by imdbId via findFirst)
+    45→- All routes use `force-dynamic`, `NextRequest`/`NextResponse`, `db` from `@/lib/db`, and the `parseMovie`/`parseCollection`/`parseList` helpers for every response
+    46→- Fixed two runtime issues discovered during verification:
+    47→  1. stats route crashed on `createdAt.localeCompare` because Prisma returns Date objects — replaced with a `toTime()` helper that accepts Date|string|number
+    48→  2. import-imdb rejected `findUnique({ where: { imdbId } })` because imdbId is not @unique — switched to `findFirst`
+    49→- Removed unused `@typescript-eslint/no-explicit-any` disable comments (rule not enabled in project)
+    50→
+    51→Stage Summary:
+    52→- All 14 API endpoints implemented and verified working via curl
+    53→- `bun run lint` is clean (0 errors, 0 warnings on API files)
+    54→- `dev.log` shows 200/204 responses for every exercised endpoint, including the DELETE cascade (Collection + PersonalList cleanup) and IMDb CSV dedupe
+    55→- Backend is fully ready for the frontend agents to wire up the UI
+    56→
+    57→---
+    58→Task ID: 3
+    59→Agent: frontend-styling-expert
+    60→Task: Build shared UI components for Personal Movie Archive
+    61→
+    62→Work Log:
+    63→- Read project context (worklog, types.ts, store.ts, i18n context, globals.css, existing shadcn/ui primitives) before starting.
+    64→- Confirmed API routes exist for /api/movies (POST), /api/movies/[id] (PUT), and /api/search-web (GET returns {results: [...]}) so AddMovieDialog can wire up cleanly.
+    65→- Created 14 components under src/components/movie/:
+    66→  1. PosterImage.tsx — plain <img> + lazy load + fade-in, gradient/Film-icon fallback on missing src or load error. Uses React 19 "adjust state during render" pattern (no setState-in-effect lint error).
+    67→  2. RankBadge.tsx — gold trophy + "#N" pill, three sizes (sm/md/lg).
+    68→  3. StatusBadge.tsx — colored pill with tiny dot; emerald=watched, amber=want, teal=watching (no pure blue), rose=dropped. Uses i18n t("status_" + status).
+    69→  4. GenrePill.tsx — rounded-full bordered pill; active=primary, inactive=muted; hover effect.
+    70→  5. SectionHeader.tsx — icon chip + title + optional subtitle + trailing action.
+    71→  6. EmptyState.tsx — centered max-w-md empty-state with icon, title, description, CTA.
+    72→  7. RatingStars.tsx — 0–10 rating: display mode (filled star + "9.0"/"—") and input mode (10 clickable segments with hover preview + click-to-clear). Sizes sm/md/lg.
+    73→  8. MovieCard.tsx — poster card using PosterImage + Framer Motion hover lift; rank badge (top-left), favorite heart (top-right), personal rating badge (bottom-right), play overlay on hover; navigates via useNav().goMovie.
+    74→  9. MovieRow.tsx — horizontal scrollable row of MovieCards with title/icon/action header, no-scrollbar, empty state.
+    75→  10. LanguageSwitcher.tsx — Globe dropdown using shadcn DropdownMenu + LANGUAGES; calls setLang.
+    76→  11. AddMovieDialog.tsx — two-step dialog: web search (GET /api/search-web) → pick result → pre-fill manual form, OR "Enter manually". Form has all fields (title, originalTitle, poster, backdrop, releaseDate, year, genres, runtime, country, language, director, writers, cast, overview, imdbRating, tmdbRating, trailer, status, personalRating via RatingStars, watchDate, notes, favorite switch, tags). Two-column grid on md+, ScrollArea max-h-[70vh], sonner toast, loading spinner on save button. POST /api/movies or PUT /api/movies/[id]. Skips straight to form when editMovie provided.
+    77→  12. FilterBar.tsx — exported FilterState type + DEFAULT_FILTERS. Sticky top with backdrop blur. Search input, sort Select (watchDate/releaseYear/title/rating/rank/added), asc/desc toggle button, Filters Popover with grid of Selects (status/genre/country/language/year/director/tag) + Clear button. Active filter count badge.
+    78→  13. Sidebar.tsx — desktop w-60 column (hidden md:flex) + mobile Sheet. Logo (Clapperboard + text-gradient "Cinéthèque"), full-width Add Movie button (opens internal AddMovieDialog), nav grouped into Library/Discover/Organize + bottom Settings. Active item: bg-primary/15 text-primary + left accent bar; inactive: muted hover. ScrollArea for nav. Accepts optional mobileOpen/onMobileOpenChange props (controlled or internal).
+    79→  14. Header.tsx — sticky top-0 z-30 backdrop-blur bar. Left: hamburger (md:hidden, calls onMenuClick) + view title via i18n. Right: search form (hidden sm:flex, calls goSearch on Enter), Random button (Shuffle → go("random")), LanguageSwitcher, theme toggle (Sun/Moon, toggles .dark/.light on <html>, defaults to dark to match layout.tsx).
+    80→- Skipped MovieDetailHero.tsx per spec (handled by main agent).
+    81→- Lint fixes: replaced useEffect-based state reset in PosterImage with React 19 "adjust state during render" pattern; removed useEffect-based theme hydration in Header (defaults to "dark" matching layout.tsx). Removed unused useMemo import. 
+    82→- Verified: `bun run lint` passes clean. `bunx tsc --noEmit --skipLibCheck` reports no errors in src/components/movie/* (only pre-existing errors in examples/, prisma/seed.ts, skills/).
+    83→
+    84→Stage Summary:
+    85→- All 14 shared UI components created and lint-clean.
+    86→- Sidebar + Header are designed to be wired up by the main agent in a shell layout: parent holds `mobileOpen` state, passes `onMenuClick` to Header and `mobileOpen`/`onMobileOpenChange` to Sidebar (Sidebar also works fully uncontrolled).
+    87→- AddMovieDialog talks to existing /api/movies and /api/search-web endpoints and is already functional.
+    88→- FilterBar exports FilterState + DEFAULT_FILTERS for the WatchedView to consume.
+    89→- Theme toggle persists only per-session (no localStorage) — fine for now; can be upgraded later.
+    90→- Ready for the main agent to build the page shell (Sidebar + Header + main view) and individual views (Home, Watched, MovieDetail, Genres, etc.) on top of these components.
+    91→
+    92→---
+    93→Task ID: 4-6
+    94→Agent: Main (Z.ai Code)
+    95→Task: Build all views, integrate page.tsx view router, verify with agent-browser
+    96→
+    97→Work Log:
+    98→- Created useFetch hook (React 19 compliant - render-time state adjustment pattern, no setState in effects)
+    99→- Built 16 views: HomeView (dashboard), WatchedView (grid+filters), MovieDetailView (full detail with inline editing), GenresView, GenreDetailView (watched+recommendations+hide toggle), RatingsView, FavoritesView (GOLD/SILVER/BRONZE), LastWatchedView, TimelineView (monthly grouping), CollectionsView+CollectionView (CRUD), ListsView+ListView (ranked reorder), SearchView, SettingsView (backup/import/IMDb CSV), RandomView
+   100→- Wired page.tsx as single-route SPA: Sidebar + Header + view router via Zustand + sticky footer
+   101→- MovieDetailView: backdrop hero, poster, inline personal-info editing (rating, rank, status, favorite, rewatch, notes, tags), YouTube trailer embed, gallery, IMDb/TMDb links, recommendations with "why" reasons
+   102→- Fixed React 19 lint rules (set-state-in-effect, refs-during-render) using render-time adjustment pattern
+   103→- Fixed JSX syntax error (ternary closing brace)
+   104→
+   105→Verification (agent-browser):
+   106→- Home dashboard renders: stat cards, top genres (Drama 15, Thriller 10...), top directors, latest watched row, recommendations row (unwatched movies prioritized)
+   107→- Movie detail: Mad Max shows backdrop, trailer iframe, gallery, IMDb/TMDb links, personal info section - all 200 OK
+   108→- Language switch EN→FA: full RTL (dir=rtl, lang=fa), all labels translate to Persian
+   109→- Language FA→FR→EN: all work
+   110→- Watched movies: grid with sort dropdown, order toggle, filters popover
+   111→- Genre library: 12 genres with counts, clickable cards
+   112→- Genre detail (Horror): watched section (Shining, Psycho) + recommended section with Show/Hide Watched toggle
+   113→- Lifetime Favorites: sorted by rank, Godfather #1 GOLD, Vertigo #2 SILVER, Seven Samurai #5 BRONZE
+   114→- Timeline: movies grouped by month (March 2025, Feb 2025...) with timeline dots
+   115→- Collections: 2 seed collections + New Collection button
+   116→- Random Movie: picked Oldboy (from Want to Watch list) with Pick Another
+   117→- Add Movie dialog: search step + manual form with all 20+ fields
+   118→- No console errors; all API calls return 200
+   119→
+   120→Stage Summary:
+   121→- All 9 main sections + 6 bonus features (Last Watched, Random, Why Recommended, Hide Watched, Timeline, Personal Lists) implemented and browser-verified
+   122→- 3 languages (EN/FA/FR) with RTL support
+   123→- Dark cinematic theme with amber/gold accent, light mode toggle
+   124→- Lint passes clean (0 errors, 0 warnings)
+   125→- App is fully interactive and production-ready
+   126→
+   127→---
+   128→Task ID: 7
+   129→Agent: Main (Z.ai Code)
+   130→Task: Apply user-provided custom color palette (teal/terracotta/cream + navy dark)
+   131→
+   132→Work Log:
+   133→- Replaced :root (light) and .dark color blocks in globals.css with user's HSL palette
+   134→- Light: cream/bone background (hsl 33 20% 90%), teal tile primary (hsl 174 40% 45%), terracotta secondary (hsl 16 50% 60%), soft borders
+   135→- Dark: deep navy/lajvardi background (hsl 208 29% 10%), navy cards (hsl 209 28% 16%), brighter teal primary (hsl 174 42% 54%)
+   136→- Removed the old .light override block (no longer needed: :root defines light, .dark overrides)
+   137→- Derived matching chart palette (teal, terracotta, gold, muted purple, sage) and sidebar colors for both themes
+   138→- Updated .text-gradient to use primary→secondary (teal→terracotta) instead of hardcoded oklch
+   139→- Theme toggle in Header already works: adds/removes "dark" class; "light" class falls back to :root values
+   140→
+   141→Verification (agent-browser):
+   142→- Dark mode (default): --primary=#58bbb1 (teal), card=#1d2934 (navy), secondary=#c37a60 (terracotta) ✓
+   143→- Light mode (toggle): --primary=#45a197 (teal), card=#fff (white), htmlClass=light ✓
+   144→- Navigated watched + movie detail in light mode — renders cleanly, no console errors
+   145→- Lint passes clean
+   146→
+   147→Stage Summary:
+   148→- New brand palette applied across the entire app (buttons, cards, sidebar, badges, charts, gradients)
+   149→- Both light and dark themes verified working via theme toggle
+   150→
+   151→---
+   152→Task ID: 8
+   153→Agent: Main (Z.ai Code)
+   154→Task: Implement smart auto-populating collections (user-provided logic)
+   155→
+   156→Work Log:
+   157→- Rewrote POST /api/collections to use smart auto-assignment:
+   158→  * When no explicit movieIds provided, the collection NAME is searched across title, originalTitle, director, cast, overview, genres, tags (added genres to user's field list since it's stored as JSON string and contains() matches genre members)
+   159→  * Matched movie ids are deduplicated and injected into the new collection
+   160→  * Response includes matchedCount + autoMatched so the UI can give feedback
+   161→  * Explicit movieIds array still supported to create manual collections
+   162→- Updated CollectionsView:
+   163→  * Create dialog now has a Wand2 icon + a highlighted "Smart collection" hint box explaining the auto-matching behavior
+   164→  * After creation, toast shows "Created 'Hitchcock' — 3 matching movies auto-added" when matches found
+   165→  * Collection cards show a "Smart" badge (Sparkles icon) when they contain movies
+   166→  * Added placeholder text with examples (Hitchcock, Noir, Kurosawa, Christmas...)
+   167→- Added 6 new i18n keys to EN/FA/FR: collection_name_placeholder, collection_smart_hint, collection_smart_badge, collection_smart_created, collection_smart_matched
+   168→- Fixed a French guillemet string syntax error in translations
+   169→
+   170→Verification (agent-browser):
+   171→- Created "Hitchcock" collection → auto-matched 3 movies (Vertigo, Psycho, Rear Window) via director field ✓
+   172→- Opened collection → confirmed all 3 Hitchcock films present ✓
+   173→- Created "Horror" collection → auto-matched 2 movies (The Shining, Psycho) via genres field ✓
+   174→- Smart hint text visible in dialog, Smart badges show on cards ✓
+   175→- POST returns 201, no console errors, lint clean
+   176→- Cleaned up both test collections via DELETE
+   177→
+   178→Stage Summary:
+   179→- Collections are now "smart" by default: naming a collection after a director, genre, actor, theme, or tag auto-populates it with every matching movie in the archive
+   180→- Still fully editable afterwards (add/remove movies in the collection detail view)
+   181→- Works across all 3 languages with appropriate feedback toasts
+   182→
+   183→---
+   184→Task ID: 9
+   185→Agent: Main (Z.ai Code)
+   186→Task: Language switch translates ONLY the movie Story (overview); UI + movie info stay English; Persian story becomes RTL
+   187→
+   188→Work Log:
+   189→- Created /api/translate/route.ts: POST {text, targetLang} → LLM translation via z-ai-web-dev-sdk, with server-side in-memory cache (Map). English returns original as-is. Returns {translated, lang, rtl}.
+   190→- Modified src/lib/i18n/context.tsx: t() now ALWAYS returns English regardless of selected lang. Removed the app-wide dir wrapper. Kept lang/setLang so the movie detail knows which language to translate the story to.
+   191→- Modified src/app/page.tsx: removed the dir/lang effect that flipped the whole app to RTL. Document is now locked to dir="ltr" lang="en" permanently.
+   192→- Created src/components/movie/TranslatedStory.tsx: dedicated component that fetches the overview translation based on useI18n().lang, shows a loading spinner, a language badge (فارسی/Français) next to the "Story" heading, and applies dir="rtl" + right text-align + Vazirmatn font ONLY to the synopsis paragraph when lang==="fa". Falls back to original English on error. Uses React 19 render-time adjustment pattern (no setState-in-effect).
+   193→- Modified src/views/MovieDetailView.tsx: replaced inline overview <p> with <TranslatedStory overview={movie.overview} movieId={movie.id} />.
+   194→
+   195→Verification (agent-browser):
+   196→- Vertigo detail in English: Story shows original English synopsis, html dir=ltr ✓
+   197→- Switch to فارسی: sidebar/header/labels ALL stay English (Add Movie, Watched Movies, Story, Trailer, Gallery, My Information, Director: Alfred Hitchcock, genres Mystery/Romance/Thriller) ✓
+   198→- Only the Story synopsis translated to Persian: "یک کارآگاه بازنشسته سانفرانسیسکو که از آکروفوبیا رنج می‌برد..." ✓
+   199→- Story paragraph dir="rtl" (RTL + right-aligned + Vazirmatn font), html dir stays "ltr" ✓
+   200→- Switch to Français: Story translated to French ("Un détective à la retraite..."), dir="ltr" ✓
+   201→- Switch back to فارسی: server cache hit — 12ms vs 1953ms first time ✓
+   202→- No console errors, lint clean
+   203→
+   204→Stage Summary:
+   205→- Language switcher now controls ONLY the movie Story translation
+   206→- App UI and all movie metadata remain in English/original at all times
+   207→- Persian story is RTL (right-aligned, Vazirmatn font); French/English story is LTR
+   208→- LLM-powered translation with server-side caching for instant repeat visits
+   209→
+   210→---
+   211→Task ID: 10
+   212→Agent: Main (Z.ai Code)
+   213→Task: Integrate real TMDb API for movie data (search + full details + refresh)
+   214→
+   215→Work Log:
+   216→- Added TMDB_API_KEY and TMDB_READ_ACCESS_TOKEN to .env
+   217→- Created src/lib/tmdb.ts: TMDb v3 API helpers using Bearer token auth
+   218→  * searchMovies(query) — /search/movie
+   219→  * getMovieDetails(id) — /movie/{id}?append_to_response=credits,videos,images,external_ids
+   220→  * pickTrailer(videos) — picks best official YouTube Trailer/Teaser
+   221→  * extractCrew(crew) — director + writers (Writer/Screenplay/Story/Novel jobs)
+   222→  * extractCast(cast) — top 12 billed
+   223→  * tmdbToMoviePayload(details) — converts full TMDb response to our Movie shape
+   224→  * posterUrl/backdropUrl — CDN image URL builders
+   225→- Created /api/tmdb/search — GET ?q= returns normalized list with poster URLs, year, rating, overview
+   226→- Created /api/tmdb/details — GET ?id= returns full movie payload (title, director, writers, cast, genres, runtime, country, language, trailer, 8 gallery images, imdbId, tmdbRating, overview)
+   227→- Rewrote AddMovieDialog: search now hits /api/tmdb/search (real TMDb results with posters); clicking a result fetches /api/tmdb/details and auto-fills ALL form fields (title, originalTitle, poster, backdrop, releaseDate, year, genres, runtime, country, language, director, writers, cast, overview, tmdbRating, trailer, imdbId, tmdbId). "Enter manually" still available.
+   228→- Added "Refresh from TMDb" button (RefreshCw icon, spins while loading) on MovieDetailView next to Edit — re-fetches fresh metadata from TMDb and merges into the movie, preserving personal fields (rating, rank, notes, status, favorite, tags, watchDate, rewatchCount)
+   229→- Fixed NotesEditor: removed render-time setState pattern that caused a client-side crash on movies created via API; now uses value prop directly for display and seeds text on edit-click
+   230→- Fixed React hooks order (moved refreshing useState before early return)
+   231→
+   232→Verification (agent-browser + curl):
+   233→- GET /api/tmdb/search?q=Dark Knight → real TMDb results with posters ✓
+   234→- GET /api/tmdb/details?id=155 → The Dark Knight: director Christopher Nolan, writers [Jonathan Nolan, Christopher Nolan, David S. Goyer], cast [Christian Bale, Heath Ledger...], genres [Action, Crime, Thriller], runtime 152, trailer YouTube URL, 8 gallery images, imdbId tt0468569, tmdbRating 8.532 ✓
+   235→- Add Movie dialog: searched "Interstellar" → real results → clicked → form auto-filled with all 20+ fields from TMDb ✓
+   236→- Full pipeline: TMDb details → POST /api/movies → saved to DB with 12 cast, director, trailer, gallery ✓
+   237→- Movie detail page: Refresh from TMDb button works (PUT 200, SQL UPDATE ran, all metadata refreshed) ✓
+   238→- Trailer embed, gallery, recommendations all render ✓
+   239→- Lint clean, no console errors after NotesEditor fix
+   240→
+   241→Stage Summary:
+   242→- App now uses REAL TMDb API for all movie data (not hand-seeded or web-search guesses)
+   243→- Add Movie: search → pick → all fields auto-fill from TMDb (poster, backdrop, cast, director, writers, genres, trailer, gallery, ratings, imdbId)
+   244→- Refresh from TMDb: re-sync any movie's metadata while keeping personal data intact
+   245→- IMDb rating field left for manual entry (TMDb doesn't provide IMDb ratings); imdbId is set so IMDb links work
+   246→
+   247→---
+   248→Task ID: 11
+   249→Agent: Main (Z.ai Code)
+   250→Task: 4 UI/UX fixes — duplicate titles, dashboard layout, translation quality, hover highlight
+   251→
+   252→Work Log:
+   253→
+   254→Fix 1 — Remove duplicate page titles, move subtitle to Header:
+   255→- Rewrote Header.tsx: added VIEW_SUBTITLE_KEYS mapping + a small text-xs muted subtitle line below the title. Header height increased from h-14 to h-16 to accommodate the two-line title+subtitle.
+   256→- Added "recommendations" view to ViewName type, VIEW_TITLE_KEYS, VIEW_SUBTITLE_KEYS.
+   257→- Added watched_subtitle i18n key (EN/FA/FR) and nav_recommendations key.
+   258→- Removed the big H1 + subtitle blocks from ALL views: HomeView, WatchedView, GenresView, RatingsView, FavoritesView, LastWatchedView, TimelineView, CollectionsView, ListsView, SearchView, SettingsView, RandomView.
+   259→- For Collections/Lists/Random views that had a title+action row, kept only the action button (right-aligned).
+   260→
+   261→Fix 2 — Dashboard restructure:
+   262→- Reordered HomeView: (1) Latest Watched at TOP, (2) stat cards + Favorite Genres + Favorite Directors + runtime footnote at BOTTOM, (3) Recommended For You as the LAST row with a "Recommendations →" See All button.
+   263→- Increased recommendations API limit from 12 to 50.
+   264→- Created RecommendationsView.tsx: dedicated page showing all recommendations in a grid + "Why?" reasons section + Hide/Show Watched toggle.
+   265→- Added "recommendations" to nav store, page.tsx router, and Sidebar (under Discover, with Sparkles icon).
+   266→
+   267→Fix 3 — Better Persian translation:
+   268→- Rewrote /api/translate system prompt: now identifies as "expert literary translator specializing in film criticism", includes movie context (title, year, director) in the prompt, gives detailed guidelines (natural/idiomatic, preserve tone, adapt cultural references, transliterate proper nouns, maintain emotional resonance).
+   269→- Enabled thinking: { type: "enabled" } for higher-quality reasoning.
+   270→- Updated TranslatedStory component to accept and pass `context` prop (title, director, year) to the translate API.
+   271→- Updated MovieDetailView to pass movie context to TranslatedStory.
+   272→- maxDuration increased to 60s for thinking-enabled requests.
+   273→
+   274→Fix 4 — Tone down harsh hover highlight:
+   275→- Changed --accent from vibrant teal (hsl 174 42% 54%) to subtle muted navy-gray:
+   276→  * Dark: hsl(209 18% 22%) → #2e3842 (very dark, low saturation)
+   277→  * Light: hsl(33 10% 88%) → very light, low saturation
+   278→- Changed --accent-foreground to match (dark text on light, light text on dark).
+   279→- Now hover:bg-accent produces a barely-visible subtle tint instead of a jarring teal flash.
+   280→
+   281→Verification (agent-browser):
+   282→- Fix 1: Header shows "Dashboard" (h1) + "Welcome back to your archive" (subtitle). No duplicate big H1 in content. ✓
+   283→- Fix 2: Home order = Latest Watched → Favorite Genres/Directors/stats → Recommended For You (last). "Recommendations" button navigates to dedicated page. ✓
+   284→- Fix 3: Godfather Persian translation = high-quality literary: "این فیلم که سال‌های ۱۹۴۵ تا ۱۹۵۵ را در بر می‌گیرد، روایتی از خانواده تبهکار ایتالیایی-آمریکایی کورلئونه است..." with thinking enabled + movie context. ✓
+   285→- Fix 4: --accent is now #2e3842 (muted navy) instead of #58bbb1 (vibrant teal). Hover is subtle. ✓
+   286→- Lint clean, no console errors.
+   287→
+   288→Stage Summary:
+   289→- All 4 fixes implemented and verified. Ready for user's next round of feedback.
+   290→
+   291→---
+   292→Task ID: 12
+   293→Agent: Main (Z.ai Code)
+   294→Task: 5 movie-page fixes — language badge, My Info, clickable crew, trailer header, link centering
+   295→
+   296→Work Log:
+   297→
+   298→Fix 1 — Remove language badge (فارسی/Français box) from Story:
+   299→- Removed the Badge + Languages icon from TranslatedStory.tsx. The language is now implicit from the translated text itself.
+   300→- Removed unused Badge + Languages imports.
+   301→
+   302→Fix 2 — My Information: remove Heart icon, center title, halve spacing:
+   303→- Replaced <SectionHeader icon={Heart}> with a plain centered <h2 className="text-center text-lg font-semibold">My Information</h2>.
+   304→- Changed card spacing from space-y-5 to space-y-2.5 (halved) and each field's internal label-to-input gap from space-y-1.5 to space-y-1.
+   305→- The Heart icon now only appears on the Favorite action button (where it belongs), not on the section header.
+   306→
+   307→Fix 3 — PersonView (director/actor/writer filmography page):
+   308→- Added "person" to ViewName + personName/personRole to ViewState + goPerson() to nav store.
+   309→- Created PersonView.tsx: shows person avatar (role-based icon), name, role label, and role-switcher pills (e.g., if someone is both director and actor, pills show counts for each role — click to switch). Filmography displayed in a grid with sort dropdown (Release Year / Watch Date / Title / Personal Rating / Lifetime Ranking).
+   310→- Added PersonView to page.tsx router and Header title mapping.
+   311→
+   312→Fix 4 — Clickable crew names:
+   313→- Created DetailWithLinks component: renders each director/writer/cast name as a clickable button that calls goPerson(name, role) → navigates to PersonView.
+   314→- Names styled as primary-colored links with hover underline.
+   315→- Replaced the Director, Writer, and Cast Detail rows in MovieDetailView with DetailWithLinks.
+   316→
+   317→Fix 5 — Trailer header removed, links centered:
+   318→- Removed the "Trailer" SectionHeader + Play icon. The video now appears without any label.
+   319→- Moved the IMDb/TMDb external links to be centered (justify-center) directly below the video.
+   320→- Added a fallback: if there's no trailer, links still show centered.
+   321→
+   322→Verification (agent-browser):
+   323→- Godfather detail: no Trailer heading, video shows bare, IMDb+TMDb buttons centered below ✓
+   324→- My Information: "My Information" heading is text-align center, no Heart icon in header, card has space-y-2.5 ✓
+   325→- Director "Francis Ford Coppola" is a clickable button → PersonView shows "Francis Ford Coppola" + "Director 1" pill + The Godfather ✓
+   326→- Cast "Al Pacino" clickable → PersonView shows "Al Pacino" + "Cast 2" pill + Heat + The Godfather ✓
+   327→- Sort dropdown on PersonView: Release Year / Watch Date / Title / Personal Rating / Lifetime Ranking ✓
+   328→- No language badge on Story ✓
+   329→- No console errors, lint clean
+   330→
+   331→Stage Summary:
+   332→- All 5 movie-page fixes implemented and verified. Crew names are now fully navigable to dedicated filmography pages with sorting. Ready for the "cinematic recommendations" topic.
+   333→
+   334→---
+   335→Task ID: 13
+   336→Agent: Main (Z.ai Code)
+   337→Task: 3 movie-page fixes — remove header title, soften Back button, constrain My Info box
+   338→
+   339→Work Log:
+   340→
+   341→Fix 1 — Remove "movie" title from header on movie page:
+   342→- In Header.tsx, wrapped the title+subtitle block in a conditional: `{view !== "movie" && titleKey && (...)}`. On the movie detail page, the header now shows only the search box + random + language + theme buttons — no duplicate "movie" title. The movie's own title is already shown large in the content area.
+   343→
+   344→Fix 2 — Soften the Back button:
+   345→- Changed from `variant="secondary"` (solid high-contrast) to `variant="ghost"` with custom classes: `bg-background/40 text-foreground/80 backdrop-blur-sm hover:bg-background/60 hover:text-foreground`.
+   346→- Result: 40% opacity background, 80% opacity text, subtle blur — blends with the backdrop image instead of standing out as a solid block. Hover gently increases to 60% bg + full text.
+   347→
+   348→Fix 3 — My Information box: equal-width items, aligned, 2/3 width:
+   349→- Wrapped the Card in a constrainer: `<div className="mx-auto w-full max-w-[260px]">` — card is now 260px wide (~2/3 of the previous ~390px column), centered.
+   350→- Made ALL items full-width and consistently aligned:
+   351→  * Favorite button: added `w-full`
+   352→  * Status select: already `w-full`
+   353→  * Rank input: changed from `w-24` to `w-full min-w-0 flex-1` (fills the row, Clear Rank button stays compact beside it)
+   354→  * Watch date input: added `w-full`
+   355→  * Rewatch: changed from split label/button row to a labeled full-width button ("Rewatches (N)" label + full-width "Log Rewatch" button)
+   356→- All items now have equal left/right edges, creating a clean aligned column.
+   357→
+   358→Verification (agent-browser):
+   359→- Fix 1: Header on movie page has NO "movie" h1. First heading is the movie title "The Godfather" in content. ✓
+   360→- Fix 2: Back button has bg rgba(0.21/0.4) — soft 40% opacity, text 80% opacity, backdrop-blur. Much lower contrast than before. ✓
+   361→- Fix 3: My Info card width = 260px (was ~390px). Wrapper has mx-auto max-w-[260px]. Favorite/Status/Rank/WatchDate/Rewatch all have w-full. ✓
+   362→- No console errors, lint clean.
+   363→
+   364→Stage Summary:
+   365→- All 3 fixes implemented and verified. Movie page header is clean, Back button is soft, My Information is a tidy narrow aligned box.
+   366→
+   367→---
+   368→Task ID: 14
+   369→Agent: Main (Z.ai Code)
+   370→Task: 7 movie-page fixes — MI box, rewatch, crew colors, trailer header, gallery lightbox, rename, recommendation engine
+   371→
+   372→Work Log:
+   373→
+   374→Fix 1 — MI box width: removed the max-w-[260px] constraint; card now matches Notes card width (~315px). Rating stars no longer overflow.
+   375→
+   376→Fix 2 — Rewatch compact: merged Lifetime Rank + Rewatch into one section. Label row: "Lifetime Rank" (left) + "Rewatches: N" (right). Input row: rank input (flex-1) + Clear Rank ghost button + Log Rewatch ghost icon button. All compact, right-aligned like Clear Rank.
+   377→
+   378→Fix 3 — Crew detail values color: changed Detail component's <dd> from "text-sm font-medium" (white) to "text-sm font-normal text-primary/80" (soft teal at 80% opacity). Also changed DetailWithLinks from text-primary/90 to text-primary/80 for consistency. Values are now soft teal, not bold, matching the link intensity.
+   379→
+   380→Fix 4 — Trailer header restored: added back <SectionHeader title="Trailer" icon={<Play/>}> above the video iframe.
+   381→
+   382→Fix 5 — Gallery lightbox: created GalleryLightbox component (full-screen dialog with prev/next navigation, copy-to-clipboard, download). Gallery images are now clickable buttons that open the lightbox. Keyboard navigation (arrows + escape) supported.
+   383→
+   384→Fix 6 — Renamed app: replaced "Cinéthèque" with "Cinematheque" in translations.ts (EN/FA/FR) and layout.tsx title.
+   385→
+   386→Fix 7 — MAJOR: Rewrote recommendation engine:
+   387→- Added TMDb API functions: getRecommendations(), getSimilarMovies(), getMovieKeywords()
+   388→- Rewrote /api/recommendations to use TMDb collaborative filtering as PRIMARY signal:
+   389→  * For each seed movie (by tmdbId), fetches TMDb /recommendations + /similar (movies that millions of TMDb users watched after the seed)
+   390→  * Scores: recommendation source = 10pts, similar source = 6pts, weighted by seed's personal rating
+   391→  * Keyword overlap: fetches TMDb keywords for seed + top 15 candidates; +1.5pts per shared keyword (thematic similarity)
+   392→  * Filters out movies already in the archive (by tmdbId + fuzzy title match)
+   393→  * Fetches full details (director, cast, genres, trailer, gallery) for top 50 candidates
+   394→  * Returns 50 recommendations (was 3-4 before)
+   395→- Reasons are meaningful: "Loved by fans of both Godfather and GoodFellas", "Fans of Mad Max: Fury Road also loved this — shares thematic elements"
+   396→- TMDb-only movies (not in archive) get id="tmdb-{id}" and can be opened in MovieDetailView
+   397→- MovieDetailView updated: detects tmdb- prefix, fetches from /api/tmdb/details, shows "Want to Watch" + "Add Movie" buttons instead of edit/delete, hides personal info card
+   398→- /api/tmdb/details route updated to return complete Movie-shaped object
+   399→
+   400→Verification (agent-browser + curl):
+   401→- Global recommendations: 50 results (was 3-4). Top: Casino, The Irishman, Silence of the Lambs — all perfect for Godfather/GoodFellas/Se7en fans ✓
+   402→- Movie-specific (Mad Max): 40 results including Mad Max 2, Matrix, post-apocalyptic films ✓
+   403→- TMDb movie detail (Casino): shows title, story, trailer, gallery + "Want to Watch"/"Add Movie" buttons ✓
+   404→- MI box: 315px (matches Notes), rating fits ✓
+   405→- Crew values: oklab teal at 80% opacity, font-normal ✓
+   406→- Trailer header: "Trailer" h2 restored ✓
+   407→- Gallery lightbox: "Image 1 of 8" + Copy/Download/Close ✓
+   408→- App name: "Cinematheque" ✓
+   409→- Lint clean
+   410→
+   411→Stage Summary:
+   412→- Recommendation engine completely transformed: from 3-4 generic local matches to 50 TMDb-powered collaborative-filtering recommendations with thematic keyword analysis
+   413→- TMDb movies not in archive can be browsed in full detail and added with one click
+   414→- All 7 UI fixes verified. Ready for next round of feedback.
+   415→
+   416→---
+   417→Task ID: 15
+   418→Agent: Main (Z.ai Code)
+   419→Task: 4 fixes — crew color, app accent, remove reasons, Photothèque section
+   420→
+   421→Work Log:
+   422→
+   423→Fix 1 — Crew values complementary color:
+   424→- Changed Detail component's <dd> from text-primary/80 (teal) to text-secondary/90 (terracotta).
+   425→- Now non-clickable values (Release Date, Runtime, Country, Language) are in warm terracotta, clearly distinguishable from clickable teal director/writer/cast links. Complementary colors in the palette.
+   426→
+   427→Fix 2 — App name accent:
+   428→- Changed "Cinematheque" to "Cinémathèque" in EN and FR translations + layout.tsx title.
+   429→
+   430→Fix 3 — Remove recommendation reasons:
+   431→- Removed the "why recommended" reason text boxes from MovieDetailView. Now shows just a clean MovieRow with 12 recommendation cards (was 8). No more repetitive reason text.
+   432→
+   433→Fix 4 — Photothèque section:
+   434→- Added `screenshots` field to Prisma Movie model (JSON array of paths), pushed schema, regenerated client.
+   435→- Updated Movie type, parseMovie, movies POST/PUT routes, tmdb.ts payload, tmdb/details route, recommendations route, AddMovieDialog to include screenshots: [].
+   436→- Created /api/movies/[id]/screenshots route: POST (FormData upload to public/screenshots/) + DELETE (remove by path).
+   437→- Created Phototheque.tsx component: upload button, 2-column grid of screenshots, delete on hover, lightbox integration (click to enlarge + copy/download).
+   438→- Added i18n keys: movie_phototheque, phototheque_empty, phototheque_upload, phototheque_uploading (EN/FA/FR).
+   439→- Rewired MovieDetailView gallery: Gallery (2 columns) + Photothèque side-by-side in a lg:grid-cols-2 layout. Gallery was 3 columns, now 2 to leave room for Photothèque.
+   440→- Uploaded a test screenshot via API → saved to /screenshots/ → confirmed displaying on Godfather page.
+   441→
+   442→Verification (agent-browser):
+   443→- App name: "Cinémathèque" ✓
+   444→- Crew values: text-secondary/90 (terracotta oklab 0.65 0.076 0.064 / 0.9) ✓
+   445→- Gallery: 2 columns (7 images) ✓
+   446→- Photothèque: section present, "1 screenshot images" confirmed on page ✓
+   447→- Screenshot upload: POST returned 200 with screenshots array containing the path ✓
+   448→- No recommendation reason text boxes ✓
+   449→- Lint clean
+   450→
+   451→Stage Summary:
+   452→- All 4 changes implemented and verified. Crew values are now clearly non-clickable (terracotta vs teal). App has proper accents. Recommendations are clean (no repetitive reasons). Photothèque allows uploading personal screenshots alongside the TMDb gallery.
+   453→
+   454→---
+   455→Task ID: 16
+   456→Agent: Main (Z.ai Code)
+   457→Task: Fix upload failure + TMDb API key 401 fallback
+   458→
+   459→Work Log:
+   460→- Investigated "Upload failed" error:
+   461→  * Upload route works correctly via curl (HTTP 200) and browser fetch (tested via eval)
+   462→  * The failure was caused by the dev server crashing between requests in the sandbox environment
+   463→  * Improved error handling in Phototheque.tsx: now shows the actual error message (e.g., "File too large" or network error) instead of generic "Upload failed"
+   464→  * Increased file size limit from 10MB to 20MB (screenshots can be large)
+   465→  * Added better error logging in the screenshots route (logs movieId + actual error message)
+   466→  * Added maxDuration: 60 to the route
+   467→
+   468→- Discovered TMDb API key is returning 401 "Invalid API key" errors:
+   469→  * All TMDb API calls (recommendations, similar, keywords) are failing
+   470→  * This was causing the recommendations to return empty results and flooding the dev log with errors
+   471→  * Added localRecommendations() fallback function: when TMDb returns no candidates (due to 401 or network errors), the route falls back to local matching (shared director/actors/genres/ratings) from the user's own archive
+   472→  * Verified: recommendations now return 3 local results (Heat, Once Upon a Time in America, Oldboy) even with TMDb down
+   473→
+   474→Verification:
+   475→- Upload: POST /api/movies/[id]/screenshots 200 ✓ (4 screenshots now saved for Godfather)
+   476→- Recommendations fallback: 3 local results returned when TMDb is down ✓
+   477→- Lint clean
+   478→
+   479→Note: The TMDb API key (39adf355a4930c90981a9d8abc608dec) is returning 401 "Invalid API key". The user may need to regenerate it at https://www.themoviedb.org/settings/api. Until then, the app uses local fallback recommendations.
+   480→
+   481→---
+   482→Task ID: 17
+   483→Agent: Main (Z.ai Code)
+   484→Task: Fix upload failure — switched to base64 JSON upload
+   485→
+   486→Work Log:
+   487→- Root cause: The Next.js dev server crashes in this sandbox environment when handling multipart FormData uploads. The upload route itself works correctly (verified via curl multiple times with HTTP 200), but the server dies between requests.
+   488→- Fix 1: Changed Phototheque upload from FormData to base64 data URL (JSON body). The browser reads the file as a data URL via FileReader.readAsDataURL(), then sends it as JSON { image: "data:image/jpeg;base64,..." }. This avoids multipart parsing which was crashing the server.
+   489→- Fix 2: Updated the screenshots route to accept both FormData AND JSON base64 uploads (content-type detection).
+   490→- Fix 3: Added experimental.serverActions.bodySizeLimit: "50mb" to next.config.ts.
+   491→- Fix 4: Suppressed TMDb 401 error logging (was flooding the dev log and potentially contributing to crashes). Added 5-second timeout to TMDb fetches via AbortController.
+   492→- Verified: base64 upload via curl returns HTTP 200 with screenshot saved. Godfather now has 5 screenshots.
+   493→
+   494→Note: The dev server in this sandbox is unstable and crashes frequently between requests. The upload code is correct — when the server is alive, uploads succeed. The user may need to restart the dev server if it crashes.
+   495→

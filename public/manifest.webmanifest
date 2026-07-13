@@ -1,0 +1,17 @@
+{
+  "name": "Cinémathèque — Personal Movie Archive",
+  "short_name": "Cinémathèque",
+  "description": "A lightweight, offline-first personal movie archive.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f1620",
+  "theme_color": "#3bb5a3",
+  "icons": [
+    {
+      "src": "/logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

@@ -6,6 +6,8 @@ import { useI18n } from "@/lib/i18n/context";
 import { useNav } from "@/lib/store";
 import type { Movie, Recommendation } from "@/lib/movie/types";
 import { MovieRow } from "@/components/movie/MovieRow";
+import { PosterCarousel } from "@/components/movie/PosterCarousel";
+import { RewatchReminder } from "@/components/movie/RewatchReminder";
 import { EmptyState } from "@/components/movie/EmptyState";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -55,18 +57,29 @@ export function HomeView() {
 
   return (
     <div className="space-y-8 p-4 md:p-6">
-      {/* 1. Latest Watched — TOP */}
-      <MovieRow
-        title={t("home_latest")}
-        icon={<Clock />}
-        movies={stats?.latestWatched ?? []}
-        action={
+      {/* 1. Latest Watched — TOP (auto-rotating poster carousel) */}
+      <section className="space-y-3">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <span className="flex size-6 items-center justify-center rounded-md bg-primary/15 text-primary">
+              <Clock className="size-4" />
+            </span>
+            <h2 className="text-lg font-semibold tracking-tight">{t("home_latest")}</h2>
+          </div>
           <Button variant="ghost" size="sm" onClick={() => go("lastWatched")}>
             {t("nav_lastWatched")}
             <ArrowRight className="size-4" />
           </Button>
-        }
-      />
+        </div>
+        {(stats?.latestWatched ?? []).length > 0 ? (
+          <PosterCarousel movies={stats?.latestWatched ?? []} />
+        ) : (
+          <p className="py-8 text-center text-sm text-muted-foreground">—</p>
+        )}
+      </section>
+
+      {/* 1b. Rewatch reminder — gentle nudge for loved films watched long ago */}
+      <RewatchReminder />
 
       {/* 2. Stats + Favorite Genres + Favorite Directors — BOTTOM */}
       <div className="space-y-6">

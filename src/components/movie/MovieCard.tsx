@@ -7,6 +7,7 @@ import { useNav } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { PosterImage } from "./PosterImage";
 import { RankBadge } from "./RankBadge";
+import { QuickStatusToggle } from "./QuickStatusToggle";
 
 interface MovieCardProps {
   movie: Movie;
@@ -17,6 +18,7 @@ export function MovieCard({ movie }: MovieCardProps) {
   const goMovie = useNav((s) => s.goMovie);
   const year = movie.year ?? movie.releaseDate?.slice(0, 4);
   const rating = movie.personalRating ?? movie.imdbRating ?? movie.tmdbRating;
+  const showQuickToggle = movie.status === "want";
 
   return (
     <motion.button
@@ -42,10 +44,15 @@ export function MovieCard({ movie }: MovieCardProps) {
           </div>
         )}
 
-        {/* Top-right favorite indicator */}
-        {movie.favorite && (
-          <div className="absolute right-1.5 top-1.5 flex size-7 items-center justify-center rounded-full bg-background/80 backdrop-blur-sm">
-            <Heart className="size-4 text-primary" fill="currentColor" />
+        {/* Top-right indicators: favorite heart + quick "mark as watched" toggle */}
+        {(movie.favorite || showQuickToggle) && (
+          <div className="absolute right-1.5 top-1.5 flex flex-col items-end gap-1">
+            {movie.favorite && (
+              <div className="flex size-7 items-center justify-center rounded-full bg-background/80 backdrop-blur-sm">
+                <Heart className="size-4 text-primary" fill="currentColor" />
+              </div>
+            )}
+            {showQuickToggle && <QuickStatusToggle movie={movie} />}
           </div>
         )}
 

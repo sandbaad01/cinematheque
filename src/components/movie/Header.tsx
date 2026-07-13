@@ -34,6 +34,8 @@ const VIEW_TITLE_KEYS: Record<string, string> = {
   recommendations: "home_recommended",
   person: "movie",
   imdbLists: "imdb_lists_title",
+  yearlyStats: "nav_yearlyStats",
+  report: "nav_report",
 };
 
 const VIEW_SUBTITLE_KEYS: Record<string, string | null> = {
@@ -56,6 +58,8 @@ const VIEW_SUBTITLE_KEYS: Record<string, string | null> = {
   recommendations: "rec_basedOn",
   person: null,
   imdbLists: "imdb_lists_subtitle",
+  yearlyStats: null,
+  report: null,
 };
 
 /** Top sticky header with view title, subtitle, search, random, language, theme. */
@@ -83,7 +87,7 @@ export function Header({ onMenuClick, className }: HeaderProps) {
   return (
     <header
       className={cn(
-        "sticky top-0 z-30 flex h-16 items-center gap-2 border-b bg-background/80 px-3 backdrop-blur md:px-6",
+        "sticky top-0 z-30 flex h-16 items-center gap-2 border-b bg-background/80 px-3 backdrop-blur print:hidden md:px-6",
         className
       )}
     >
