@@ -91,7 +91,7 @@ export function HomeView() {
         <div className="grid gap-4 lg:grid-cols-2">
           <Card className="p-5">
             <div className="mb-3 flex items-center gap-2">
-              <Clapperboard className="size-4 text-amber-600/70" />
+              <Clapperboard className="size-4 text-[hsl(45_70%_55%)]/85" />
               <h3 className="font-semibold">{t("home_topGenres")}</h3>
             </div>
             <div className="space-y-2">
@@ -104,7 +104,7 @@ export function HomeView() {
                     className="flex w-full items-center gap-3 text-left"
                   >
                     <span className="w-5 text-sm text-muted-foreground">{i + 1}</span>
-                    <span className="w-28 shrink-0 truncate text-sm font-medium text-amber-600/70">{g.name}</span>
+                    <span className="w-28 shrink-0 truncate text-sm font-medium text-[hsl(45_70%_55%)]/85">{g.name}</span>
                     <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
                       <div
                         className="h-full rounded-full bg-primary"
@@ -123,14 +123,14 @@ export function HomeView() {
 
           <Card className="p-5">
             <div className="mb-3 flex items-center gap-2">
-              <Film className="size-4 text-amber-600/70" />
+              <Film className="size-4 text-[hsl(45_70%_55%)]/85" />
               <h3 className="font-semibold">{t("home_topDirectors")}</h3>
             </div>
             <div className="space-y-2">
               {(stats?.topDirectors ?? []).map((d, i) => (
                 <div key={d.name} className="flex items-center gap-3">
                   <span className="w-5 text-sm text-muted-foreground">{i + 1}</span>
-                  <span className="flex-1 truncate text-sm font-medium text-amber-600/70">{d.name}</span>
+                  <span className="flex-1 truncate text-sm font-medium text-[hsl(45_70%_55%)]/85">{d.name}</span>
                   <span className="text-xs text-muted-foreground">{d.count}</span>
                 </div>
               ))}
