@@ -23,7 +23,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { useI18n } from "@/lib/i18n/context";
 import { cn } from "@/lib/utils";
 import type { Movie, MovieStatus } from "@/lib/movie/types";
@@ -433,7 +432,7 @@ export function AddMovieDialog({
           </div>
         ) : (
           <div className="space-y-4">
-            <ScrollArea className="max-h-[70vh] pr-3">
+            <div className="max-h-[calc(90vh-12rem)] overflow-y-auto scrollbar-thin pr-1">
               <div className="grid gap-4 md:grid-cols-2">
                 <Field label={t("sort_title")} required>
                   <Input
@@ -626,7 +625,7 @@ export function AddMovieDialog({
                   <Label htmlFor="favorite">{t("movie_favorite")}</Label>
                 </div>
               </div>
-            </ScrollArea>
+            </div>
 
             <DialogFooter className="flex-row justify-between gap-2">
               {!isEdit ? (
