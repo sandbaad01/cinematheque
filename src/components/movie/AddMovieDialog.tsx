@@ -318,7 +318,7 @@ export function AddMovieDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl">
+      <DialogContent className="max-h-[90vh] overflow-hidden sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             {isEdit ? t("action_edit") : (
@@ -336,7 +336,7 @@ export function AddMovieDialog({
         </DialogHeader>
 
         {step === 1 ? (
-          <div className="space-y-4">
+          <div className="flex max-h-[calc(90vh-8rem)] flex-col space-y-4 overflow-y-auto scrollbar-thin p-1">
             <div className="flex gap-2">
               <Input
                 value={query}
@@ -366,7 +366,7 @@ export function AddMovieDialog({
             )}
 
             {results.length > 0 && (
-              <ScrollArea className="max-h-[45vh] rounded-md border">
+              <div className="max-h-[50vh] overflow-y-auto scrollbar-thin rounded-md border">
                 <div className="divide-y">
                   {results.map((r) => (
                     <button
@@ -417,7 +417,7 @@ export function AddMovieDialog({
                     </button>
                   ))}
                 </div>
-              </ScrollArea>
+              </div>
             )}
 
             <div className="flex items-center justify-between pt-2">
