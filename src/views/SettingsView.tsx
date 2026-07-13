@@ -10,6 +10,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { LanguageSwitcher } from "@/components/movie/LanguageSwitcher";
 import { Separator } from "@/components/ui/separator";
 
@@ -20,6 +27,7 @@ export function SettingsView() {
   const csvInputRef = useRef<HTMLInputElement>(null);
   const [csvText, setCsvText] = useState("");
   const [listName, setListName] = useState("");
+  const [listType, setListType] = useState<"watch" | "watched">("watched");
   const [busy, setBusy] = useState(false);
 
   const exportBackup = () => {
@@ -55,13 +63,14 @@ export function SettingsView() {
       const res = await fetch("/api/import-imdb", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ csv: csvText, listName: listName.trim() || "IMDb List" }),
+        body: JSON.stringify({ csv: csvText, listName: listName.trim() || "IMDb List", listType }),
       });
       const result = await res.json();
       if (result.error) throw new Error(result.error);
       toast.success(`Imported ${result.imported} movies, skipped ${result.skipped} duplicates → "${listName.trim() || "IMDb List"}"`);
       setCsvText("");
       setListName("");
+      setListType("watched");
       triggerRefresh();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Import failed");
@@ -127,12 +136,23 @@ export function SettingsView() {
           <h3 className="font-semibold">{t("settings_import_imdb")}</h3>
         </div>
         <p className="text-sm text-muted-foreground">{t("settings_import_imdb_desc")}</p>
-        <Input
-          value={listName}
-          onChange={(e) => setListName(e.target.value)}
-          placeholder="List name (e.g. My Watchlist, Favorite Movies)"
-          className="text-sm"
-        />
+        <div className="flex gap-2">
+          <Input
+            value={listName}
+            onChange={(e) => setListName(e.target.value)}
+            placeholder="List name (e.g. My Watchlist, Favorite Movies)"
+            className="text-sm"
+          />
+          <Select value={listType} onValueChange={(v) => setListType(v as "watch" | "watched")}>
+            <SelectTrigger className="w-[150px] shrink-0">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="watched">Watched List</SelectItem>
+              <SelectItem value="watch">Watchlist</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
         <Textarea
           value={csvText}
           onChange={(e) => setCsvText(e.target.value)}

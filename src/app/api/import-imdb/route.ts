@@ -63,13 +63,15 @@ function headerIndex(headers: string[], name: string): number {
   return lower.indexOf(name.toLowerCase());
 }
 
-// POST /api/import-imdb { csv: string, listName?: string }
+// POST /api/import-imdb { csv: string, listName?: string, listType?: "watch" | "watched" }
 // Creates movies from an IMDb CSV export AND adds them to a named collection.
+// listType "watch" → movies get status "want"; "watched" → status "watched".
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const csv: string = typeof body?.csv === "string" ? body.csv : "";
     const listName: string = (body?.listName ?? "IMDb List").toString().trim() || "IMDb List";
+    const listType: "watch" | "watched" = body?.listType === "watch" ? "watch" : "watched";
 
     if (!csv.trim()) {
       return NextResponse.json(
@@ -145,8 +147,8 @@ export async function POST(req: NextRequest) {
           year: typeof year === "number" && !Number.isNaN(year) ? year : null,
           genres: JSON.stringify(genres),
           director,
-          status: "watched",
-          watchDate: dateRated,
+          status: listType === "watch" ? "want" : "watched",
+          watchDate: listType === "watch" ? null : (dateRated ?? null),
           imdbRating:
             typeof imdbRating === "number" && !Number.isNaN(imdbRating)
               ? imdbRating
@@ -176,7 +178,7 @@ export async function POST(req: NextRequest) {
       const collection = await db.collection.create({
         data: {
           name: listName,
-          description: `Imported from IMDb (${imported} movies, ${skipped} already in archive)`,
+          description: `IMDb ${listType === "watch" ? "Watchlist" : "Watched List"} · ${imported} movies, ${skipped} already in archive`,
           movieIds: JSON.stringify(movieIds),
         },
       });

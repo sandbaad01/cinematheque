@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Clapperboard, ArrowRight, Plus, Pencil, Trash2, Loader2 } from "lucide-react";
+import { Clapperboard, ArrowRight, Plus, Pencil, Trash2, Loader2, Eye, Bookmark } from "lucide-react";
 import { toast } from "sonner";
 import { useFetch } from "@/lib/useFetch";
 import { useI18n } from "@/lib/i18n/context";
@@ -10,6 +10,7 @@ import type { Collection } from "@/lib/movie/types";
 import { EmptyState } from "@/components/movie/EmptyState";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -131,7 +132,21 @@ export function ImdbListsView() {
                     <div className="mb-3 flex size-12 items-center justify-center rounded-lg bg-primary/15 text-primary">
                       <Clapperboard className="size-6" />
                     </div>
-                    <h3 className="font-semibold">{c.name}</h3>
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-semibold">{c.name}</h3>
+                      {/* List type badge */}
+                      {c.description?.includes("Watchlist") ? (
+                        <Badge variant="outline" className="gap-1 bg-amber-500/10 text-amber-500">
+                          <Bookmark className="size-3" />
+                          Watchlist
+                        </Badge>
+                      ) : c.description?.includes("Watched List") ? (
+                        <Badge variant="outline" className="gap-1 bg-emerald-500/10 text-emerald-500">
+                          <Eye className="size-3" />
+                          Watched
+                        </Badge>
+                      ) : null}
+                    </div>
                     {c.description && (
                       <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{c.description}</p>
                     )}
@@ -166,7 +181,7 @@ export function ImdbListsView() {
                       onClick={() => goCollection(c.id)}
                       className="opacity-60 transition-opacity group-hover:opacity-100"
                     >
-                      {t("nav_watched")}
+                      Voilà
                       <ArrowRight className="size-4" />
                     </Button>
                   </div>
