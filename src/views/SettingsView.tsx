@@ -141,9 +141,12 @@ export function SettingsView() {
           className="font-mono text-xs"
         />
         <div className="flex flex-wrap gap-2">
-          <Button onClick={importCsv} disabled={busy || !csvText.trim()}>
+          <Button
+            onClick={importCsv}
+            disabled={busy || !csvText.trim() || !listName.trim()}
+          >
             <Upload className="size-4" />
-            {t("action_import")}
+            {busy ? t("saving") : t("action_save")}
           </Button>
           <Button onClick={() => csvInputRef.current?.click()} variant="outline" disabled={busy}>
             <FileText className="size-4" />
@@ -157,6 +160,11 @@ export function SettingsView() {
             onChange={async (e) => {
               const f = e.target.files?.[0];
               if (f) setCsvText(await f.text());
+              // Auto-fill list name from filename if empty
+              if (!listName.trim()) {
+                const fname = f.name.replace(/\.csv$/i, "");
+                setListName(fname);
+              }
               e.target.value = "";
             }}
           />

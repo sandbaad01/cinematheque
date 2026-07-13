@@ -60,6 +60,7 @@ const NAV_GROUPS: NavGroup[] = [
       { view: "search", labelKey: "nav_search", icon: Search },
       { view: "recommendations", labelKey: "nav_recommendations", icon: Sparkles },
       { view: "timeline", labelKey: "nav_timeline", icon: CalendarRange },
+      { view: "imdbLists", labelKey: "nav_imdbLists", icon: Clapperboard },
     ],
   },
   {
@@ -67,7 +68,6 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { view: "ratings", labelKey: "nav_ratings", icon: Star },
       { view: "favorites", labelKey: "nav_favorites", icon: Heart },
-      { view: "imdbLists", labelKey: "nav_imdbLists", icon: Clapperboard },
       { view: "collections", labelKey: "nav_collections", icon: FolderOpen },
       { view: "lists", labelKey: "nav_lists", icon: ListOrdered },
     ],

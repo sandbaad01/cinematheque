@@ -12,7 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export function ImdbListsView() {
   const { t } = useI18n();
-  const { goCollection, go } = useNav();
+  const { goCollection } = useNav();
   const { data: collections, loading } = useFetch<Collection[]>("/api/collections");
 
   // Filter for IMDb-imported collections (those with "IMDb" in description)
@@ -22,12 +22,6 @@ export function ImdbListsView() {
 
   return (
     <div className="space-y-6 p-4 md:p-6">
-      <div className="flex items-center justify-end">
-        <Button variant="outline" size="sm" onClick={() => go("settings")}>
-          {t("settings_import_imdb")}
-        </Button>
-      </div>
-
       {loading ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {Array.from({ length: 3 }).map((_, i) => (
@@ -38,7 +32,6 @@ export function ImdbListsView() {
         <EmptyState
           icon={<Clapperboard className="size-12" />}
           title={t("imdb_lists_empty")}
-          action={<Button onClick={() => go("settings")}>{t("settings_import_imdb")}</Button>}
         />
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
