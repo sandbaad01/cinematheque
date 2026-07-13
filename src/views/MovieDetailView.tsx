@@ -149,10 +149,12 @@ export function MovieDetailView({ movieId }: { movieId: string }) {
     try {
       let tmdbId = movie.tmdbId;
 
-      // If no tmdbId, search TMDb by title (+ year if available) to find it
+      // If no tmdbId, search TMDb by title (with year as separate param) to find it
       if (!tmdbId) {
-        const query = movie.year ? `${movie.title} ${movie.year}` : movie.title;
-        const searchRes = await fetch(`/api/tmdb/search?q=${encodeURIComponent(query)}`);
+        const searchUrl = movie.year
+          ? `/api/tmdb/search?q=${encodeURIComponent(movie.title)}&year=${movie.year}`
+          : `/api/tmdb/search?q=${encodeURIComponent(movie.title)}`;
+        const searchRes = await fetch(searchUrl);
         if (!searchRes.ok) throw new Error("search failed");
         const searchData = await searchRes.json();
         const firstResult = searchData?.results?.[0];

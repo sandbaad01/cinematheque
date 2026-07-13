@@ -118,12 +118,13 @@ export interface TmdbMovieDetails {
 
 // ---------- Public API ----------
 
-/** Search TMDb for movies by title. */
-export async function searchMovies(query: string, page = 1): Promise<TmdbSearchResponse> {
+/** Search TMDb for movies by title (with optional year filter). */
+export async function searchMovies(query: string, page = 1, year?: number): Promise<TmdbSearchResponse> {
   return tmdbFetch<TmdbSearchResponse>("/search/movie", {
     query,
     page: String(page),
     include_adult: "false",
+    ...(year ? { year: String(year) } : {}),
   });
 }
 

@@ -12,10 +12,12 @@ export const maxDuration = 20;
 export async function GET(req: NextRequest) {
   try {
     const q = req.nextUrl.searchParams.get("q")?.trim() ?? "";
+    const yearStr = req.nextUrl.searchParams.get("year")?.trim() ?? "";
+    const year = yearStr ? parseInt(yearStr, 10) || undefined : undefined;
     if (q.length < 2) {
       return NextResponse.json({ results: [] });
     }
-    const data = await searchMovies(q);
+    const data = await searchMovies(q, 1, year);
 
     const results = (data.results ?? [])
       .filter((r) => r.media_type !== "tv" && r.id)
