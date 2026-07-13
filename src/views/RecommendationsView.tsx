@@ -163,24 +163,6 @@ export function RecommendationsView() {
               <MovieCard key={r.movie.id} movie={r.movie} />
             ))}
           </div>
-
-          {/* Why recommended — show for first 12 */}
-          <div className="mt-6 space-y-2">
-            <h3 className="text-sm font-semibold text-muted-foreground">{t("rec_why")}</h3>
-            {recs.slice(0, 12).map((r) => (
-              <div
-                key={r.movie.id}
-                className="flex items-start gap-2 rounded-lg border bg-card/50 p-3 text-xs"
-              >
-                <Sparkles className="mt-0.5 size-3.5 shrink-0 text-primary" />
-                <span className="text-muted-foreground">
-                  <span className="font-medium text-foreground">{r.movie.title}</span>
-                  {" — "}
-                  {r.reason}
-                </span>
-              </div>
-            ))}
-          </div>
         </>
       )}
     </div>
