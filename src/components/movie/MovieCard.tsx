@@ -13,7 +13,9 @@ interface MovieCardProps {
   movie: Movie;
 }
 
-/** A poster card for grid/row display. */
+/** A poster card for grid/row display. Uses a div (not button) so that
+ *  inner interactive elements like QuickStatusToggle don't violate HTML
+ *  nesting rules (<button> cannot contain <button>). */
 export function MovieCard({ movie }: MovieCardProps) {
   const goMovie = useNav((s) => s.goMovie);
   const year = movie.year ?? movie.releaseDate?.slice(0, 4);
@@ -21,13 +23,15 @@ export function MovieCard({ movie }: MovieCardProps) {
   const showQuickToggle = movie.status === "want";
 
   return (
-    <motion.button
-      type="button"
+    <motion.div
+      role="button"
+      tabIndex={0}
       onClick={() => goMovie(movie.id)}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); goMovie(movie.id); } }}
       whileHover={{ y: -4 }}
       whileTap={{ scale: 0.98 }}
       transition={{ type: "spring", stiffness: 400, damping: 30 }}
-      className="poster-card group relative flex w-full flex-col gap-2 text-left focus-visible:outline-none"
+      className="poster-card group relative flex w-full cursor-pointer flex-col gap-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-lg"
     >
       <div className="relative aspect-[2/3] overflow-hidden rounded-lg border border-border/60 bg-muted shadow-sm transition-shadow duration-300 group-hover:shadow-xl group-hover:shadow-black/40">
         <PosterImage
@@ -57,7 +61,7 @@ export function MovieCard({ movie }: MovieCardProps) {
         )}
 
         {/* Hover play overlay */}
-        <div className="absolute inset-0 flex items-center justify-center bg-background/30 opacity-0 backdrop-blur-[1px] transition-opacity duration-300 group-hover:opacity-100">
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-background/30 opacity-0 backdrop-blur-[1px] transition-opacity duration-300 group-hover:opacity-100">
           <div className="flex size-12 items-center justify-center rounded-full bg-primary/90 text-primary-foreground shadow-lg">
             <Play className="size-5" fill="currentColor" />
           </div>
@@ -86,6 +90,6 @@ export function MovieCard({ movie }: MovieCardProps) {
           )}
         </p>
       </div>
-    </motion.button>
+    </motion.div>
   );
 }
