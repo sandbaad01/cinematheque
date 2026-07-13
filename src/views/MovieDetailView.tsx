@@ -143,14 +143,26 @@ export function MovieDetailView({ movieId }: { movieId: string }) {
 
   // Re-fetch fresh metadata (poster, cast, director, trailer, gallery, ratings)
   // from TMDb and merge it into the existing movie, preserving personal fields.
+  // If the movie has no tmdbId (e.g. imported from IMDb CSV), search TMDb by title first.
   const refreshFromTmdb = async () => {
-    if (!movie.tmdbId) {
-      toast.error("This movie has no TMDb id — cannot refresh.");
-      return;
-    }
     setRefreshing(true);
     try {
-      const res = await fetch(`/api/tmdb/details?id=${movie.tmdbId}`);
+      let tmdbId = movie.tmdbId;
+
+      // If no tmdbId, search TMDb by title (+ year if available) to find it
+      if (!tmdbId) {
+        const query = movie.year ? `${movie.title} ${movie.year}` : movie.title;
+        const searchRes = await fetch(`/api/tmdb/search?q=${encodeURIComponent(query)}`);
+        if (!searchRes.ok) throw new Error("search failed");
+        const searchData = await searchRes.json();
+        const firstResult = searchData?.results?.[0];
+        if (!firstResult?.tmdbId) {
+          throw new Error("Movie not found on TMDb");
+        }
+        tmdbId = firstResult.tmdbId;
+      }
+
+      const res = await fetch(`/api/tmdb/details?id=${tmdbId}`);
       if (!res.ok) throw new Error("fetch failed");
       const d = await res.json();
       await update({
@@ -170,6 +182,7 @@ export function MovieDetailView({ movieId }: { movieId: string }) {
         overview: d.overview ?? movie.overview,
         tmdbRating: d.tmdbRating ?? movie.tmdbRating,
         imdbId: d.imdbId ?? movie.imdbId,
+        tmdbId: tmdbId,
         trailer: d.trailer ?? movie.trailer,
         gallery: Array.isArray(d.gallery) ? d.gallery : movie.gallery,
       });
@@ -247,17 +260,15 @@ export function MovieDetailView({ movieId }: { movieId: string }) {
                   </>
                 ) : (
                   <>
-                    {movie.tmdbId && (
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={refreshFromTmdb}
-                        disabled={refreshing}
-                        title="Refresh from TMDb"
-                      >
-                        <RefreshCw className={cn("size-4", refreshing && "animate-spin")} />
-                      </Button>
-                    )}
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={refreshFromTmdb}
+                      disabled={refreshing}
+                      title="Refresh from TMDb"
+                    >
+                      <RefreshCw className={cn("size-4", refreshing && "animate-spin")} />
+                    </Button>
                     <Button variant="outline" size="icon" onClick={() => setEditOpen(true)} title={t("action_edit")}>
                       <Pencil className="size-4" />
                     </Button>
