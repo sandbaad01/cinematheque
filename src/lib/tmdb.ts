@@ -29,7 +29,7 @@ async function tmdbFetch<T>(path: string, params: Record<string, string> = {}): 
     `${TMDB_BASE}${path}?${new URLSearchParams({ language: "en-US", ...params }).toString()}`
   );
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 5000);
+  const timeout = setTimeout(() => controller.abort(), 15000);
   try {
     const res = await fetch(url, { headers: authHeaders(), signal: controller.signal });
     if (!res.ok) {
@@ -134,6 +134,18 @@ export async function getMovieDetails(tmdbId: number): Promise<TmdbMovieDetails>
     append_to_response: "credits,videos,images,external_ids",
     include_image_language: "en,null",
   });
+}
+
+/** Find a TMDb movie by its IMDb ID (most reliable lookup). */
+export async function findByImdbId(imdbId: string): Promise<number | null> {
+  try {
+    const data = await tmdbFetch<{ movie_results: { id: number }[] }>(`/find/${imdbId}`, {
+      external_source: "imdb_id",
+    });
+    return data.movie_results?.[0]?.id ?? null;
+  } catch {
+    return null;
+  }
 }
 
 export interface TmdbRecommendationItem {

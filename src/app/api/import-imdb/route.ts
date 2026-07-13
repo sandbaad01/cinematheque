@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { findByImdbId, getMovieDetails, tmdbToMoviePayload, posterUrl } from "@/lib/tmdb";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 300; // 5 minutes for large imports with TMDb lookups
 
 // Minimal CSV parser that handles quoted fields with embedded commas,
 // escaped quotes (""), and newlines inside quotes.
@@ -140,32 +142,49 @@ export async function POST(req: NextRequest) {
         }
       }
 
+      // Try to fetch TMDb data using the IMDb ID for rich metadata
+      let tmdbData: any = null;
+      if (imdbId) {
+        try {
+          const tmdbId = await findByImdbId(imdbId);
+          if (tmdbId) {
+            const details = await getMovieDetails(tmdbId);
+            tmdbData = tmdbToMoviePayload(details);
+          }
+        } catch {
+          // TMDb lookup failed — continue with CSV data only
+        }
+      }
+
       const created = await db.movie.create({
         data: {
+          tmdbId: tmdbData?.tmdbId ?? null,
           imdbId: imdbId || null,
-          title,
-          year: typeof year === "number" && !Number.isNaN(year) ? year : null,
-          genres: JSON.stringify(genres),
-          director,
-          status: listType === "watch" ? "want" : "watched",
-          watchDate: listType === "watch" ? null : (dateRated ?? null),
+          title: tmdbData?.title ?? title,
+          originalTitle: tmdbData?.originalTitle ?? null,
+          poster: tmdbData?.poster ?? null,
+          backdrop: tmdbData?.backdrop ?? null,
+          releaseDate: tmdbData?.releaseDate ?? null,
+          year: tmdbData?.year ?? (typeof year === "number" && !Number.isNaN(year) ? year : null),
+          genres: JSON.stringify(tmdbData?.genres ?? genres),
+          runtime: tmdbData?.runtime ?? (typeof runtime === "number" && !Number.isNaN(runtime) ? runtime : null),
+          country: tmdbData?.country ?? null,
+          language: tmdbData?.language ?? null,
+          director: tmdbData?.director ?? director,
+          writers: JSON.stringify(tmdbData?.writers ?? []),
+          cast: JSON.stringify(tmdbData?.cast ?? []),
+          overview: tmdbData?.overview ?? null,
           imdbRating:
             typeof imdbRating === "number" && !Number.isNaN(imdbRating)
               ? imdbRating
               : null,
-          runtime:
-            typeof runtime === "number" && !Number.isNaN(runtime)
-              ? runtime
-              : null,
-          trailer: null,
-          poster: null,
-          backdrop: null,
-          overview: null,
-          writers: JSON.stringify([]),
-          cast: JSON.stringify([]),
-          gallery: JSON.stringify([]),
+          tmdbRating: tmdbData?.tmdbRating ?? null,
+          trailer: tmdbData?.trailer ?? null,
+          gallery: JSON.stringify(tmdbData?.gallery ?? []),
           tags: JSON.stringify([]),
           screenshots: JSON.stringify([]),
+          status: listType === "watch" ? "want" : "watched",
+          watchDate: listType === "watch" ? null : (dateRated ?? null),
         },
       });
       movieIds.push(created.id);

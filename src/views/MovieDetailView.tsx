@@ -149,19 +149,39 @@ export function MovieDetailView({ movieId }: { movieId: string }) {
     try {
       let tmdbId = movie.tmdbId;
 
-      // If no tmdbId, search TMDb by title (with year as separate param) to find it
+      // If no tmdbId, try to find it on TMDb:
+      // 1. By IMDb ID (most reliable) if the movie has one
+      // 2. By title + year search as fallback
       if (!tmdbId) {
-        const searchUrl = movie.year
-          ? `/api/tmdb/search?q=${encodeURIComponent(movie.title)}&year=${movie.year}`
-          : `/api/tmdb/search?q=${encodeURIComponent(movie.title)}`;
-        const searchRes = await fetch(searchUrl);
-        if (!searchRes.ok) throw new Error("search failed");
-        const searchData = await searchRes.json();
-        const firstResult = searchData?.results?.[0];
-        if (!firstResult?.tmdbId) {
-          throw new Error("Movie not found on TMDb");
+        // Try IMDb ID lookup first via the /find endpoint
+        if (movie.imdbId) {
+          try {
+            const findRes = await fetch(`/api/tmdb/find?imdbId=${encodeURIComponent(movie.imdbId)}`);
+            if (findRes.ok) {
+              const findData = await findRes.json();
+              if (findData?.tmdbId) {
+                tmdbId = findData.tmdbId;
+              }
+            }
+          } catch {
+            // ignore, fall back to title search
+          }
         }
-        tmdbId = firstResult.tmdbId;
+
+        // If still no tmdbId, search by title + year
+        if (!tmdbId) {
+          const searchUrl = movie.year
+            ? `/api/tmdb/search?q=${encodeURIComponent(movie.title)}&year=${movie.year}`
+            : `/api/tmdb/search?q=${encodeURIComponent(movie.title)}`;
+          const searchRes = await fetch(searchUrl);
+          if (!searchRes.ok) throw new Error("search failed");
+          const searchData = await searchRes.json();
+          const firstResult = searchData?.results?.[0];
+          if (!firstResult?.tmdbId) {
+            throw new Error("Movie not found on TMDb");
+          }
+          tmdbId = firstResult.tmdbId;
+        }
       }
 
       const res = await fetch(`/api/tmdb/details?id=${tmdbId}`);
