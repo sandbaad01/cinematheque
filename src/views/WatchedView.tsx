@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { Film } from "lucide-react";
 import { useFetch } from "@/lib/useFetch";
 import { useI18n } from "@/lib/i18n/context";
+import { useNav } from "@/lib/store";
 import type { Movie } from "@/lib/movie/types";
 import { MovieCard } from "@/components/movie/MovieCard";
 import { FilterBar, DEFAULT_FILTERS, type FilterState } from "@/components/movie/FilterBar";
@@ -12,8 +13,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export function WatchedView() {
   const { t } = useI18n();
+  const refreshTick = useNav((s) => s.refreshTick);
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
-  const { data: movies, loading } = useFetch<Movie[]>("/api/movies?status=watched");
+  const { data: movies, loading } = useFetch<Movie[]>("/api/movies?status=watched", [refreshTick]);
 
   // Derive filter option lists from data
   const { genres, countries, languages, directors, years, tags } = useMemo(() => {

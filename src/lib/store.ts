@@ -45,6 +45,9 @@ interface NavState extends ViewState {
   goPerson: (name: string, role: "director" | "actor" | "writer") => void;
   back: () => void;
   canGoBack: boolean;
+  /** Increment to trigger a global data refresh (e.g. after add/edit/delete). */
+  refreshTick: number;
+  triggerRefresh: () => void;
 }
 
 interface HistoryEntry {
@@ -63,6 +66,8 @@ const history: HistoryEntry[] = [];
 export const useNav = create<NavState>((set, get) => ({
   view: "home",
   canGoBack: false,
+  refreshTick: 0,
+  triggerRefresh: () => set((s) => ({ refreshTick: s.refreshTick + 1 })),
 
   go: (view, params = {}) => {
     const current = get();

@@ -27,9 +27,9 @@ interface Stats {
 
 export function HomeView() {
   const { t } = useI18n();
-  const { go, goGenre, go: goView } = useNav();
-  const { data: stats, loading } = useFetch<Stats>("/api/stats");
-  const { data: recsData } = useFetch<{ items: Recommendation[] }>("/api/recommendations");
+  const { go, goGenre, go: goView, refreshTick } = useNav();
+  const { data: stats, loading } = useFetch<Stats>("/api/stats", [refreshTick]);
+  const { data: recsData } = useFetch<{ items: Recommendation[] }>("/api/recommendations", [refreshTick]);
 
   if (loading && !stats) {
     return (

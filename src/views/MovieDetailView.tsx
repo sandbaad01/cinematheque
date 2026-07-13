@@ -39,7 +39,7 @@ import { cn } from "@/lib/utils";
 
 export function MovieDetailView({ movieId }: { movieId: string }) {
   const { t } = useI18n();
-  const { back, goGenre, goPerson } = useNav();
+  const { back, goGenre, goPerson, triggerRefresh } = useNav();
 
   // Detect if this is a TMDb-only movie (not yet in the archive)
   const isTmdbMovie = movieId.startsWith("tmdb-");
@@ -107,6 +107,7 @@ export function MovieDetailView({ movieId }: { movieId: string }) {
       const res = await fetch(`/api/movies/${movie.id}`, { method: "DELETE" });
       if (!res.ok) throw new Error();
       toast.success(t("action_delete"));
+      triggerRefresh();
       back();
     } catch {
       toast.error("Delete failed");
@@ -125,6 +126,7 @@ export function MovieDetailView({ movieId }: { movieId: string }) {
       if (!res.ok) throw new Error();
       const saved = await res.json();
       toast.success(t("add_success"));
+      triggerRefresh();
       // Navigate to the newly created DB movie
       useNav.getState().goMovie(saved.id);
     } catch {

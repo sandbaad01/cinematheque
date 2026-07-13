@@ -86,7 +86,7 @@ export function Sidebar({ mobileOpen, onMobileOpenChange }: SidebarProps) {
   const [internalMobileOpen, setInternalMobileOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
   const { t } = useI18n();
-  const { view, go } = useNav();
+  const { view, go, triggerRefresh } = useNav();
 
   const isMobileOpen = mobileOpen ?? internalMobileOpen;
   const setMobileOpen = (v: boolean) => {
@@ -158,7 +158,7 @@ export function Sidebar({ mobileOpen, onMobileOpenChange }: SidebarProps) {
         />
       </div>
 
-      <AddMovieDialog open={addOpen} onOpenChange={setAddOpen} />
+      <AddMovieDialog open={addOpen} onOpenChange={setAddOpen} onSaved={() => triggerRefresh()} />
     </div>
   );
 

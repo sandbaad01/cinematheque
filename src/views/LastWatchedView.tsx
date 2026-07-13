@@ -13,8 +13,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export function LastWatchedView() {
   const { t } = useI18n();
-  const { goMovie } = useNav();
-  const { data: movies, loading } = useFetch<Movie[]>("/api/movies?status=watched&sort=watchDate&order=desc");
+  const { goMovie, refreshTick } = useNav();
+  const { data: movies, loading } = useFetch<Movie[]>("/api/movies?status=watched&sort=watchDate&order=desc", [refreshTick]);
 
   const recent = useMemo(() => (movies ?? []).slice(0, 50), [movies]);
 
