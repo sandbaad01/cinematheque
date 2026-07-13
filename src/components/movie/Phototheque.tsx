@@ -98,18 +98,16 @@ export function Phototheque({ movie, onUpdated }: PhotothequeProps) {
         />
         <Button
           variant="outline"
-          size="sm"
+          size="icon"
           onClick={() => fileInputRef.current?.click()}
           disabled={uploading}
+          title={uploading ? t("phototheque_uploading") : t("phototheque_upload")}
         >
           {uploading ? (
             <Loader2 className="size-4 animate-spin" />
           ) : (
             <Upload className="size-4" />
           )}
-          <span className="hidden sm:inline">
-            {uploading ? t("phototheque_uploading") : t("phototheque_upload")}
-          </span>
         </Button>
       </div>
 
