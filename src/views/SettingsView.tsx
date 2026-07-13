@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Download, Upload, FileText, Info, Database, Film, Globe, Palette } from "lucide-react";
+import { Download, Upload, FileText, Info, Database, Film, Globe, Palette, AlertTriangle, Loader2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useI18n } from "@/lib/i18n/context";
 import { useNav } from "@/lib/store";
@@ -19,6 +19,16 @@ import {
 } from "@/components/ui/select";
 import { LanguageSwitcher } from "@/components/movie/LanguageSwitcher";
 import { Separator } from "@/components/ui/separator";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export function SettingsView() {
   const { t, lang } = useI18n();
@@ -29,6 +39,9 @@ export function SettingsView() {
   const [listName, setListName] = useState("");
   const [listType, setListType] = useState<"watch" | "watched">("watch");
   const [busy, setBusy] = useState(false);
+  const [resetOpen, setResetOpen] = useState(false);
+  const [resetConfirm, setResetConfirm] = useState("");
+  const [resetting, setResetting] = useState(false);
 
   const exportBackup = () => {
     window.open("/api/backup?download=1", "_blank");
@@ -76,6 +89,23 @@ export function SettingsView() {
       toast.error(e instanceof Error ? e.message : "Import failed");
     } finally {
       setBusy(false);
+    }
+  };
+
+  const handleReset = async () => {
+    setResetting(true);
+    try {
+      const res = await fetch("/api/reset", { method: "POST" });
+      if (!res.ok) throw new Error();
+      const result = await res.json();
+      toast.success(t("settings_reset_done"));
+      setResetOpen(false);
+      setResetConfirm("");
+      triggerRefresh();
+    } catch {
+      toast.error("Reset failed");
+    } finally {
+      setResetting(false);
     }
   };
 
@@ -190,6 +220,66 @@ export function SettingsView() {
           />
         </div>
       </Card>
+
+      {/* Reset Application */}
+      <Card className="space-y-4 border-destructive/30 p-5">
+        <div className="flex items-center gap-2">
+          <AlertTriangle className="size-4 text-destructive" />
+          <h3 className="font-semibold text-destructive">{t("settings_reset")}</h3>
+        </div>
+        <p className="text-sm text-muted-foreground">{t("settings_reset_desc")}</p>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={exportBackup}
+          >
+            <Download className="size-4" />
+            {t("action_export")}
+          </Button>
+          <Button
+            variant="destructive"
+            size="sm"
+            onClick={() => setResetOpen(true)}
+          >
+            <Trash2 className="size-4" />
+            {t("settings_reset_button")}
+          </Button>
+        </div>
+      </Card>
+
+      {/* Reset confirmation dialog */}
+      <AlertDialog open={resetOpen} onOpenChange={(o) => { setResetOpen(o); if (!o) setResetConfirm(""); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-destructive">{t("settings_reset")}</AlertDialogTitle>
+            <AlertDialogDescription className="space-y-3">
+              <span className="block font-medium text-foreground">{t("settings_reset_warning")}</span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="space-y-2">
+            <label className="text-sm font-medium">{t("settings_reset_confirm")}</label>
+            <Input
+              value={resetConfirm}
+              onChange={(e) => setResetConfirm(e.target.value)}
+              placeholder="RESET"
+              className="font-mono"
+              autoFocus
+            />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={resetting}>{t("action_cancel")}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleReset}
+              disabled={resetting || resetConfirm !== "RESET"}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {resetting ? <Loader2 className="size-4 animate-spin" /> : null}
+              {t("settings_reset_button")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* About */}
       <Card className="space-y-3 p-5">

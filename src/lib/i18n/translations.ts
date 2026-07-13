@@ -219,6 +219,12 @@ const en: Dict = {
   settings_theme: "Theme",
   settings_data: "Data Management",
   settings_about: "About",
+  settings_reset: "Reset Application",
+  settings_reset_desc: "Delete all movies, collections, lists, and screenshots. This cannot be undone.",
+  settings_reset_warning: "WARNING: This will permanently delete ALL your data. Please export a backup first. This action cannot be undone.",
+  settings_reset_confirm: "Type RESET to confirm",
+  settings_reset_button: "Reset Everything",
+  settings_reset_done: "Application reset. All data deleted.",
   settings_about_desc: "Cinematheque is a lightweight, offline-first personal movie archive.",
 
   // Random
@@ -493,6 +499,12 @@ const fa: Dict = {
   settings_theme: "پوسته",
   settings_data: "مدیریت داده",
   settings_about: "درباره",
+  settings_reset: "بازنشانی برنامه",
+  settings_reset_desc: "حذف تمام فیلم‌ها، مجموعه‌ها، لیست‌ها و اسکرین‌شات‌ها. این عمل قابل بازگشت نیست.",
+  settings_reset_warning: "هشدار: این کار تمام داده‌های شما را برای همیشه حذف می‌کند. لطفاً ابتدا یک نسخه پشتیبان خروجی بگیرید. این عمل قابل بازگشت نیست.",
+  settings_reset_confirm: "بنویسید RESET برای تأیید",
+  settings_reset_button: "حذف همه چیز",
+  settings_reset_done: "برنامه بازنشانی شد. تمام داده‌ها حذف شدند.",
   settings_about_desc: "سینمتک یک آرشیو شخصی فیلم، سبک و آفلاین‌محور است.",
 
   random_title: "انتخاب تصادفی",
@@ -763,6 +775,12 @@ const fr: Dict = {
   settings_theme: "Thème",
   settings_data: "Gestion des données",
   settings_about: "À propos",
+  settings_reset: "Réinitialiser l'application",
+  settings_reset_desc: "Supprimer tous les films, collections, listes et captures d'écran. Irréversible.",
+  settings_reset_warning: "ATTENTION : Cela supprimera définitivement TOUTES vos données. Exportez une sauvegarde d'abord. Action irréversible.",
+  settings_reset_confirm: "Tapez RESET pour confirmer",
+  settings_reset_button: "Tout réinitialiser",
+  settings_reset_done: "Application réinitialisée. Toutes les données supprimées.",
   settings_about_desc: "Cinematheque est une archive personnelle de films, légère et hors-ligne.",
 
   random_title: "Choix aléatoire",
