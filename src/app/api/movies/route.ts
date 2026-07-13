@@ -82,6 +82,11 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const b: any = body || {};
 
+    // When adding a "watched" movie without an explicit watchDate, default to today
+    // so it appears at the top of "Latest Watched" and "Last Watched" lists.
+    const status = b.status ?? "watched";
+    const watchDate = b.watchDate ?? (status === "watched" ? new Date().toISOString().slice(0, 10) : null);
+
     const created = await db.movie.create({
       data: {
         tmdbId: typeof b.tmdbId === "number" ? b.tmdbId : null,
@@ -105,12 +110,12 @@ export async function POST(req: NextRequest) {
         trailer: b.trailer ?? null,
         gallery: JSON.stringify(Array.isArray(b.gallery) ? b.gallery : []),
         screenshots: JSON.stringify(Array.isArray(b.screenshots) ? b.screenshots : []),
-        status: b.status ?? "watched",
+        status,
         favorite: !!b.favorite,
         rewatchCount: typeof b.rewatchCount === "number" ? b.rewatchCount : 0,
         personalRating:
           typeof b.personalRating === "number" ? b.personalRating : null,
-        watchDate: b.watchDate ?? null,
+        watchDate,
         notes: b.notes ?? null,
         lifetimeRank:
           typeof b.lifetimeRank === "number" ? b.lifetimeRank : null,
