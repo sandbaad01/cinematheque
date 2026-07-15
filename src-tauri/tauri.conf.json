@@ -2,12 +2,12 @@
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "Cinémathèque",
   "version": "1.0.0",
-  "identifier": "com.cinematheque.app",
+  "identifier": "com.cinematheque.desktop",
   "build": {
     "devUrl": "http://localhost:3000",
     "beforeDevCommand": "bun run dev",
-    "frontendDist": "../out",
-    "beforeBuildCommand": "echo 'Use tauri dev for development'"
+    "beforeBuildCommand": "bun run build",
+    "frontendDist": "../src-tauri/html"
   },
   "app": {
     "windows": [
@@ -19,7 +19,8 @@
         "minHeight": 600,
         "resizable": true,
         "fullscreen": false,
-        "center": true
+        "center": true,
+        "url": "http://localhost:3000"
       }
     ],
     "security": {
@@ -29,6 +30,9 @@
   "bundle": {
     "active": true,
     "targets": "all",
+    "resources": [
+      "resources/standalone/**/*"
+    ],
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",

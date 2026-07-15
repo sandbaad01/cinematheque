@@ -1,74 +1,78 @@
 # Cinémathèque — Desktop App (Tauri)
 
-This folder contains the Tauri configuration for building Cinémathèque as a native desktop application.
+## Quick Start (Windows)
 
-## Prerequisites
+### Step 1: Install Prerequisites
 
-### Windows
-1. Install [Rust](https://rustup.rs/)
-2. Install [Node.js](https://nodejs.org/) (or Bun)
-3. Install [Microsoft Visual Studio C++ Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/)
-
-### macOS
-1. Install [Rust](https://rustup.rs/)
-2. Install [Node.js](https://nodejs.org/) (or Bun)
-3. Install Xcode Command Line Tools: `xcode-select --install`
-
-### Linux
-1. Install [Rust](https://rustup.rs/)
-2. Install system dependencies:
-   ```bash
-   sudo apt install libwebkit2gtk-4.1-dev libssl-dev libglib2.0-dev libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev
+1. **Rust**: Download from https://rustup.rs/ and run `rustup-init.exe`
+2. **C++ Build Tools**: Download from https://visualstudio.microsoft.com/visual-cpp-build-tools/
+   - Check "Desktop development with C++" during installation
+3. **Bun**: In PowerShell, run:
+   ```powershell
+   powershell -c "irm bun.sh/install.ps1 | iex"
    ```
+4. **Node.js**: Install from https://nodejs.org/ (needed by Tauri to run the server)
 
-## Development
+### Step 2: Install Dependencies
 
-Run the app in development mode (hot reload):
+Open Command Prompt in the project folder:
+```
+bun install
+bun run db:push
+```
 
-```bash
+### Step 3: Development Mode (with hot reload)
+
+```
 bun run tauri:dev
 ```
 
-This will:
-1. Start the Next.js dev server on port 3000
-2. Open a native desktop window pointing to the dev server
-3. Enable hot reload for both frontend and Rust code
+First run takes 5-10 minutes (compiling Rust). Subsequent runs are fast.
 
-## Build
+This opens a desktop window running the app with full hot reload.
 
-Build a production desktop app:
+### Step 4: Build Production App
 
-```bash
+```
 bun run tauri:build
 ```
 
-This will:
-1. Build the Next.js app
-2. Compile the Rust backend
-3. Package everything into a native installer
+This creates installers in:
+```
+src-tauri\target\release\bundle\
+```
 
-### Output
+- **Windows**: `.msi` installer + `.exe`
+- **macOS**: `.dmg` + `.app`
+- **Linux**: `.deb` + `.AppImage`
 
-The built app will be in `src-tauri/target/release/`:
-- **Windows**: `.msi` installer and `.exe`
-- **macOS**: `.dmg` and `.app`
-- **Linux**: `.deb` and `.AppImage`
+### How It Works
 
-## Configuration
+The desktop app:
+1. Builds the Next.js standalone server
+2. Bundles it inside the Tauri app
+3. On launch, starts the server automatically (no browser needed)
+4. Displays the app in a native desktop window
+5. When you close the window, the server stops automatically
 
-Edit `src-tauri/tauri.conf.json` to change:
-- Window size and title
-- App identifier
-- Bundle settings (icons, etc.)
+All features work exactly like the web version: TMDb integration, database, Photothèque uploads, etc.
 
-## How It Works
+### Database Location
 
-The desktop app wraps the Next.js web application in a native window using Tauri's webview.
-The Next.js dev server runs locally, so all API routes, database access, and TMDb integration
-work exactly as in the web version.
+The SQLite database (`db/custom.db`) is in the project directory. When using the built app, it uses the bundled database.
 
-## Database
+### Troubleshooting
 
-The SQLite database (`db/custom.db`) is stored in the project directory. When building a
-production app, you may want to move it to the user's app data directory for persistence
-across updates.
+**"webkit2gtk not found" (Linux only)**:
+```bash
+sudo apt install libwebkit2gtk-4.1-dev libssl-dev libglib2.0-dev libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev
+```
+
+**"Node not found"**:
+Make sure Node.js is installed (https://nodejs.org/). The app needs `node` to run the bundled server.
+
+**Build takes too long**:
+The first Rust compilation takes 5-10 minutes. This is normal — subsequent builds are much faster.
+
+**Port 3000 already in use**:
+Close any other app using port 3000, or change the port in `next.config.ts` and `src-tauri/tauri.conf.json`.
