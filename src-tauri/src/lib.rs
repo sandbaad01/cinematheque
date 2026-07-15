@@ -171,5 +171,13 @@ pub fn run() {
             }
         })
         .run(tauri::generate_context!())
-        .expect("error");
+        .unwrap_or_else(|e| {
+            log(&format!("FATAL: {}", e));
+            // Try to show a message box
+            let _ = tauri::api::dialog::blocking::message(
+                None::<&tauri::Window>,
+                "Cinémathèque Error",
+                &format!("Failed to start: {}\n\nCheck debug.log in AppData\\Local\\Cinematheque\\", e),
+            );
+        });
 }
