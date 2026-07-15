@@ -103,12 +103,13 @@ pub fn run() {
 
                 let init_script = standalone_dir.join("init-db.js");
                 if init_script.exists() {
-                    if let Ok(o) = Command::new("node")
-                        .arg(&init_script)
+                    let mut cmd = Command::new("node");
+                    cmd.arg(&init_script)
                         .current_dir(&data_dir)
-                        .env("DATABASE_URL", format!("file:{}", db_path.display()))
-                        .output()
-                    {
+                        .env("DATABASE_URL", format!("file:{}", db_path.display()));
+                    #[cfg(windows)]
+                    { cmd.creation_flags(CREATE_NO_WINDOW); }
+                    if let Ok(o) = cmd.output() {
                         log(&format!("init-db: {}", String::from_utf8_lossy(&o.stderr)));
                     }
                 }

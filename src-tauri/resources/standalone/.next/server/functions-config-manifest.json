@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "functions": {
+    "/api/import-imdb": {
+      "maxDuration": 300
+    },
+    "/api/movies/[id]/screenshots": {
+      "maxDuration": 60
+    },
+    "/api/recommendations": {
+      "maxDuration": 60
+    },
+    "/api/reset": {
+      "maxDuration": 30
+    },
+    "/api/tmdb/details": {
+      "maxDuration": 20
+    },
+    "/api/tmdb/find": {
+      "maxDuration": 15
+    },
+    "/api/tmdb/search": {
+      "maxDuration": 20
+    },
+    "/api/translate": {
+      "maxDuration": 60
+    }
+  }
+}

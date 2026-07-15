@@ -1,6 +1,6 @@
 "use client";
 
-import { Heart, Play, Star } from "lucide-react";
+import { Heart, Star } from "lucide-react";
 import { motion } from "framer-motion";
 import type { Movie } from "@/lib/movie/types";
 import { useNav } from "@/lib/store";
@@ -59,13 +59,6 @@ export function MovieCard({ movie }: MovieCardProps) {
             {showQuickToggle && <QuickStatusToggle movie={movie} />}
           </div>
         )}
-
-        {/* Hover play overlay */}
-        <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-background/30 opacity-0 backdrop-blur-[1px] transition-opacity duration-300 group-hover:opacity-100">
-          <div className="flex size-12 items-center justify-center rounded-full bg-primary/90 text-primary-foreground shadow-lg">
-            <Play className="size-5" fill="currentColor" />
-          </div>
-        </div>
 
         {/* Bottom-right personal rating */}
         {movie.personalRating != null && (

@@ -1,0 +1,203 @@
+{
+  "version": 3,
+  "pages404": true,
+  "appType": "app",
+  "caseSensitive": false,
+  "basePath": "",
+  "redirects": [
+    {
+      "source": "/:path+/",
+      "destination": "/:path+",
+      "internal": true,
+      "priority": true,
+      "statusCode": 308,
+      "regex": "^(?:/((?:[^/]+?)(?:/(?:[^/]+?))*))/$"
+    }
+  ],
+  "headers": [],
+  "rewrites": {
+    "beforeFiles": [],
+    "afterFiles": [],
+    "fallback": []
+  },
+  "dynamicRoutes": [
+    {
+      "page": "/api/collections/[id]",
+      "regex": "^/api/collections/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/api/collections/(?<nxtPid>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/api/lists/[id]",
+      "regex": "^/api/lists/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/api/lists/(?<nxtPid>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/api/movies/[id]",
+      "regex": "^/api/movies/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/api/movies/(?<nxtPid>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/api/movies/[id]/screenshots",
+      "regex": "^/api/movies/([^/]+?)/screenshots(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/api/movies/(?<nxtPid>[^/]+?)/screenshots(?:/)?$"
+    }
+  ],
+  "staticRoutes": [
+    {
+      "page": "/",
+      "regex": "^/(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/(?:/)?$"
+    },
+    {
+      "page": "/_global-error",
+      "regex": "^/_global\\-error(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/_global\\-error(?:/)?$"
+    },
+    {
+      "page": "/_not-found",
+      "regex": "^/_not\\-found(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/_not\\-found(?:/)?$"
+    },
+    {
+      "page": "/api",
+      "regex": "^/api(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api(?:/)?$"
+    },
+    {
+      "page": "/api/backup",
+      "regex": "^/api/backup(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/backup(?:/)?$"
+    },
+    {
+      "page": "/api/collections",
+      "regex": "^/api/collections(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/collections(?:/)?$"
+    },
+    {
+      "page": "/api/genres",
+      "regex": "^/api/genres(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/genres(?:/)?$"
+    },
+    {
+      "page": "/api/import-imdb",
+      "regex": "^/api/import\\-imdb(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/import\\-imdb(?:/)?$"
+    },
+    {
+      "page": "/api/lists",
+      "regex": "^/api/lists(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/lists(?:/)?$"
+    },
+    {
+      "page": "/api/movies",
+      "regex": "^/api/movies(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/movies(?:/)?$"
+    },
+    {
+      "page": "/api/random",
+      "regex": "^/api/random(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/random(?:/)?$"
+    },
+    {
+      "page": "/api/recommendations",
+      "regex": "^/api/recommendations(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/recommendations(?:/)?$"
+    },
+    {
+      "page": "/api/reset",
+      "regex": "^/api/reset(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/reset(?:/)?$"
+    },
+    {
+      "page": "/api/search",
+      "regex": "^/api/search(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/search(?:/)?$"
+    },
+    {
+      "page": "/api/search-web",
+      "regex": "^/api/search\\-web(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/search\\-web(?:/)?$"
+    },
+    {
+      "page": "/api/stats",
+      "regex": "^/api/stats(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/stats(?:/)?$"
+    },
+    {
+      "page": "/api/stats/yearly",
+      "regex": "^/api/stats/yearly(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/stats/yearly(?:/)?$"
+    },
+    {
+      "page": "/api/tmdb/details",
+      "regex": "^/api/tmdb/details(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/tmdb/details(?:/)?$"
+    },
+    {
+      "page": "/api/tmdb/find",
+      "regex": "^/api/tmdb/find(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/tmdb/find(?:/)?$"
+    },
+    {
+      "page": "/api/tmdb/search",
+      "regex": "^/api/tmdb/search(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/tmdb/search(?:/)?$"
+    },
+    {
+      "page": "/api/translate",
+      "regex": "^/api/translate(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/translate(?:/)?$"
+    }
+  ],
+  "dataRoutes": [],
+  "rsc": {
+    "header": "rsc",
+    "varyHeader": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+    "prefetchHeader": "next-router-prefetch",
+    "didPostponeHeader": "x-nextjs-postponed",
+    "contentTypeHeader": "text/x-component",
+    "suffix": ".rsc",
+    "prefetchSegmentHeader": "next-router-segment-prefetch",
+    "prefetchSegmentSuffix": ".segment.rsc",
+    "prefetchSegmentDirSuffix": ".segments",
+    "clientParamParsing": false,
+    "dynamicRSCPrerender": false
+  },
+  "rewriteHeaders": {
+    "pathHeader": "x-nextjs-rewritten-path",
+    "queryHeader": "x-nextjs-rewritten-query"
+  }
+}

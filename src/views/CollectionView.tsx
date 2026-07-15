@@ -16,9 +16,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export function CollectionView({ collectionId }: { collectionId: string }) {
   const { t } = useI18n();
-  const { back, goMovie } = useNav();
+  const { back, goMovie, triggerRefresh } = useNav();
+  const refreshTick = useNav((s) => s.refreshTick);
   const { data: collection, loading, refetch } = useFetch<Collection>(`/api/collections/${collectionId}`);
-  const { data: allMovies } = useFetch<Movie[]>("/api/movies");
+  const { data: allMovies } = useFetch<Movie[]>("/api/movies", [refreshTick]);
   const [addOpen, setAddOpen] = useState(false);
   const [refreshingAll, setRefreshingAll] = useState(false);
   const [refreshProgress, setRefreshProgress] = useState(0);
@@ -39,6 +40,7 @@ export function CollectionView({ collectionId }: { collectionId: string }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ movieIds: next }),
       });
+      triggerRefresh();
       refetch();
     } catch {
       toast.error("Failed");

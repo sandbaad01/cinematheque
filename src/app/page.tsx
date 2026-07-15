@@ -33,7 +33,26 @@ export default function Page() {
   const { view, movieId, genreName, collectionId, listId, searchQuery, personName, personRole } = useNav();
   const { t } = useI18n();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [zoom, setZoom] = useState(100);
   const mainRef = useRef<HTMLDivElement>(null);
+
+  // Ctrl+/- zoom
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.ctrlKey && (e.key === "=" || e.key === "+")) {
+        e.preventDefault();
+        setZoom((z) => Math.min(150, z + 10));
+      } else if (e.ctrlKey && e.key === "-") {
+        e.preventDefault();
+        setZoom((z) => Math.max(70, z - 10));
+      } else if (e.ctrlKey && e.key === "0") {
+        e.preventDefault();
+        setZoom(100);
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
 
   // Scroll to top on view change
   useEffect(() => {
@@ -86,7 +105,7 @@ export default function Page() {
         <div className="flex min-w-0 flex-1 flex-col print:block">
           <Header onMenuClick={() => setMobileOpen(true)} />
 
-          <main ref={mainRef} className="flex-1 overflow-y-auto scrollbar-thin print:block print:overflow-visible">
+          <main ref={mainRef} className="flex-1 overflow-y-auto scrollbar-thin print:block print:overflow-visible" style={{ fontSize: `${zoom}%` }}>
             <div className="mx-auto w-full max-w-7xl">
             <AnimatePresence mode="wait">
               <motion.div

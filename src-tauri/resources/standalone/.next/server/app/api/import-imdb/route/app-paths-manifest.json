@@ -1,0 +1,3 @@
+{
+  "/api/import-imdb/route": "app/api/import-imdb/route.js"
+}

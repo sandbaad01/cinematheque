@@ -21,14 +21,14 @@ interface GalleryLightboxProps {
  */
 function resolveImageUrl(path: string): string {
   if (!path) return path;
-  if (
-    path.startsWith("http") ||
-    path.startsWith("/") ||
-    path.startsWith("data:") ||
-    path.startsWith("blob:")
-  ) {
+  if (path.startsWith("http") || path.startsWith("data:") || path.startsWith("blob:")) {
     return path;
   }
+  // Local paths (screenshots, uploads) start with /screenshots or /uploads
+  if (path.startsWith("/screenshots/") || path.startsWith("/uploads/")) {
+    return path;
+  }
+  // TMDb paths — may or may not start with /
   return `${TMDB_IMG}/original${path}`;
 }
 

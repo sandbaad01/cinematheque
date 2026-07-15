@@ -16,9 +16,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export function ListView({ listId }: { listId: string }) {
   const { t } = useI18n();
-  const { back } = useNav();
+  const { back, triggerRefresh } = useNav();
   const { data: list, loading, refetch } = useFetch<PersonalList>(`/api/lists/${listId}`);
-  const { data: allMovies } = useFetch<Movie[]>("/api/movies");
+  const { data: allMovies } = useFetch<Movie[]>("/api/movies", [useNav((s) => s.refreshTick)]);
   const [addOpen, setAddOpen] = useState(false);
 
   const items = useMemo(() => {
