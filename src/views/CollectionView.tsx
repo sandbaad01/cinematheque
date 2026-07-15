@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { ArrowLeft, FolderOpen, Plus, X, Search, RefreshCw, Loader2 } from "lucide-react";
+import { ArrowLeft, FolderOpen, Plus, X, RefreshCw, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useFetch } from "@/lib/useFetch";
 import { useI18n } from "@/lib/i18n/context";
@@ -10,13 +10,9 @@ import type { Collection, Movie } from "@/lib/movie/types";
 import { MovieCard } from "@/components/movie/MovieCard";
 import { PosterImage } from "@/components/movie/PosterImage";
 import { EmptyState } from "@/components/movie/EmptyState";
+import { AddMovieSearchDialog } from "@/components/movie/AddMovieSearchDialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Dialog, DialogContent, DialogHeader, DialogTitle,
-} from "@/components/ui/dialog";
-import { ScrollArea } from "@/components/ui/scroll-area";
 
 export function CollectionView({ collectionId }: { collectionId: string }) {
   const { t } = useI18n();
@@ -24,7 +20,6 @@ export function CollectionView({ collectionId }: { collectionId: string }) {
   const { data: collection, loading, refetch } = useFetch<Collection>(`/api/collections/${collectionId}`);
   const { data: allMovies } = useFetch<Movie[]>("/api/movies");
   const [addOpen, setAddOpen] = useState(false);
-  const [search, setSearch] = useState("");
   const [refreshingAll, setRefreshingAll] = useState(false);
   const [refreshProgress, setRefreshProgress] = useState(0);
 
@@ -35,17 +30,7 @@ export function CollectionView({ collectionId }: { collectionId: string }) {
       .filter((m): m is Movie => !!m);
   }, [collection, allMovies]);
 
-  const availableMovies = useMemo(() => {
-    if (!allMovies || !collection) return [];
-    return allMovies
-      .filter((m) => !collection.movieIds.includes(m.id))
-      .filter((m) =>
-        search ? m.title.toLowerCase().includes(search.toLowerCase()) : true
-      )
-      .sort((a, b) => a.title.localeCompare(b.title));
-  }, [allMovies, collection, search]);
-
-  const addMovie = async (movieId: string) => {
+  const addMovieToCollection = async (movieId: string) => {
     if (!collection) return;
     const next = [...collection.movieIds, movieId];
     try {
@@ -217,42 +202,11 @@ export function CollectionView({ collectionId }: { collectionId: string }) {
         </div>
       )}
 
-      <Dialog open={addOpen} onOpenChange={setAddOpen}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle>{t("nav_add")}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3">
-            <div className="relative">
-              <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-              <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t("search_placeholder")} className="pl-9" autoFocus />
-            </div>
-            <ScrollArea className="max-h-[50vh] -mx-2 px-2">
-              <div className="space-y-1">
-                {availableMovies.map((m) => (
-                  <button
-                    key={m.id}
-                    onClick={() => addMovie(m.id)}
-                    className="flex w-full items-center gap-3 rounded-lg p-2 text-left transition-colors hover:bg-accent"
-                  >
-                    <div className="h-14 w-10 shrink-0 overflow-hidden rounded">
-                      <PosterImage src={m.poster} alt={m.title} size="w200" className="h-full w-full" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium">{m.title}</p>
-                      <p className="text-xs text-muted-foreground">{m.year} · {m.director}</p>
-                    </div>
-                    <Plus className="size-4 text-muted-foreground" />
-                  </button>
-                ))}
-                {availableMovies.length === 0 && (
-                  <p className="py-4 text-center text-sm text-muted-foreground">{t("search_noResults", { query: search })}</p>
-                )}
-              </div>
-            </ScrollArea>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <AddMovieSearchDialog
+        open={addOpen}
+        onOpenChange={setAddOpen}
+        onMovieAdded={(movieId) => { addMovieToCollection(movieId); setAddOpen(false); }}
+      />
     </div>
   );
 }

@@ -22,6 +22,7 @@ copyRecursive("prisma", ".next/standalone/prisma");
 copyRecursive("node_modules/.prisma", ".next/standalone/node_modules/.prisma");
 copyRecursive("node_modules/@prisma", ".next/standalone/node_modules/@prisma");
 copyRecursive("node_modules/prisma", ".next/standalone/node_modules/prisma");
+copyRecursive("node_modules/z-ai-web-dev-sdk", ".next/standalone/node_modules/z-ai-web-dev-sdk");
 
 fs.mkdirSync(".next/standalone/db", { recursive: true });
 if (fs.existsSync("db/custom.db")) {

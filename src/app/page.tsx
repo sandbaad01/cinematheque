@@ -87,6 +87,7 @@ export default function Page() {
           <Header onMenuClick={() => setMobileOpen(true)} />
 
           <main ref={mainRef} className="flex-1 overflow-y-auto scrollbar-thin print:block print:overflow-visible">
+            <div className="mx-auto w-full max-w-7xl">
             <AnimatePresence mode="wait">
               <motion.div
                 key={view}
@@ -99,6 +100,7 @@ export default function Page() {
                 {renderView()}
               </motion.div>
             </AnimatePresence>
+            </div>
           </main>
         </div>
       </div>

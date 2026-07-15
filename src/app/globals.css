@@ -140,6 +140,7 @@
   body {
     @apply bg-background text-foreground;
     font-feature-settings: "ss01", "cv01";
+    font-size: 1.0625rem; /* 17px instead of 16px default */
   }
 }
 

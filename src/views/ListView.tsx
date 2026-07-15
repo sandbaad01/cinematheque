@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { ArrowLeft, ListOrdered, Plus, X, Search, ChevronUp, ChevronDown, Trophy } from "lucide-react";
+import { ArrowLeft, ListOrdered, Plus, X, ChevronUp, ChevronDown, Trophy } from "lucide-react";
 import { toast } from "sonner";
 import { useFetch } from "@/lib/useFetch";
 import { useI18n } from "@/lib/i18n/context";
@@ -10,13 +10,9 @@ import type { PersonalList, Movie, ListItem } from "@/lib/movie/types";
 import { PosterImage } from "@/components/movie/PosterImage";
 import { RatingStars } from "@/components/movie/RatingStars";
 import { EmptyState } from "@/components/movie/EmptyState";
+import { AddMovieSearchDialog } from "@/components/movie/AddMovieSearchDialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Dialog, DialogContent, DialogHeader, DialogTitle,
-} from "@/components/ui/dialog";
-import { ScrollArea } from "@/components/ui/scroll-area";
 
 export function ListView({ listId }: { listId: string }) {
   const { t } = useI18n();
@@ -24,7 +20,6 @@ export function ListView({ listId }: { listId: string }) {
   const { data: list, loading, refetch } = useFetch<PersonalList>(`/api/lists/${listId}`);
   const { data: allMovies } = useFetch<Movie[]>("/api/movies");
   const [addOpen, setAddOpen] = useState(false);
-  const [search, setSearch] = useState("");
 
   const items = useMemo(() => {
     if (!list || !allMovies) return [];
@@ -34,14 +29,11 @@ export function ListView({ listId }: { listId: string }) {
       .sort((a, b) => a.item.rank - b.item.rank);
   }, [list, allMovies]);
 
-  const availableMovies = useMemo(() => {
-    if (!allMovies || !list) return [];
-    const inList = new Set(list.items.map((i) => i.movieId));
-    return allMovies
-      .filter((m) => !inList.has(m.id))
-      .filter((m) => (search ? m.title.toLowerCase().includes(search.toLowerCase()) : true))
-      .sort((a, b) => a.title.localeCompare(b.title));
-  }, [allMovies, list, search]);
+  const addMovieToList = (movieId: string) => {
+    if (!list) return;
+    const nextRank = list.items.length + 1;
+    saveItems([...list.items, { movieId, rank: nextRank }]);
+  };
 
   const saveItems = async (newItems: ListItem[]) => {
     if (!list) return;
@@ -153,42 +145,11 @@ export function ListView({ listId }: { listId: string }) {
         </div>
       )}
 
-      <Dialog open={addOpen} onOpenChange={setAddOpen}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle>{t("nav_add")}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3">
-            <div className="relative">
-              <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-              <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t("search_placeholder")} className="pl-9" autoFocus />
-            </div>
-            <ScrollArea className="max-h-[50vh] -mx-2 px-2">
-              <div className="space-y-1">
-                {availableMovies.map((m) => (
-                  <button
-                    key={m.id}
-                    onClick={() => addMovie(m.id)}
-                    className="flex w-full items-center gap-3 rounded-lg p-2 text-left transition-colors hover:bg-accent"
-                  >
-                    <div className="h-14 w-10 shrink-0 overflow-hidden rounded">
-                      <PosterImage src={m.poster} alt={m.title} size="w200" className="h-full w-full" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium">{m.title}</p>
-                      <p className="text-xs text-muted-foreground">{m.year} · {m.director}</p>
-                    </div>
-                    <Plus className="size-4 text-muted-foreground" />
-                  </button>
-                ))}
-                {availableMovies.length === 0 && (
-                  <p className="py-4 text-center text-sm text-muted-foreground">{t("search_noResults", { query: search })}</p>
-                )}
-              </div>
-            </ScrollArea>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <AddMovieSearchDialog
+        open={addOpen}
+        onOpenChange={setAddOpen}
+        onMovieAdded={(movieId) => { addMovieToList(movieId); setAddOpen(false); }}
+      />
     </div>
   );
 }
