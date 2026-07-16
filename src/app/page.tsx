@@ -98,7 +98,7 @@ export default function Page() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col bg-background">
+    <div className="flex h-screen flex-col overflow-hidden bg-background print:h-auto print:overflow-visible">
       <div className="flex flex-1 overflow-hidden print:block print:overflow-visible">
         <Sidebar mobileOpen={mobileOpen} onMobileOpenChange={setMobileOpen} />
 

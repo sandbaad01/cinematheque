@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Menu, Search, Shuffle } from "lucide-react";
+import { Menu, Search, Shuffle, Sun, Moon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useNav } from "@/lib/store";
@@ -62,11 +62,20 @@ const VIEW_SUBTITLE_KEYS: Record<string, string | null> = {
   report: null,
 };
 
-/** Top header with view title, subtitle, search, random, language. */
+/** Top header with view title, subtitle, search, random, language, theme. */
 export function Header({ onMenuClick, className }: HeaderProps) {
   const { t } = useI18n();
   const { view, goSearch, go } = useNav();
   const [search, setSearch] = useState("");
+  const [theme, setTheme] = useState<"dark" | "light">("dark");
+
+  const toggleTheme = () => {
+    const root = document.documentElement;
+    const next = theme === "dark" ? "light" : "dark";
+    root.classList.remove("dark", "light");
+    root.classList.add(next);
+    setTheme(next);
+  };
 
   const titleKey = VIEW_TITLE_KEYS[view] ?? "appName";
   const subtitleKey = VIEW_SUBTITLE_KEYS[view] ?? null;
@@ -143,6 +152,21 @@ export function Header({ onMenuClick, className }: HeaderProps) {
 
       {/* Language */}
       <LanguageSwitcher />
+
+      {/* Theme toggle */}
+      <Button
+        variant="ghost"
+        size="icon"
+        type="button"
+        aria-label="Toggle theme"
+        onClick={toggleTheme}
+      >
+        {theme === "dark" ? (
+          <Sun className="size-5" />
+        ) : (
+          <Moon className="size-5" />
+        )}
+      </Button>
     </header>
   );
 }
