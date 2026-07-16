@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { ArrowLeft, FolderOpen, Plus, X, RefreshCw, Loader2 } from "lucide-react";
+import { ArrowLeft, FolderOpen, Plus, RefreshCw, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useFetch } from "@/lib/useFetch";
 import { useI18n } from "@/lib/i18n/context";
@@ -193,12 +193,6 @@ export function CollectionView({ collectionId }: { collectionId: string }) {
           {moviesInCollection.map((m) => (
             <div key={m.id} className="group relative">
               <MovieCard movie={m} />
-              <button
-                onClick={() => removeMovie(m.id)}
-                className="absolute right-2 top-2 z-10 rounded-md bg-background/90 p-1.5 text-destructive opacity-0 shadow transition-opacity group-hover:opacity-100"
-              >
-                <X className="size-4" />
-              </button>
             </div>
           ))}
         </div>
