@@ -206,6 +206,7 @@ export function FilterBar({
                 { value: "watched", label: t("status_watched") },
                 { value: "want", label: t("status_want") },
                 { value: "watching", label: t("status_watching") },
+                { value: "watchlist", label: t("nav_watchlist") },
                 { value: "dropped", label: t("status_dropped") },
               ]}
             />

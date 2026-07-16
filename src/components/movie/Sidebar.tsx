@@ -53,8 +53,8 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { view: "home", labelKey: "nav_home", icon: Home },
       { view: "watched", labelKey: "nav_watched", icon: Film },
-      { view: "wantToWatch", labelKey: "nav_wantToWatch", icon: Film },
       { view: "watchlist", labelKey: "nav_watchlist", icon: Film },
+      { view: "wantToWatch", labelKey: "nav_wantToWatch", icon: Film },
       { view: "genres", labelKey: "nav_genres", icon: Clapperboard },
     ],
   },
@@ -170,7 +170,7 @@ export function Sidebar({ mobileOpen, onMobileOpenChange }: SidebarProps) {
   return (
     <>
       {/* Desktop */}
-      <aside className="hidden w-60 shrink-0 border-r bg-sidebar print:hidden md:flex md:flex-col">
+      <aside className="hidden w-60 shrink-0 overflow-y-auto scrollbar-thin border-r bg-sidebar print:hidden md:flex md:flex-col">
         {content}
       </aside>
 

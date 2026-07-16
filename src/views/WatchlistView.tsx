@@ -14,8 +14,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 export function WatchlistView() {
   const { t } = useI18n();
   const refreshTick = useNav((s) => s.refreshTick);
-  const [filters, setFilters] = useState<FilterState>({ ...DEFAULT_FILTERS, status: "watching" as any });
-  const { data: movies, loading } = useFetch<Movie[]>("/api/movies?status=watching", [refreshTick]);
+  const [filters, setFilters] = useState<FilterState>({ ...DEFAULT_FILTERS, status: "watchlist" as any });
+  const { data: movies, loading } = useFetch<Movie[]>("/api/movies?status=watchlist", [refreshTick]);
 
   const { genres, countries, languages, directors, years, tags } = useMemo(() => {
     const g = new Set<string>();
