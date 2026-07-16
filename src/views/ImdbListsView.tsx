@@ -165,15 +165,6 @@ export function ImdbListsView() {
                       >
                         <Pencil className="size-3.5" />
                       </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="size-8 text-destructive"
-                        onClick={() => setDeleteId(c.id)}
-                        title={t("action_delete")}
-                      >
-                        <Trash2 className="size-3.5" />
-                      </Button>
                     </div>
                     <Button
                       variant="ghost"

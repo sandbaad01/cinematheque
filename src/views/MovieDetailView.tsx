@@ -84,17 +84,31 @@ export function MovieDetailView({ movieId }: { movieId: string }) {
   const recs = recsData?.items ?? [];
   const trailerEmbed = youtubeEmbed(movie.trailer);
 
-  // Inline update helper
+  // Inline update helper — for TMDb-only movies, creates the movie first
   const update = async (patch: Partial<Movie>) => {
     setSavingField(true);
     try {
-      const res = await fetch(`/api/movies/${movie.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(patch),
-      });
-      if (!res.ok) throw new Error("update failed");
-      refetch();
+      if (isTmdbMovie) {
+        // Create the movie in DB first, then update
+        const createRes = await fetch("/api/movies", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ...movie, ...patch, rewatchCount: 0, screenshots: [], gallery: movie.gallery || [] }),
+        });
+        if (!createRes.ok) throw new Error("create failed");
+        const created = await createRes.json();
+        toast.success(t("add_success"));
+        triggerRefresh();
+        useNav.getState().goMovie(created.id);
+      } else {
+        const res = await fetch(`/api/movies/${movie.id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(patch),
+        });
+        if (!res.ok) throw new Error("update failed");
+        refetch();
+      }
     } catch {
       toast.error("Update failed");
     } finally {

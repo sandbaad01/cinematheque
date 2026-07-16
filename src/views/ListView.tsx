@@ -43,6 +43,7 @@ export function ListView({ listId }: { listId: string }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ items: newItems }),
       });
+      triggerRefresh();
       refetch();
     } catch {
       toast.error("Failed");
