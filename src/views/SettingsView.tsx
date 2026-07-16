@@ -10,15 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { LanguageSwitcher } from "@/components/movie/LanguageSwitcher";
-import { Separator } from "@/components/ui/separator";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -37,7 +29,6 @@ export function SettingsView() {
   const csvInputRef = useRef<HTMLInputElement>(null);
   const [csvText, setCsvText] = useState("");
   const [listName, setListName] = useState("");
-  const [listType, setListType] = useState<"watch" | "watched">("watch");
   const [busy, setBusy] = useState(false);
   const [resetOpen, setResetOpen] = useState(false);
   const [resetConfirm, setResetConfirm] = useState("");
@@ -91,14 +82,13 @@ export function SettingsView() {
       const res = await fetch("/api/import-imdb", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ csv: csvText, listName: listName.trim() || "IMDb List", listType }),
+        body: JSON.stringify({ csv: csvText, listName: listName.trim() || "IMDb List" }),
       });
       const result = await res.json();
       if (result.error) throw new Error(result.error);
       toast.success(`Imported ${result.imported} movies, skipped ${result.skipped} duplicates → "${listName.trim() || "IMDb List"}"`);
       setCsvText("");
       setListName("");
-      setListType("watch");
       triggerRefresh();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Import failed");
@@ -182,15 +172,6 @@ export function SettingsView() {
             placeholder="List name (e.g. My Watchlist, Favorite Movies)"
             className="text-sm"
           />
-          <Select value={listType} onValueChange={(v) => setListType(v as "watch" | "watched")}>
-            <SelectTrigger className="w-[150px] shrink-0">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="watch">Watchlist</SelectItem>
-              <SelectItem value="watched">Watched List</SelectItem>
-            </SelectContent>
-          </Select>
         </div>
         <Textarea
           value={csvText}

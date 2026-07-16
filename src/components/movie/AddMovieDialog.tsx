@@ -89,7 +89,7 @@ const emptyForm: FormState = {
   imdbRating: "",
   tmdbRating: "",
   trailer: "",
-  status: "watched",
+  status: "new",
   personalRating: null,
   watchDate: "",
   notes: "",
@@ -356,7 +356,7 @@ export function AddMovieDialog({
                 ) : (
                   <Search className="size-4" />
                 )}
-                <span className="hidden sm:inline">{t("nav_search")}</span>
+                <span className="hidden sm:inline">Search</span>
               </Button>
             </div>
 
@@ -569,6 +569,7 @@ export function AddMovieDialog({
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="new">—</SelectItem>
                       <SelectItem value="watched">
                         {t("status_watched")}
                       </SelectItem>
