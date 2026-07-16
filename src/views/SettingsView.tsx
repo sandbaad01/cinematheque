@@ -43,8 +43,23 @@ export function SettingsView() {
   const [resetConfirm, setResetConfirm] = useState("");
   const [resetting, setResetting] = useState(false);
 
-  const exportBackup = () => {
-    window.open("/api/backup?download=1", "_blank");
+  const exportBackup = async () => {
+    try {
+      const res = await fetch("/api/backup?download=1");
+      if (!res.ok) throw new Error("export failed");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "cinematheque-backup.json";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success("Backup exported");
+    } catch {
+      toast.error("Export failed");
+    }
   };
 
   const importBackup = async (file: File) => {
@@ -121,12 +136,6 @@ export function SettingsView() {
           <p className="text-sm text-muted-foreground">{t("settings_language")}</p>
           <LanguageSwitcher />
         </div>
-        <Separator />
-        <div className="flex items-center gap-2">
-          <Palette className="size-4 text-primary" />
-          <h3 className="font-semibold">{t("settings_theme")}</h3>
-        </div>
-        <p className="text-sm text-muted-foreground">{lang === "fa" ? "پوسته تیره به‌طور پیش‌فرض فعال است." : lang === "fr" ? "Thème sombre activé par défaut." : "Dark theme is enabled by default."}</p>
       </Card>
 
       {/* Backup */}
@@ -292,7 +301,7 @@ export function SettingsView() {
             <Film className="size-6" />
           </div>
           <div>
-            <p className="font-semibold">{t("appName")}</p>
+            <p className="font-semibold">{t("appName")} <span className="text-muted-foreground">v1.0.0-beta</span></p>
             <p className="text-sm text-muted-foreground">{t("settings_about_desc")}</p>
           </div>
         </div>

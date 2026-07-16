@@ -103,10 +103,12 @@ export default function Page() {
         <Sidebar mobileOpen={mobileOpen} onMobileOpenChange={setMobileOpen} />
 
         <div className="flex min-w-0 flex-1 flex-col print:block">
-          <Header onMenuClick={() => setMobileOpen(true)} />
+          <div className="shrink-0 print:hidden">
+            <Header onMenuClick={() => setMobileOpen(true)} />
+          </div>
 
-          <main ref={mainRef} className="flex-1 overflow-y-auto scrollbar-thin print:block print:overflow-visible" style={{ fontSize: `${zoom}%` }}>
-            <div className="mx-auto w-full max-w-7xl">
+          <main ref={mainRef} className="flex-1 overflow-y-auto scrollbar-thin print:block print:overflow-visible">
+            <div className="mx-auto w-full max-w-7xl" style={{ transform: `scale(${zoom / 100})`, transformOrigin: "top center" }}>
             <AnimatePresence mode="wait">
               <motion.div
                 key={view}

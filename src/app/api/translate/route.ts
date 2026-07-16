@@ -21,16 +21,19 @@ function ensureConfig() {
   const configPaths = [
     path.join(process.cwd(), ".z-ai-config"),
     path.join(os.homedir(), ".z-ai-config"),
+    path.join(os.tmpdir(), ".z-ai-config"),
   ];
   for (const p of configPaths) {
     if (fs.existsSync(p)) return;
   }
-  // Write to cwd
-  const configPath = path.join(process.cwd(), ".z-ai-config");
-  try {
-    fs.writeFileSync(configPath, JSON.stringify(ZAI_CONFIG));
-  } catch {
-    // ignore
+  // Try writing to multiple locations
+  for (const p of configPaths) {
+    try {
+      fs.writeFileSync(p, JSON.stringify(ZAI_CONFIG));
+      return;
+    } catch {
+      // continue to next location
+    }
   }
 }
 

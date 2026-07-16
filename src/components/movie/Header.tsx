@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Menu, Search, Shuffle, Sun, Moon } from "lucide-react";
+import { Menu, Search, Shuffle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useNav } from "@/lib/store";
@@ -62,20 +62,11 @@ const VIEW_SUBTITLE_KEYS: Record<string, string | null> = {
   report: null,
 };
 
-/** Top sticky header with view title, subtitle, search, random, language, theme. */
+/** Top header with view title, subtitle, search, random, language. */
 export function Header({ onMenuClick, className }: HeaderProps) {
   const { t } = useI18n();
   const { view, goSearch, go } = useNav();
   const [search, setSearch] = useState("");
-  const [theme, setTheme] = useState<"dark" | "light">("dark");
-
-  const toggleTheme = () => {
-    const root = document.documentElement;
-    const next = theme === "dark" ? "light" : "dark";
-    root.classList.remove("dark", "light");
-    root.classList.add(next);
-    setTheme(next);
-  };
 
   const titleKey = VIEW_TITLE_KEYS[view] ?? "appName";
   const subtitleKey = VIEW_SUBTITLE_KEYS[view] ?? null;
@@ -87,7 +78,7 @@ export function Header({ onMenuClick, className }: HeaderProps) {
   return (
     <header
       className={cn(
-        "sticky top-0 z-30 flex h-16 items-center gap-2 border-b bg-background/80 px-3 backdrop-blur print:hidden md:px-6",
+        "flex h-16 items-center gap-2 border-b bg-background/80 px-3 backdrop-blur md:px-6",
         className
       )}
     >
@@ -152,21 +143,6 @@ export function Header({ onMenuClick, className }: HeaderProps) {
 
       {/* Language */}
       <LanguageSwitcher />
-
-      {/* Theme toggle */}
-      <Button
-        variant="ghost"
-        size="icon"
-        type="button"
-        aria-label="Toggle theme"
-        onClick={toggleTheme}
-      >
-        {theme === "dark" ? (
-          <Sun className="size-5" />
-        ) : (
-          <Moon className="size-5" />
-        )}
-      </Button>
     </header>
   );
 }

@@ -4,21 +4,33 @@
 const TMDB_BASE = "https://api.themoviedb.org/3";
 export const TMDB_IMG = "https://image.tmdb.org/t/p";
 
+// Hardcoded fallback credentials (used when env vars are not available,
+// e.g., in the Tauri desktop app where .env is not auto-loaded)
+const TMDB_API_KEY_FALLBACK = "39adf355a4930c90981a9d8abc608dec";
+const TMDB_TOKEN_FALLBACK = "eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiIzOWFkZjM1NWE0OTMwYzkwOTgxYTlkOGFiYzYwOGRlYyIsIm5iZiI6MTc4Mzc3ODYzMy4zMDgsInN1YiI6IjZhNTI0ZDQ5YjQzM2ZkZGZhMWFiMDhmYSIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.jIx1c4qk-q8lsnc6yCWFW4X0e4N8LYfMIwgI2YKbmTA";
+
+function getToken(): string {
+  return process.env.TMDB_READ_ACCESS_TOKEN || TMDB_TOKEN_FALLBACK;
+}
+
+function getApiKey(): string {
+  return process.env.TMDB_API_KEY || TMDB_API_KEY_FALLBACK;
+}
+
 function authHeaders(): HeadersInit {
-  const token = process.env.TMDB_READ_ACCESS_TOKEN;
+  const token = getToken();
   if (token) {
     return {
       Authorization: `Bearer ${token}`,
       Accept: "application/json",
     };
   }
-  // Fallback to API key query param if no bearer token.
   return { Accept: "application/json" };
 }
 
 function withApiKey(url: string): string {
-  if (process.env.TMDB_READ_ACCESS_TOKEN) return url;
-  const key = process.env.TMDB_API_KEY;
+  if (getToken()) return url;
+  const key = getApiKey();
   if (!key) return url;
   const sep = url.includes("?") ? "&" : "?";
   return `${url}${sep}api_key=${key}`;
