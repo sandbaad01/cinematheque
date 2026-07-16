@@ -48,8 +48,8 @@ export function QuickAddButtons({ movie }: QuickAddButtonsProps) {
     }
   };
 
-  // Only show for movies not already in wishlist/watchlist/watched
-  if (movie.status === "want" || movie.status === "watchlist" || movie.status === "watched") return null;
+  // Show for all movies except those already in wishlist/watchlist
+  if (movie.status === "want" || movie.status === "watchlist") return null;
 
   return (
     <>
