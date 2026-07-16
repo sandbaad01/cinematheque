@@ -61,6 +61,7 @@ const NAV_GROUPS: NavGroup[] = [
   {
     titleKey: "section_discover",
     items: [
+      { view: "tmdb", labelKey: "nav_tmdb", icon: Clapperboard },
       { view: "search", labelKey: "nav_search", icon: Search },
       { view: "recommendations", labelKey: "nav_recommendations", icon: Sparkles },
       { view: "timeline", labelKey: "nav_timeline", icon: CalendarRange },

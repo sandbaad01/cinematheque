@@ -24,7 +24,8 @@ export type ViewName =
   | "yearlyStats"
   | "report"
   | "wantToWatch"
-  | "watchlist";
+  | "watchlist"
+  | "tmdb";
 
 interface ViewState {
   view: ViewName;

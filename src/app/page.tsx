@@ -10,6 +10,7 @@ import { HomeView } from "@/views/HomeView";
 import { WatchedView } from "@/views/WatchedView";
 import { WantToWatchView } from "@/views/WantToWatchView";
 import { WatchlistView } from "@/views/WatchlistView";
+import { TmdbView } from "@/views/TmdbView";
 import { MovieDetailView } from "@/views/MovieDetailView";
 import { GenresView } from "@/views/GenresView";
 import { GenreDetailView } from "@/views/GenreDetailView";
@@ -76,6 +77,7 @@ export default function Page() {
       case "watched": return <WatchedView />;
       case "wantToWatch": return <WantToWatchView />;
       case "watchlist": return <WatchlistView />;
+      case "tmdb": return <TmdbView />;
       case "movie": return movieId ? <MovieDetailView key={movieId} movieId={movieId} /> : <HomeView />;
       case "genres": return <GenresView />;
       case "genre": return genreName ? <GenreDetailView key={genreName} genreName={genreName} /> : <GenresView />;
