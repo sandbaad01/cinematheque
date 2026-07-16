@@ -7,6 +7,7 @@ import { useNav } from "@/lib/store";
 import type { Movie, Recommendation } from "@/lib/movie/types";
 import { MovieRow } from "@/components/movie/MovieRow";
 import { PosterCarousel } from "@/components/movie/PosterCarousel";
+import { ComingSoonRow as ComingSoonRowC } from "@/components/movie/ComingSoonRow";
 import { EmptyState } from "@/components/movie/EmptyState";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -78,7 +79,7 @@ export function HomeView() {
       </section>
 
       {/* Coming Soon — upcoming movies from TMDb */}
-      <ComingSoonRow />
+      <ComingSoonRowC />
 
       {/* 2. Stats + Favorite Genres + Favorite Directors — BOTTOM */}
       <div className="space-y-6">
@@ -194,44 +195,5 @@ function StatCard({
         </div>
       </div>
     </Card>
-  );
-}
-
-function ComingSoonRow() {
-  const { t } = useI18n();
-  const { data, loading } = useFetch<{ results: { tmdbId: number; title: string; year: number | null; releaseDate: string | null; poster: string | null }[] }>("/api/tmdb/upcoming");
-  const movies = data?.results ?? [];
-
-  if (loading && movies.length === 0) return null;
-  if (movies.length === 0) return null;
-
-  return (
-    <section>
-      <div className="mb-3 flex items-center gap-2">
-        <span className="flex size-6 items-center justify-center rounded-md bg-primary/15 text-primary">
-          <Sparkles className="size-4" />
-        </span>
-        <h2 className="text-lg font-semibold">Coming Soon</h2>
-      </div>
-      <div className="no-scrollbar -mx-1 flex gap-4 overflow-x-auto px-1 pb-2">
-        {movies.map((m) => (
-          <div key={m.tmdbId} className="w-32 shrink-0 md:w-40">
-            <div className="overflow-hidden rounded-lg border border-border/60 bg-muted shadow-sm">
-              {m.poster ? (
-                <img src={m.poster} alt={m.title} className="aspect-[2/3] w-full object-cover" loading="lazy" />
-              ) : (
-                <div className="flex aspect-[2/3] items-center justify-center text-muted-foreground">
-                  <Film className="size-8" />
-                </div>
-              )}
-            </div>
-            <p className="mt-1.5 line-clamp-1 text-sm font-medium">{m.title}</p>
-            <p className="text-xs text-muted-foreground">
-              {m.releaseDate ? new Date(m.releaseDate).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }) : m.year ?? "—"}
-            </p>
-          </div>
-        ))}
-      </div>
-    </section>
   );
 }

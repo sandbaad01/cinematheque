@@ -572,10 +572,7 @@ export function AddMovieDialog({
                       <SelectItem value="watched">
                         {t("status_watched")}
                       </SelectItem>
-                      <SelectItem value="want">{t("status_want")}</SelectItem>
-                      <SelectItem value="watching">
-                        {t("status_watching")}
-                      </SelectItem>
+                      <SelectItem value="want">{t("nav_wantToWatch")}</SelectItem>
                       <SelectItem value="watchlist">
                         {t("nav_watchlist")}
                       </SelectItem>
