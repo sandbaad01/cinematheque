@@ -36,7 +36,7 @@ function withApiKey(url: string): string {
   return `${url}${sep}api_key=${key}`;
 }
 
-async function tmdbFetch<T>(path: string, params: Record<string, string> = {}): Promise<T> {
+export async function tmdbFetch<T>(path: string, params: Record<string, string> = {}): Promise<T> {
   const url = withApiKey(
     `${TMDB_BASE}${path}?${new URLSearchParams({ language: "en-US", ...params }).toString()}`
   );
