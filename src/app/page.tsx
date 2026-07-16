@@ -8,6 +8,7 @@ import { useNav } from "@/lib/store";
 import { useI18n } from "@/lib/i18n/context";
 import { HomeView } from "@/views/HomeView";
 import { WatchedView } from "@/views/WatchedView";
+import { WantToWatchView } from "@/views/WantToWatchView";
 import { MovieDetailView } from "@/views/MovieDetailView";
 import { GenresView } from "@/views/GenresView";
 import { GenreDetailView } from "@/views/GenreDetailView";
@@ -72,6 +73,7 @@ export default function Page() {
     switch (view) {
       case "home": return <HomeView />;
       case "watched": return <WatchedView />;
+      case "wantToWatch": return <WantToWatchView />;
       case "movie": return movieId ? <MovieDetailView key={movieId} movieId={movieId} /> : <HomeView />;
       case "genres": return <GenresView />;
       case "genre": return genreName ? <GenreDetailView key={genreName} genreName={genreName} /> : <GenresView />;

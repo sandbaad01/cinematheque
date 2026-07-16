@@ -19,6 +19,7 @@ const en: Dict = {
   // Navigation
   nav_home: "Home",
   nav_watched: "Watched Movies",
+  nav_wantToWatch: "Want to Watch",
   nav_genres: "Genres",
   nav_ratings: "My Ratings",
   nav_favorites: "Lifetime Favorites",
@@ -315,6 +316,7 @@ const fa: Dict = {
 
   nav_home: "خانه",
   nav_watched: "فیلم‌های دیده‌شده",
+  nav_wantToWatch: "اراده تماشا",
   nav_genres: "ژانرها",
   nav_ratings: "امتیازهای من",
   nav_favorites: "محبوب‌های همیشگی",
@@ -591,6 +593,7 @@ const fr: Dict = {
 
   nav_home: "Accueil",
   nav_watched: "Films vus",
+  nav_wantToWatch: "À voir",
   nav_genres: "Genres",
   nav_ratings: "Mes notes",
   nav_favorites: "Favoris de toujours",
