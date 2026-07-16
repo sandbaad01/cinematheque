@@ -262,24 +262,15 @@ export function MovieDetailView({ movieId }: { movieId: string }) {
               </div>
               <div className="flex gap-2">
                 {isTmdbMovie ? (
-                  <>
-                    <Button
-                      size="sm"
-                      onClick={() => addToArchive("want")}
-                      disabled={adding}
-                      variant="outline"
-                    >
-                      {t("status_want")}
-                    </Button>
-                    <Button
-                      size="sm"
-                      onClick={() => addToArchive("watched")}
-                      disabled={adding}
-                    >
-                      {adding ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />}
-                      {t("action_add")}
-                    </Button>
-                  </>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={refreshFromTmdb}
+                    disabled={refreshing}
+                    title="Refresh from TMDb"
+                  >
+                    <RefreshCw className={cn("size-4", refreshing && "animate-spin")} />
+                  </Button>
                 ) : (
                   <>
                     <Button
@@ -472,8 +463,7 @@ export function MovieDetailView({ movieId }: { movieId: string }) {
             </div>
           </div>
 
-          {/* Right: personal info — hidden for TMDb-only movies (not in archive yet) */}
-          {!isTmdbMovie && (
+          {/* Right: personal info — always shown, even for TMDb-only movies */}
           <div className="space-y-4">
             <Card className="space-y-2.5 p-5">
               <h2 className="text-center text-lg font-semibold">{t("movie_myInfo")}</h2>
@@ -574,7 +564,6 @@ export function MovieDetailView({ movieId }: { movieId: string }) {
               />
             </Card>
           </div>
-          )}
         </div>
 
         {/* Recommendations */}
