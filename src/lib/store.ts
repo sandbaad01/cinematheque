@@ -23,7 +23,8 @@ export type ViewName =
   | "imdbLists"
   | "yearlyStats"
   | "report"
-  | "wantToWatch";
+  | "wantToWatch"
+  | "watchlist";
 
 interface ViewState {
   view: ViewName;

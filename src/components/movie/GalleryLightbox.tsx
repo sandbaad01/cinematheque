@@ -113,7 +113,7 @@ export function GalleryLightbox({ images, open, startIndex, onOpenChange }: Gall
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         showCloseButton={false}
-        className="h-[100dvh] w-[100vw] max-w-none gap-0 overflow-hidden rounded-none border-none bg-black p-0 sm:h-[100vh]"
+        className="flex h-[100dvh] w-[100vw] max-w-none flex-col gap-0 overflow-hidden rounded-none border-none bg-black p-0 sm:h-[100vh]"
       >
         <DialogTitle className="sr-only">
           Image {index + 1} of {images.length}
@@ -131,11 +131,11 @@ export function GalleryLightbox({ images, open, startIndex, onOpenChange }: Gall
         </Button>
 
         {/* Image stage */}
-        <div className="relative flex min-h-0 flex-1 items-center justify-center">
+        <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden">
           <img
             src={fullUrl}
             alt={`Image ${index + 1} of ${images.length}`}
-            className="max-h-[90vh] max-w-[90vw] object-contain"
+            className="max-h-full max-w-full object-contain"
           />
 
           {/* Prev */}

@@ -54,6 +54,7 @@ const NAV_GROUPS: NavGroup[] = [
       { view: "home", labelKey: "nav_home", icon: Home },
       { view: "watched", labelKey: "nav_watched", icon: Film },
       { view: "wantToWatch", labelKey: "nav_wantToWatch", icon: Film },
+      { view: "watchlist", labelKey: "nav_watchlist", icon: Film },
       { view: "genres", labelKey: "nav_genres", icon: Clapperboard },
     ],
   },
