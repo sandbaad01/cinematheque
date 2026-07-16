@@ -44,7 +44,7 @@ export async function GET(req: NextRequest) {
       trailer: payload.trailer,
       gallery: payload.gallery,
       screenshots: [],
-      status: "want",
+      status: "new", // not in archive yet — QuickAddButtons will show
       favorite: false,
       rewatchCount: 0,
       personalRating: null,

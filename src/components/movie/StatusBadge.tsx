@@ -16,6 +16,7 @@ const styles: Record<MovieStatus, string> = {
   watchlist: "bg-primary/15 text-primary border-primary/30",
   watching: "bg-teal-500/15 text-teal-400 border-teal-500/30",
   dropped: "bg-rose-500/10 text-rose-400 border-rose-500/25",
+  new: "bg-muted text-muted-foreground border-border",
 };
 
 const dotColor: Record<MovieStatus, string> = {
@@ -24,6 +25,7 @@ const dotColor: Record<MovieStatus, string> = {
   watchlist: "bg-primary",
   watching: "bg-teal-400",
   dropped: "bg-rose-400",
+  new: "bg-muted-foreground",
 };
 
 const labelKey: Record<MovieStatus, string> = {
@@ -32,11 +34,13 @@ const labelKey: Record<MovieStatus, string> = {
   watchlist: "nav_watchlist",
   watching: "status_watching",
   dropped: "status_dropped",
+  new: "none",
 };
 
 /** A colored pill with a tiny dot that shows watch status. */
 export function StatusBadge({ status, className }: StatusBadgeProps) {
   const { t } = useI18n();
+  if (status === "new") return null; // Don't show badge for movies not in archive
   return (
     <span
       className={cn(

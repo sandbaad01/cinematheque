@@ -5,14 +5,13 @@ import { toast } from "sonner";
 import { useState } from "react";
 import type { Movie } from "@/lib/movie/types";
 import { useNav } from "@/lib/store";
-import { cn } from "@/lib/utils";
 
 interface QuickAddButtonsProps {
   movie: Movie;
 }
 
-/** Wishlist + Watchlist quick-add buttons shown on recommendation posters.
- *  No "watched" checkmark — just two add buttons. */
+/** Wishlist + Watchlist quick-add buttons shown on movie posters.
+ *  When clicked, creates the movie in DB (if not already) with the chosen status. */
 export function QuickAddButtons({ movie }: QuickAddButtonsProps) {
   const { triggerRefresh } = useNav();
   const [adding, setAdding] = useState<string | null>(null);
@@ -21,28 +20,39 @@ export function QuickAddButtons({ movie }: QuickAddButtonsProps) {
     if (adding) return;
     setAdding(status);
     try {
+      // Try to update existing movie first
       const res = await fetch(`/api/movies/${movie.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status }),
       });
-      if (!res.ok) throw new Error();
+      if (res.ok) {
+        toast.success(`Added to ${status === "want" ? "Wishlist" : "Watchlist"}`);
+        triggerRefresh();
+        return;
+      }
+      // Movie not in DB yet — create it with the chosen status
+      const createRes = await fetch("/api/movies", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...movie,
+          status,
+          rewatchCount: 0,
+          personalRating: null,
+          watchDate: null,
+          notes: null,
+          lifetimeRank: null,
+          tags: [],
+          screenshots: [],
+          gallery: movie.gallery || [],
+        }),
+      });
+      if (!createRes.ok) throw new Error();
       toast.success(`Added to ${status === "want" ? "Wishlist" : "Watchlist"}`);
       triggerRefresh();
     } catch {
-      // Movie might not be in DB yet (TMDb recommendation) — create it
-      try {
-        const createRes = await fetch("/api/movies", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ ...movie, status, rewatchCount: 0, personalRating: null, watchDate: null, notes: null, lifetimeRank: null, tags: [], screenshots: [] }),
-        });
-        if (!createRes.ok) throw new Error();
-        toast.success(`Added to ${status === "want" ? "Wishlist" : "Watchlist"}`);
-        triggerRefresh();
-      } catch {
-        toast.error("Failed to add");
-      }
+      toast.error("Failed to add");
     } finally {
       setAdding(null);
     }

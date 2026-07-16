@@ -84,7 +84,7 @@ export async function POST(req: NextRequest) {
 
     // When adding a "watched" movie without an explicit watchDate, default to today
     // so it appears at the top of "Latest Watched" and "Last Watched" lists.
-    const status = b.status ?? "watched";
+    const status = b.status ?? "new";
     const watchDate = b.watchDate ?? (status === "watched" ? new Date().toISOString().slice(0, 10) : null);
 
     const created = await db.movie.create({
