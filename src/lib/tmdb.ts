@@ -65,6 +65,7 @@ export interface TmdbSearchResult {
   backdrop_path?: string | null;
   vote_average?: number;
   genre_ids?: number[];
+  popularity?: number;
 }
 
 export interface TmdbSearchResponse {
@@ -137,6 +138,13 @@ export async function searchMovies(query: string, page = 1, year?: number): Prom
     page: String(page),
     include_adult: "false",
     ...(year ? { year: String(year) } : {}),
+  });
+}
+
+/** Get upcoming movies from TMDb (movies not yet released). */
+export async function getUpcomingMovies(page = 1): Promise<TmdbSearchResponse> {
+  return tmdbFetch<TmdbSearchResponse>("/movie/upcoming", {
+    page: String(page),
   });
 }
 
