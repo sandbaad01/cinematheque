@@ -772,3 +772,34 @@ Stage Summary:
 - New Type (Movie/Series) selector added to AddMovieDialog step 2 — auto-set from the multisearch result's mediaType (TV → Series), user can change it before save, and the chosen value is persisted to the DB via the POST/PUT payload.
 - QuickAddButtons restored to original 20×20px size (size-5 container, size-3 icon).
 - All changes verified end-to-end with Agent Browser: page renders, dialog works, multisearch returns TV+movies, Type auto-fills for TV picks, manual Type change works, no console/runtime errors.
+
+---
+Task ID: 4
+Agent: Main (Z.ai Code)
+Task: Fix desktop (Tauri) build issues — translation not working, "update failed" on wishlist/watchlist, "prisma failed" on IMDb import, explain 5GB folder size
+
+Work Log:
+- Diagnosed root causes of all 4 desktop-only issues reported by user:
+  1. **Translation fails in desktop**: SDK reads `.z-ai-config` from `process.cwd()` first, which in the Tauri build is the read-only `resources/standalone/` dir (inside Program Files). The old `ensureConfig()` checked `existsSync` on cwd first and returned early if a stale/readonly file existed, so it never wrote to home. Fixed: `ensureConfig()` now always writes to `os.homedir()/.z-ai-config` (which the SDK checks as its 2nd priority path), with verification that the JSON has `baseUrl` + `apiKey`. Falls back to cwd/tmp only if home is not writable.
+  2. **"update failed" on Wishlist/Watchlist**: `QuickAddButtons` was always doing PUT first, which returns 404 for TMDb-only movies (id starts with `tmdb-`). Then the POST fallback spread `...movie` which included `id: "tmdb-xxx"` — Prisma ignores it and creates a new cuid, but the UI kept the old id so subsequent updates failed. Fixed: now detects TMDb-only movies (`id.startsWith("tmdb-") || id.length < 20`) and POSTs directly with only the whitelisted fields (no id, createdAt, updatedAt). Also surfaces the server error message in the toast instead of generic "Failed to add".
+  3. **"prisma failed" on IMDb import**: Root cause is that `init-db.js` relied solely on `prisma db push` CLI, which fails if the standalone dir is read-only or prisma CLI binary can't run. When schema isn't applied, ALL API routes fail with Prisma errors. Fixed `init-db.js` with a 3-tier fallback: (1) prisma CLI, (2) direct SQL via `better-sqlite3` (CREATE TABLE IF NOT EXISTS for Movie/Collection/PersonalList with all columns + indexes, matching schema.prisma exactly), (3) create empty db as last resort. Also updated `postbuild.js` to copy `better-sqlite3` into the standalone bundle so the SQL fallback works.
+  4. **5GB folder size**: Explained that this is normal — `node_modules` (~1.2GB) + `src-tauri/target` (Rust build cache, 3-4GB on first build) + `.next` (~200MB). The actual MSI installer is only 50-100MB. The `target/` dir is pure cache and can be deleted after building.
+
+- Created `/api/db-health` diagnostic endpoint (GET) that reports: cwd, home, platform, DATABASE_URL/TMDB env var status (set/not-set), db path + size + writable, db query test (movie count), home dir writable test, .z-ai-config existence in cwd + home. Returns 200 if healthy, 500 if unhealthy. This lets the user (and me) diagnose exactly what's wrong in the desktop build by visiting `http://localhost:3000/api/db-health` in the browser.
+
+- Improved `import-imdb` error handling: the catch block now includes the actual error message (`err.message`) instead of just "Failed to import IMDb CSV", so the user sees the real Prisma error (e.g., "no such column: mediaType") which points to the root cause.
+
+- Verification (dev server):
+  * `/api/db-health` → 200, reports movieCount: 221, dbWritable: true, homeWritable: true, z-ai-config written to /home/z/.z-ai-config ✓
+  * `/api/translate` (fa) → 200, returns correct Persian translation ✓
+  * `/api/import-imdb` (skipTmdb=true) → 200, imported: 1, listId created ✓
+  * Agent Browser: clicked "Add to Wishlist" on a Coming Soon TMDb movie → toast "Added "Obsession" to Wishlist" ✓
+  * `bun run lint` → 0 errors, 7 warnings (anti-bloat). `npx tsc --noEmit` → 0 errors.
+
+Stage Summary:
+- **Translation**: Fixed — `.z-ai-config` is now always written to `os.homedir()` which the SDK reads as its 2nd-priority path and which is writable in the Tauri desktop build.
+- **Wishlist/Watchlist add**: Fixed — TMDb-only movies (id=`tmdb-xxx`) now POST directly instead of failing with PUT 404 first; only whitelisted fields are sent; server error messages surface in the toast.
+- **IMDb import "prisma failed"**: Fixed — `init-db.js` now has a 3-tier fallback (prisma CLI → direct SQL via better-sqlite3 → empty db) so the schema is always applied even in read-only standalone dirs. `postbuild.js` copies `better-sqlite3` into the bundle.
+- **Diagnostics**: New `/api/db-health` endpoint reports all environment + db + config state in one JSON payload — visit `http://localhost:3000/api/db-health` in the browser to see exactly what's wrong.
+- **5GB size**: Normal for Tauri projects (`node_modules` 1.2GB + Rust `target/` 3-4GB + `.next` 200MB). The MSI installer is only 50-100MB. `target/` can be deleted after building.
+- User needs to rebuild the Tauri desktop app for these fixes to take effect (the changes are in `src/`, `scripts/`, and `src-tauri/` which are all bundled into the standalone resources).

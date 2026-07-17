@@ -24,6 +24,14 @@ copyRecursive("node_modules/.prisma", ".next/standalone/node_modules/.prisma");
 copyRecursive("node_modules/@prisma", ".next/standalone/node_modules/@prisma");
 copyRecursive("node_modules/prisma", ".next/standalone/node_modules/prisma");
 copyRecursive("node_modules/z-ai-web-dev-sdk", ".next/standalone/node_modules/z-ai-web-dev-sdk");
+// better-sqlite3 is needed by init-db.js fallback (when prisma CLI can't run)
+if (fs.existsSync("node_modules/better-sqlite3")) {
+  copyRecursive("node_modules/better-sqlite3", ".next/standalone/node_modules/better-sqlite3");
+}
+// @prisma/client runtime needs these native bindings
+if (fs.existsSync("node_modules/@prisma/client/runtime")) {
+  copyRecursive("node_modules/@prisma/client/runtime", ".next/standalone/node_modules/@prisma/client/runtime");
+}
 
 fs.mkdirSync(".next/standalone/db", { recursive: true });
 if (fs.existsSync("db/custom.db")) {

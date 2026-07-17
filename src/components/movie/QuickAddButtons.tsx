@@ -20,39 +20,68 @@ export function QuickAddButtons({ movie }: QuickAddButtonsProps) {
     if (adding) return;
     setAdding(status);
     try {
-      // Try to update existing movie first
-      const res = await fetch(`/api/movies/${movie.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status }),
-      });
-      if (res.ok) {
-        toast.success(`Added to ${status === "want" ? "Wishlist" : "Watchlist"}`);
-        triggerRefresh();
-        return;
+      // If this is a TMDb-only movie (not yet in DB), create it directly
+      const isTmdbOnly = movie.id.startsWith("tmdb-") || movie.id.length < 20;
+      let success = false;
+
+      if (!isTmdbOnly) {
+        // Movie is in DB — update its status
+        const res = await fetch(`/api/movies/${movie.id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status }),
+        });
+        if (res.ok) {
+          success = true;
+        }
       }
-      // Movie not in DB yet — create it with the chosen status
-      const createRes = await fetch("/api/movies", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...movie,
-          status,
-          rewatchCount: 0,
-          personalRating: null,
-          watchDate: null,
-          notes: null,
-          lifetimeRank: null,
-          tags: [],
-          screenshots: [],
-          gallery: movie.gallery || [],
-        }),
-      });
-      if (!createRes.ok) throw new Error();
+
+      if (!success) {
+        // Either TMDb-only movie, or PUT failed — create in DB
+        const createRes = await fetch("/api/movies", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            title: movie.title,
+            originalTitle: movie.originalTitle,
+            poster: movie.poster,
+            backdrop: movie.backdrop,
+            releaseDate: movie.releaseDate,
+            year: movie.year,
+            genres: movie.genres,
+            runtime: movie.runtime,
+            country: movie.country,
+            language: movie.language,
+            director: movie.director,
+            writers: movie.writers,
+            cast: movie.cast,
+            overview: movie.overview,
+            imdbRating: movie.imdbRating,
+            tmdbRating: movie.tmdbRating,
+            trailer: movie.trailer,
+            gallery: movie.gallery || [],
+            tmdbId: movie.tmdbId,
+            imdbId: movie.imdbId,
+            mediaType: movie.mediaType ?? "movie",
+            status,
+            rewatchCount: 0,
+            personalRating: null,
+            watchDate: null,
+            notes: null,
+            lifetimeRank: null,
+            tags: [],
+            screenshots: [],
+          }),
+        });
+        if (!createRes.ok) {
+          const err = await createRes.json().catch(() => ({}));
+          throw new Error(err.error || `Failed (${createRes.status})`);
+        }
+      }
       toast.success(`Added to ${status === "want" ? "Wishlist" : "Watchlist"}`);
       triggerRefresh();
-    } catch {
-      toast.error("Failed to add");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to add");
     } finally {
       setAdding(null);
     }

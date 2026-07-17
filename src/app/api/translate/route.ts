@@ -16,24 +16,39 @@ const ZAI_CONFIG = {
   userId: "3474d209-fde2-4a43-8598-b64d6f1f6c30",
 };
 
-// Ensure the config file exists (SDK reads it from .z-ai-config)
+// Ensure the SDK config file exists in the home directory.
+// The SDK reads from: process.cwd()/.z-ai-config, os.homedir()/.z-ai-config, /etc/.z-ai-config
+// In the Tauri desktop build, process.cwd() is the (read-only) standalone dir,
+// so we MUST write to os.homedir() for the SDK to find it.
 function ensureConfig() {
-  const configPaths = [
-    path.join(process.cwd(), ".z-ai-config"),
-    path.join(os.homedir(), ".z-ai-config"),
-    path.join(os.tmpdir(), ".z-ai-config"),
-  ];
-  for (const p of configPaths) {
-    if (fs.existsSync(p)) return;
-  }
-  // Try writing to multiple locations
-  for (const p of configPaths) {
-    try {
-      fs.writeFileSync(p, JSON.stringify(ZAI_CONFIG));
-      return;
-    } catch {
-      // continue to next location
+  const homeConfig = path.join(os.homedir(), ".z-ai-config");
+  try {
+    // Always ensure the home config is up to date (overwrite if stale/missing)
+    if (!fs.existsSync(homeConfig)) {
+      fs.writeFileSync(homeConfig, JSON.stringify(ZAI_CONFIG));
+      return true;
     }
+    // Verify it's valid JSON with required keys; if not, rewrite
+    const existing = JSON.parse(fs.readFileSync(homeConfig, "utf-8"));
+    if (!existing.baseUrl || !existing.apiKey) {
+      fs.writeFileSync(homeConfig, JSON.stringify(ZAI_CONFIG));
+    }
+    return true;
+  } catch {
+    // Home dir not writable — try cwd and tmp as fallback
+    const fallbacks = [
+      path.join(process.cwd(), ".z-ai-config"),
+      path.join(os.tmpdir(), ".z-ai-config"),
+    ];
+    for (const p of fallbacks) {
+      try {
+        fs.writeFileSync(p, JSON.stringify(ZAI_CONFIG));
+        return true;
+      } catch {
+        // continue
+      }
+    }
+    return false;
   }
 }
 
