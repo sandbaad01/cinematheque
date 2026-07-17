@@ -10,6 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { LanguageSwitcher } from "@/components/movie/LanguageSwitcher";
 import {
   AlertDialog,
@@ -30,6 +32,7 @@ export function SettingsView() {
   const [csvText, setCsvText] = useState("");
   const [listName, setListName] = useState("");
   const [busy, setBusy] = useState(false);
+  const [skipTmdb, setSkipTmdb] = useState(false);
   const [resetOpen, setResetOpen] = useState(false);
   const [resetConfirm, setResetConfirm] = useState("");
   const [resetting, setResetting] = useState(false);
@@ -82,11 +85,17 @@ export function SettingsView() {
       const res = await fetch("/api/import-imdb", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ csv: csvText, listName: listName.trim() || "IMDb List" }),
+        body: JSON.stringify({
+          csv: csvText,
+          listName: listName.trim() || "IMDb List",
+          skipTmdb: skipTmdb,
+        }),
       });
       const result = await res.json();
       if (result.error) throw new Error(result.error);
-      toast.success(`Imported ${result.imported} movies, skipped ${result.skipped} duplicates → "${listName.trim() || "IMDb List"}"`);
+      const msg = `Imported ${result.imported} movies, skipped ${result.skipped} duplicates → "${listName.trim() || "IMDb List"}"` +
+        (result.tmdbFailed > 0 ? ` (${result.tmdbFailed} TMDb lookups failed, used CSV only)` : "");
+      toast.success(msg);
       setCsvText("");
       setListName("");
       triggerRefresh();
@@ -192,6 +201,17 @@ export function SettingsView() {
             <FileText className="size-4" />
             .csv file
           </Button>
+          <div className="flex items-center gap-2 rounded-md border px-3 py-1">
+            <Switch
+              id="skip-tmdb"
+              checked={skipTmdb}
+              onCheckedChange={setSkipTmdb}
+              disabled={busy}
+            />
+            <Label htmlFor="skip-tmdb" className="cursor-pointer text-xs">
+              Skip TMDb lookup (faster, offline-friendly)
+            </Label>
+          </div>
           <input
             ref={csvInputRef}
             type="file"

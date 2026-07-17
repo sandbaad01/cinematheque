@@ -68,11 +68,14 @@ function headerIndex(headers: string[], name: string): number {
 // POST /api/import-imdb { csv: string, listName?: string }
 // Creates movies from an IMDb CSV export AND adds them to a named collection.
 // All movies get status "new" — no status assigned until user chooses.
+// TMDb lookups are best-effort: if TMDb is slow/unreachable, the import
+// still succeeds using the CSV data only.
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const csv: string = typeof body?.csv === "string" ? body.csv : "";
     const listName: string = (body?.listName ?? "IMDb List").toString().trim() || "IMDb List";
+    const skipTmdb: boolean = body?.skipTmdb === true;
 
     if (!csv.trim()) {
       return NextResponse.json(
@@ -101,6 +104,7 @@ export async function POST(req: NextRequest) {
 
     let imported = 0;
     let skipped = 0;
+    let tmdbFailed = 0;
     const movieIds: string[] = [];
 
     for (let r = 1; r < rows.length; r++) {
@@ -141,9 +145,11 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      // Try to fetch TMDb data using the IMDb ID for rich metadata
+      // Try to fetch TMDb data using the IMDb ID for rich metadata.
+      // Best-effort: if TMDb is unreachable/slow (common in restricted networks),
+      // continue with CSV data only so the import still succeeds.
       let tmdbData: any = null;
-      if (imdbId) {
+      if (imdbId && !skipTmdb) {
         try {
           const tmdbId = await findByImdbId(imdbId);
           if (tmdbId) {
@@ -151,7 +157,8 @@ export async function POST(req: NextRequest) {
             tmdbData = tmdbToMoviePayload(details);
           }
         } catch {
-          // TMDb lookup failed — continue with CSV data only
+          // TMDb lookup failed (network/timeout/rate-limit) — continue with CSV only
+          tmdbFailed++;
         }
       }
 
@@ -185,7 +192,23 @@ export async function POST(req: NextRequest) {
           status: "new",
           watchDate: null,
         },
+        // If IMDb rating + date rated exist, treat as "watched" so it shows in archive
       });
+      // If there's a Date Rated in the CSV, set status to "watched" with that date
+      if (dateRated) {
+        try {
+          const d = new Date(dateRated);
+          if (!Number.isNaN(d.getTime())) {
+            const iso = d.toISOString().slice(0, 10);
+            await db.movie.update({
+              where: { id: created.id },
+              data: { status: "watched", watchDate: iso },
+            });
+          }
+        } catch {
+          /* ignore date parsing errors */
+        }
+      }
       movieIds.push(created.id);
       imported++;
     }
@@ -196,18 +219,26 @@ export async function POST(req: NextRequest) {
       const collection = await db.collection.create({
         data: {
           name: listName,
-          description: `IMDb List · ${imported} movies, ${skipped} already in archive`,
+          description: `IMDb List · ${imported} movies, ${skipped} already in archive${tmdbFailed > 0 ? `, ${tmdbFailed} TMDb lookups failed (using CSV data only)` : ""}`,
           movieIds: JSON.stringify(movieIds),
         },
       });
       listId = collection.id;
     }
 
-    return NextResponse.json({ imported, skipped, listId });
+    return NextResponse.json({
+      imported,
+      skipped,
+      tmdbFailed,
+      listId,
+      message: tmdbFailed > 0
+        ? `Imported ${imported} movies. ${tmdbFailed} TMDb lookups failed (used CSV data only).`
+        : undefined,
+    });
   } catch (err) {
     console.error("POST /api/import-imdb error", err);
     return NextResponse.json(
-      { error: "Failed to import IMDb CSV" },
+      { error: "Failed to import IMDb CSV: " + (err instanceof Error ? err.message : "unknown error") },
       { status: 500 }
     );
   }
