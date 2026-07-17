@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { I18nProvider } from "@/lib/i18n/context";
 import { ServiceWorkerRegistrar } from "@/components/ServiceWorkerRegistrar";
+import { DbAutoMigrator } from "@/components/DbAutoMigrator";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -49,6 +50,7 @@ export default function RootLayout({
         <I18nProvider>
           {children}
           <ServiceWorkerRegistrar />
+          <DbAutoMigrator />
         </I18nProvider>
         <Toaster />
         <Sonner />
