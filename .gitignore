@@ -50,5 +50,20 @@ test
 prompt
 
 server.log
+
+# Tauri build artifacts (very large, regenerated on build)
+src-tauri/target/
+src-tauri/resources/standalone/
+
 # Skills directory
 /skills/
+
+# Worklog
+worklog.md
+
+# Screenshots temp
+public/downloads/
+public/screenshots/
+
+# Agent context
+agent-ctx/

@@ -16,12 +16,14 @@ export async function GET(req: NextRequest) {
     const director = searchParams.get("director");
     const tag = searchParams.get("tag");
     const favorite = searchParams.get("favorite");
+    const mediaType = searchParams.get("mediaType");
     const search = searchParams.get("search");
     const sort = searchParams.get("sort") || "watchDate";
     const order = searchParams.get("order") === "asc" ? "asc" : "desc";
 
     const where: any = {};
     if (status) where.status = status;
+    if (mediaType) where.mediaType = mediaType;
     if (country) where.country = country;
     if (language) where.language = language;
     if (director) where.director = director;
@@ -111,6 +113,7 @@ export async function POST(req: NextRequest) {
         gallery: JSON.stringify(Array.isArray(b.gallery) ? b.gallery : []),
         screenshots: JSON.stringify(Array.isArray(b.screenshots) ? b.screenshots : []),
         status,
+        mediaType: b.mediaType === "series" ? "series" : "movie",
         favorite: !!b.favorite,
         rewatchCount: typeof b.rewatchCount === "number" ? b.rewatchCount : 0,
         personalRating:

@@ -199,11 +199,13 @@ export function SettingsView() {
             className="hidden"
             onChange={async (e) => {
               const f = e.target.files?.[0];
-              if (f) setCsvText(await f.text());
-              // Auto-fill list name from filename if empty
-              if (!listName.trim()) {
-                const fname = f.name.replace(/\.csv$/i, "");
-                setListName(fname);
+              if (f) {
+                setCsvText(await f.text());
+                // Auto-fill list name from filename if empty
+                if (!listName.trim()) {
+                  const fname = f.name.replace(/\.csv$/i, "");
+                  setListName(fname);
+                }
               }
               e.target.value = "";
             }}

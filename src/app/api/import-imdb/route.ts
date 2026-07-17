@@ -191,7 +191,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Create a collection with the imported movie IDs
-    let listId = null;
+    let listId: string | null = null;
     if (movieIds.length > 0) {
       const collection = await db.collection.create({
         data: {

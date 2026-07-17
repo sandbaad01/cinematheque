@@ -67,17 +67,17 @@ export function QuickAddButtons({ movie }: QuickAddButtonsProps) {
         onClick={(e) => { e.stopPropagation(); e.preventDefault(); addToStatus("want"); }}
         disabled={!!adding}
         title="Add to Wishlist"
-        className="absolute left-1.5 top-1.5 z-10 flex size-7 items-center justify-center rounded-full bg-amber-500/80 text-white opacity-0 shadow transition-opacity hover:bg-amber-500 group-hover:opacity-100 disabled:opacity-50"
+        className="absolute left-1 top-1 z-10 flex size-5 items-center justify-center rounded-full bg-amber-500/80 text-white opacity-0 shadow transition-opacity hover:bg-amber-500 group-hover:opacity-100 disabled:opacity-50"
       >
-        <Heart className="size-3.5" />
+        <Heart className="size-3" />
       </button>
       <button
         onClick={(e) => { e.stopPropagation(); e.preventDefault(); addToStatus("watchlist"); }}
         disabled={!!adding}
         title="Add to Watchlist"
-        className="absolute right-1.5 top-1.5 z-10 flex size-7 items-center justify-center rounded-full bg-primary/80 text-primary-foreground opacity-0 shadow transition-opacity hover:bg-primary group-hover:opacity-100 disabled:opacity-50"
+        className="absolute right-1 top-1 z-10 flex size-5 items-center justify-center rounded-full bg-primary/80 text-primary-foreground opacity-0 shadow transition-opacity hover:bg-primary group-hover:opacity-100 disabled:opacity-50"
       >
-        <ListPlus className="size-3.5" />
+        <ListPlus className="size-3" />
       </button>
     </>
   );

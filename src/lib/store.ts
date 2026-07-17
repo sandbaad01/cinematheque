@@ -25,7 +25,9 @@ export type ViewName =
   | "report"
   | "wantToWatch"
   | "watchlist"
-  | "tmdb";
+  | "tmdb"
+  | "watchedSeries"
+  | "lastWatched";
 
 interface ViewState {
   view: ViewName;

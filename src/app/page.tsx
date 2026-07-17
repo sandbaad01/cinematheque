@@ -8,6 +8,7 @@ import { useNav } from "@/lib/store";
 import { useI18n } from "@/lib/i18n/context";
 import { HomeView } from "@/views/HomeView";
 import { WatchedView } from "@/views/WatchedView";
+import { WatchedSeriesView } from "@/views/WatchedSeriesView";
 import { WantToWatchView } from "@/views/WantToWatchView";
 import { WatchlistView } from "@/views/WatchlistView";
 import { TmdbView } from "@/views/TmdbView";
@@ -75,6 +76,7 @@ export default function Page() {
     switch (view) {
       case "home": return <HomeView />;
       case "watched": return <WatchedView />;
+      case "watchedSeries": return <WatchedSeriesView />;
       case "wantToWatch": return <WantToWatchView />;
       case "watchlist": return <WatchlistView />;
       case "tmdb": return <TmdbView />;

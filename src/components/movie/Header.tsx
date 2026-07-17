@@ -17,6 +17,7 @@ interface HeaderProps {
 const VIEW_TITLE_KEYS: Record<string, string> = {
   home: "home_title",
   watched: "watched_title",
+  watchedSeries: "nav_watchedSeries",
   wantToWatch: "nav_wantToWatch",
   watchlist: "nav_watchlist",
   tmdb: "nav_tmdb",
@@ -44,6 +45,7 @@ const VIEW_TITLE_KEYS: Record<string, string> = {
 const VIEW_SUBTITLE_KEYS: Record<string, string | null> = {
   home: "home_welcome",
   watched: "watched_subtitle",
+  watchedSeries: null,
   wantToWatch: null,
   watchlist: null,
   tmdb: null,

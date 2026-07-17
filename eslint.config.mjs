@@ -42,6 +42,29 @@ const eslintConfig = [...nextCoreWebVitals, ...nextTypescript, {
     "no-undef": "off",
     "no-unreachable": "off",
     "no-useless-escape": "off",
+
+    // ---- Anti-bloat rules (warn, not error, so they don't block dev) ----
+    // Flag files exceeding 1000 lines — consider splitting into modules.
+    "max-lines": ["warn", {
+      max: 1000,
+      skipBlankLines: true,
+      skipComments: true,
+    }],
+    // Flag functions exceeding 250 lines — extract sub-components/helpers.
+    "max-lines-per-function": ["warn", {
+      max: 250,
+      skipBlankLines: true,
+      skipComments: true,
+      IIFEs: true,
+    }],
+    // Flag overly complex functions (cyclomatic complexity > 40).
+    "complexity": ["warn", 40],
+    // Flag functions with too many parameters (> 6).
+    "max-params": ["warn", 6],
+    // Flag deeply nested blocks (> 6 levels).
+    "max-depth": ["warn", 6],
+    // Flag too many statements in a function (> 100).
+    "max-statements": ["warn", 100],
   },
 }, {
   ignores: ["node_modules/**", ".next/**", "out/**", "build/**", "next-env.d.ts", "examples/**", "skills", "scripts/**", "src-tauri/**", "prisma/**"]

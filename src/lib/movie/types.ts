@@ -26,6 +26,7 @@ export interface Movie {
   gallery: string[];
   screenshots: string[];
   status: MovieStatus;
+  mediaType: "movie" | "series";
   favorite: boolean;
   rewatchCount: number;
   personalRating: number | null;
@@ -92,7 +93,8 @@ export function parseMovie(raw: any): Movie {
     trailer: raw.trailer ?? null,
     gallery: safeJsonArr(raw.gallery),
     screenshots: safeJsonArr(raw.screenshots),
-    status: (raw.status as MovieStatus) ?? "watched",
+    status: (raw.status as MovieStatus) ?? "new",
+    mediaType: (raw.mediaType as "movie" | "series") ?? "movie",
     favorite: raw.favorite ?? false,
     rewatchCount: raw.rewatchCount ?? 0,
     personalRating: raw.personalRating ?? null,

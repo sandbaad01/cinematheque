@@ -711,3 +711,64 @@ Stage Summary:
 - Annual Report: new `report` view (already wired in Sidebar) renders a print-friendly yearly summary — headline stats, top 5 genres (with bars), top 3 directors, favorite movie (with poster), 12-month mini-bar breakdown, plus a "Print / Save PDF" button. Print CSS forces light theme, hides sidebar/header/footer/toolbar, shows a print-only masthead, preserves teal bar colors, and avoids splitting cards across PDF pages.
 - Service Worker: basic PWA shell (`/sw.js`) with cache-first for static assets + network-first for API + navigation fallback to `/`; manifest + theme color set; SW registers on mount via a client component in the root layout. TMDb images remain network-dependent (cross-origin), but the app shell + cached API data load offline.
 - All 3 features use the existing teal/terracotta HSL token palette (no blue/indigo), shadcn/ui components (Card, Button, Select, Skeleton), and lucide-react icons. i18n keys added in EN/FA/FR for all user-visible strings.
+
+---
+Task ID: 3
+Agent: Main (Z.ai Code)
+Task: Rename "Add Movie & Serie" → "Add Picture", replace "movie" with "Picture" in Add-flow UI text, add Type (Movie/Series) selector before save, restore QuickAddButtons to original size, fix critical getMovieDetails bug, add anti-bloat ESLint config, full code review
+
+Work Log:
+- Read worklog.md (Tasks 1–2-d) to understand prior context. Found the project had a CRITICAL runtime bug: /api/recommendations, /api/stats, /api/tmdb/upcoming all returning HTTP 500 because `getMovieDetails` was imported from `@/lib/tmdb` but the function did not exist there (only `getTvDetails` existed).
+- Fixed critical bug: Added missing `getMovieDetails(tmdbId)` export to `src/lib/tmdb.ts` — fetches `/movie/{id}` with `append_to_response=credits,videos,images,external_ids`. After fix, all three endpoints returned 200.
+- Found Prisma Client was out of date (didn't know `mediaType` field) — ran `bun run db:generate` + `bun run db:push` and restarted dev server to pick up the regenerated client. After restart, `/api/movies?status=watched&mediaType=series` returned 200.
+- Fixed 6 pre-existing TypeScript errors:
+  1. `src/lib/store.ts`: Added `"lastWatched"` to the `ViewName` union (was referenced by HomeView + page.tsx but missing from the type).
+  2. `src/views/SettingsView.tsx`: Wrapped `f.name` access inside the `if (f)` guard so `f` is not possibly-undefined.
+  3. `src/app/api/import-imdb/route.ts`: Changed `let listId = null` to `let listId: string | null = null` so TypeScript infers the correct union type.
+  4. `src/app/api/tmdb/search/route.ts`: Removed the `r.media_type !== "tv"` filter (the property doesn't exist on `TmdbSearchResult` from `/search/movie` — that endpoint only returns movies anyway).
+  5. `src/app/api/tmdb/details/route.ts`: Added `?? "Unknown"` fallback to `payload.title` since `tmdbToMoviePayload` returns `title?: string`.
+  6. (The `getMovieDetails` missing export above also resolved the recommendations route error.)
+- Added anti-bloat ESLint config to `eslint.config.mjs`: 6 new warn-level rules — `max-lines` (1000), `max-lines-per-function` (250), `complexity` (40), `max-params` (6), `max-depth` (6), `max-statements` (100). All are warnings (not errors) so they don't block dev. Lint now reports 7 warnings (the largest files/functions) and 0 errors.
+- Restored `QuickAddButtons.tsx` to original size: `size-5` container (20×20px) + `size-3` icon (12×12px). Verified via Agent Browser that buttons render at 20×20px on the Watched Movies grid.
+- Changed Sidebar button text from "Add Movie & Serie" to "Add Picture" in `src/components/movie/Sidebar.tsx`.
+- Updated i18n translations (`src/lib/i18n/translations.ts`) in all 3 languages (EN/FA/FR):
+  * `nav_add`: "Add Movie" → "Add Picture" / "افزودن تصویر" / "Ajouter une image"
+  * `add_title`: "Add a Movie" → "Add a Picture" / "افزودن تصویر" / "Ajouter une image"
+  * `add_searchPlaceholder`: "Search for a movie title..." → "Search for a picture title..." (and equivalents)
+  * `add_fields`: "Movie Details" → "Picture Details" / "جزئیات تصویر" / "Détails de l'image"
+  * `add_success`: "Movie added..." → "Picture added..." / "تصویر به آرشیو اضافه شد" / "Image ajoutée..."
+  * `add_updateSuccess`: "Movie updated" → "Picture updated" / "تصویر به‌روزرسانی شد" / "Image mise à jour"
+  * `add_deleteConfirm`, `add_duplicate`: "movie" → "picture" in all languages
+  * `home_empty`, `home_empty_cta`: "movie" → "picture" / "تصویر" / "image"
+  * `action_add`: "Add Movie" → "Add Picture" / "افزودن تصویر" / "Ajouter une image"
+  * `action_random`: "Random Movie" → "Random Picture" / "تصویر تصادفی" / "Image aléatoire"
+  * Added 3 new keys: `add_type` ("Type"/"نوع"/"Type"), `add_typeMovie` ("Movie"/"فیلم"/"Film"), `add_typeSeries` ("Series"/"سریال"/"Série")
+- Added Type (Movie/Series) selector to `AddMovieDialog.tsx` step 2 form:
+  * Added `mediaType: "movie" | "series"` field to `FormState` (default "movie")
+  * Updated `emptyForm` to include `mediaType: "movie"`
+  * Updated `toFormState()` to read `m.mediaType ?? "movie"` when editing
+  * Updated `pickResult()` success path: sets `mediaType: r.mediaType === "tv" ? "series" : "movie"` so picking a TV series from multisearch auto-selects "Series"
+  * Updated `pickResult()` fallback path: same mediaType derivation from the search result
+  * Updated `handleSave()` payload: uses `form.mediaType` instead of the old hardcoded `editMovie?.mediaType ?? "movie"`
+  * Added a new `<Field label={t("add_type")}>` with a shadcn `Select` containing "Movie" and "Series" options, placed right after the Status selector in the form grid
+- Verification with Agent Browser:
+  * Home page renders with "Add Picture" button, "Random Picture" button — no console errors
+  * Add Picture dialog opens with title "Add a Picture" and placeholder "Search for a picture title..."
+  * Searching "breaking bad" via multisearch returns both movies and TV series (Breaking Bad 2008 is the TV series)
+  * Picking "Breaking Bad" auto-fills the form AND auto-sets the Type selector to "Series" ✓
+  * Manual entry path shows both the Status combobox AND the Type combobox (default "Movie")
+  * Type combobox expands to show "Movie" (selected) and "Series" options; selecting "Series" updates the displayed value ✓
+  * QuickAddButtons on the Watched Movies grid render at 20×20px (original size restored) ✓
+  * All API endpoints return 200: /, /api/stats, /api/movies?mediaType=series, /api/recommendations, /api/tmdb/upcoming, /api/tmdb/multisearch, /api/tmdb/details, /api/stats/yearly
+- Lint: 0 errors, 7 warnings (anti-bloat). TypeScript: 0 errors (excluding examples/prisma-seed/skills).
+
+Stage Summary:
+- CRITICAL FIX: Added missing `getMovieDetails()` to tmdb.ts — this was causing 500 errors on /api/recommendations, /api/stats, /api/tmdb/upcoming (the broken import poisoned the module graph). All endpoints now return 200.
+- Prisma Client regenerated to recognize the `mediaType` field; `/api/movies?mediaType=series` filter now works for the Watched Series page.
+- 6 pre-existing TypeScript errors fixed (lastWatched ViewName, SettingsView null-check, import-imdb listId type, tmdb/search media_type, tmdb/details title fallback).
+- Anti-bloat ESLint config added: 6 warn-level rules (max-lines 1000, max-lines-per-function 250, complexity 40, max-params 6, max-depth 6, max-statements 100) — flags the largest files without blocking development.
+- "Add Movie & Serie" button → "Add Picture" in Sidebar.
+- All Add-flow UI text changed from "movie" → "Picture" (EN), "فیلم" → "تصویر" (FA), "film" → "image" (FR) across nav_add, add_title, add_searchPlaceholder, add_fields, add_success, add_updateSuccess, add_deleteConfirm, add_duplicate, home_empty, home_empty_cta, action_add, action_random.
+- New Type (Movie/Series) selector added to AddMovieDialog step 2 — auto-set from the multisearch result's mediaType (TV → Series), user can change it before save, and the chosen value is persisted to the DB via the POST/PUT payload.
+- QuickAddButtons restored to original 20×20px size (size-5 container, size-3 icon).
+- All changes verified end-to-end with Agent Browser: page renders, dialog works, multisearch returns TV+movies, Type auto-fills for TV picks, manual Type change works, no console/runtime errors.

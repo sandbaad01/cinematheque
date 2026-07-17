@@ -499,6 +499,7 @@ export function MovieDetailView({ movieId }: { movieId: string }) {
                 <Select value={movie.status} onValueChange={(v) => update({ status: v as MovieStatus })}>
                   <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="new">—</SelectItem>
                     <SelectItem value="watched">{t("status_watched")}</SelectItem>
                     <SelectItem value="want">{t("nav_wantToWatch")}</SelectItem>
                     <SelectItem value="watchlist">{t("nav_watchlist")}</SelectItem>
@@ -506,6 +507,20 @@ export function MovieDetailView({ movieId }: { movieId: string }) {
                   </SelectContent>
                 </Select>
               </div>
+
+              {/* Movie / Series toggle */}
+              {!isTmdbMovie && (
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-muted-foreground">Type</label>
+                <Select value={movie.mediaType ?? "movie"} onValueChange={(v) => update({ mediaType: v as "movie" | "series" })}>
+                  <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="movie">Movie</SelectItem>
+                    <SelectItem value="series">Series</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              )}
 
               {/* Personal rating */}
               <div className="space-y-1">

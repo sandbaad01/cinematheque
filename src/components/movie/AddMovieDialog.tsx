@@ -43,6 +43,7 @@ interface TmdbSearchResult {
   overview?: string | null;
   poster?: string | null;
   tmdbRating?: number | null;
+  mediaType?: "movie" | "tv";
 }
 
 type FormState = {
@@ -64,6 +65,7 @@ type FormState = {
   tmdbRating: string;
   trailer: string;
   status: MovieStatus;
+  mediaType: "movie" | "series";
   personalRating: number | null;
   watchDate: string;
   notes: string;
@@ -90,6 +92,7 @@ const emptyForm: FormState = {
   tmdbRating: "",
   trailer: "",
   status: "new",
+  mediaType: "movie",
   personalRating: null,
   watchDate: "",
   notes: "",
@@ -117,6 +120,7 @@ function toFormState(m: Movie): FormState {
     tmdbRating: m.tmdbRating != null ? String(m.tmdbRating) : "",
     trailer: m.trailer ?? "",
     status: m.status,
+    mediaType: m.mediaType ?? "movie",
     personalRating: m.personalRating,
     watchDate: m.watchDate ?? "",
     notes: m.notes ?? "",
@@ -181,7 +185,7 @@ export function AddMovieDialog({
     setSearchError(null);
     setResults([]);
     try {
-      const res = await fetch(`/api/tmdb/search?q=${encodeURIComponent(query.trim())}`);
+      const res = await fetch(`/api/tmdb/multisearch?q=${encodeURIComponent(query.trim())}`);
       if (!res.ok) throw new Error("search failed");
       const data = await res.json();
       const list: TmdbSearchResult[] = Array.isArray(data?.results) ? data.results : [];
@@ -210,7 +214,8 @@ export function AddMovieDialog({
   const pickResult = async (r: TmdbSearchResult) => {
     setSearching(true);
     try {
-      const res = await fetch(`/api/tmdb/details?id=${r.tmdbId}`);
+      const typeParam = r.mediaType === "tv" ? "&type=tv" : "";
+      const res = await fetch(`/api/tmdb/details?id=${r.tmdbId}${typeParam}`);
       if (!res.ok) throw new Error("details failed");
       const d = await res.json();
       setForm((prev) => ({
@@ -231,6 +236,7 @@ export function AddMovieDialog({
         overview: d.overview ?? "",
         tmdbRating: d.tmdbRating != null ? String(d.tmdbRating) : "",
         trailer: d.trailer ?? "",
+        mediaType: r.mediaType === "tv" ? "series" : "movie",
       }));
       pendingTmdbId.current = d.tmdbId ?? null;
       pendingImdbId.current = d.imdbId ?? null;
@@ -245,6 +251,7 @@ export function AddMovieDialog({
         overview: r.overview ?? "",
         year: r.year != null ? String(r.year) : "",
         tmdbRating: r.tmdbRating != null ? String(r.tmdbRating) : "",
+        mediaType: r.mediaType === "tv" ? "series" : "movie",
       }));
       pendingTmdbId.current = r.tmdbId;
       pendingImdbId.current = null;
@@ -283,6 +290,7 @@ export function AddMovieDialog({
         gallery: [] as string[],
         screenshots: [] as string[],
         status: form.status,
+        mediaType: form.mediaType,
         favorite: form.favorite,
         rewatchCount: editMovie?.rewatchCount ?? 0,
         personalRating: form.personalRating,
@@ -580,6 +588,20 @@ export function AddMovieDialog({
                       <SelectItem value="dropped">
                         {t("status_dropped")}
                       </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </Field>
+                <Field label={t("add_type")}>
+                  <Select
+                    value={form.mediaType}
+                    onValueChange={(v) => update("mediaType", v as "movie" | "series")}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="movie">{t("add_typeMovie")}</SelectItem>
+                      <SelectItem value="series">{t("add_typeSeries")}</SelectItem>
                     </SelectContent>
                   </Select>
                 </Field>

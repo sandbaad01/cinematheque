@@ -111,14 +111,18 @@ export interface TmdbImage {
 export interface TmdbMovieDetails {
   id: number;
   imdb_id?: string;
-  title: string;
+  title?: string;
+  name?: string;
   original_title?: string;
+  original_name?: string;
   tagline?: string;
   overview?: string;
   poster_path?: string | null;
   backdrop_path?: string | null;
   release_date?: string;
+  first_air_date?: string;
   runtime?: number;
+  episode_run_time?: number[];
   genres?: TmdbGenre[];
   production_countries?: { iso_3166_1: string; name: string }[];
   spoken_languages?: { english_name: string; name: string }[];
@@ -148,12 +152,61 @@ export async function getUpcomingMovies(page = 1): Promise<TmdbSearchResponse> {
   });
 }
 
+/** Search TMDb for TV series by title. */
+export async function searchTvShows(query: string, page = 1): Promise<TmdbSearchResponse> {
+  return tmdbFetch<TmdbSearchResponse>("/search/tv", {
+    query,
+    page: String(page),
+    include_adult: "false",
+  });
+}
+
 /** Get full movie details (with credits, videos, images appended). */
 export async function getMovieDetails(tmdbId: number): Promise<TmdbMovieDetails> {
   return tmdbFetch<TmdbMovieDetails>(`/movie/${tmdbId}`, {
     append_to_response: "credits,videos,images,external_ids",
     include_image_language: "en,null",
   });
+}
+
+/** Get full TV series details (with credits, videos, images appended). */
+export async function getTvDetails(tmdbId: number): Promise<TmdbMovieDetails> {
+  return tmdbFetch<TmdbMovieDetails>(`/tv/${tmdbId}`, {
+    append_to_response: "credits,videos,images,external_ids",
+    include_image_language: "en,null",
+  });
+}
+
+/** Convert TMDb TV details to our Movie payload shape. */
+export function tmdbTvToMoviePayload(d: TmdbMovieDetails) {
+  const gallery = (d.images?.backdrops ?? [])
+    .sort((a, b) => b.vote_average - a.vote_average)
+    .slice(0, 8)
+    .map((img) => img.file_path);
+
+  return {
+    tmdbId: d.id,
+    imdbId: d.imdb_id ?? null,
+    title: d.title ?? d.name ?? "Unknown",
+    originalTitle: d.original_title ?? d.original_name ?? null,
+    poster: d.poster_path ?? null,
+    backdrop: d.backdrop_path ?? null,
+    releaseDate: d.release_date ?? null,
+    year: d.release_date ? parseInt(d.release_date.slice(0, 4), 10) || null : null,
+    genres: (d.genres ?? []).map((g) => g.name),
+    runtime: d.runtime ?? d.episode_run_time?.[0] ?? null,
+    country: d.production_countries?.[0]?.name ?? null,
+    language: d.spoken_languages?.[0]?.english_name ?? null,
+    director: d.credits?.crew?.find((c) => c.job === "Creator")?.name ?? null,
+    writers: [],
+    cast: extractCast(d.credits?.cast),
+    overview: d.overview ?? null,
+    tmdbRating: d.vote_average ?? null,
+    trailer: pickTrailer(d.videos?.results),
+    gallery,
+    screenshots: [] as string[],
+    mediaType: "series" as const,
+  };
 }
 
 /** Find a TMDb movie by its IMDb ID (most reliable lookup). */
@@ -290,5 +343,6 @@ export function tmdbToMoviePayload(d: TmdbMovieDetails) {
     trailer: pickTrailer(d.videos?.results),
     gallery,
     screenshots: [] as string[],
+    mediaType: "movie" as const,
   };
 }

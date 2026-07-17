@@ -1,31 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getMovieDetails, tmdbToMoviePayload } from "@/lib/tmdb";
+import { getMovieDetails, getTvDetails, tmdbToMoviePayload, tmdbTvToMoviePayload } from "@/lib/tmdb";
 import type { Movie } from "@/lib/movie/types";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 20;
 
-/**
- * GET /api/tmdb/details?id=...
- * Returns full TMDb movie details in the complete Movie shape (with default
- * values for personal fields) so it can be used directly by MovieDetailView.
- */
 export async function GET(req: NextRequest) {
   try {
     const idStr = req.nextUrl.searchParams.get("id")?.trim() ?? "";
+    const mediaType = req.nextUrl.searchParams.get("type")?.trim() ?? "movie";
     const tmdbId = parseInt(idStr, 10);
-    if (!tmdbId) {
-      return NextResponse.json({ error: "id is required" }, { status: 400 });
-    }
-    const details = await getMovieDetails(tmdbId);
-    const payload = tmdbToMoviePayload(details);
+    if (!tmdbId) return NextResponse.json({ error: "id is required" }, { status: 400 });
 
-    // Return a complete Movie-shaped object with defaults for personal fields
+    const isTv = mediaType === "tv" || mediaType === "series";
+    const details = isTv ? await getTvDetails(tmdbId) : await getMovieDetails(tmdbId);
+    const payload = isTv ? tmdbTvToMoviePayload(details) : tmdbToMoviePayload(details);
+
     const movie: Movie = {
       id: `tmdb-${tmdbId}`,
       tmdbId: payload.tmdbId,
       imdbId: payload.imdbId,
-      title: payload.title,
+      title: payload.title ?? "Unknown",
       originalTitle: payload.originalTitle,
       poster: payload.poster,
       backdrop: payload.backdrop,
@@ -44,7 +39,8 @@ export async function GET(req: NextRequest) {
       trailer: payload.trailer,
       gallery: payload.gallery,
       screenshots: [],
-      status: "new", // not in archive yet — QuickAddButtons will show
+      status: "new",
+      mediaType: isTv ? "series" : "movie",
       favorite: false,
       rewatchCount: 0,
       personalRating: null,
@@ -59,9 +55,6 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(movie);
   } catch (err) {
     console.error("GET /api/tmdb/details error", err);
-    return NextResponse.json(
-      { error: "TMDb details fetch failed" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "TMDb details fetch failed" }, { status: 500 });
   }
 }

@@ -1,0 +1,722 @@
+     1→"use client";
+     2→
+     3→import { useState, useEffect } from "react";
+     4→import {
+     5→  ArrowLeft, Star, Heart, Calendar, Clock, Globe, MapPin, User, PenLine,
+     6→  Play, Trophy, Repeat, ExternalLink, Pencil, Trash2, Plus, Film, Sparkles, Tag, RefreshCw, Loader2,
+     7→} from "lucide-react";
+     8→import { toast } from "sonner";
+     9→import { useFetch } from "@/lib/useFetch";
+    10→import { useI18n } from "@/lib/i18n/context";
+    11→import { useNav } from "@/lib/store";
+    12→import type { Movie, Recommendation, MovieStatus } from "@/lib/movie/types";
+    13→import { backdropUrl, posterUrl, youtubeEmbed } from "@/lib/movie/types";
+    14→import { PosterImage } from "@/components/movie/PosterImage";
+    15→import { RatingStars } from "@/components/movie/RatingStars";
+    16→import { StatusBadge } from "@/components/movie/StatusBadge";
+    17→import { RankBadge } from "@/components/movie/RankBadge";
+    18→import { GenrePill } from "@/components/movie/GenrePill";
+    19→import { SectionHeader } from "@/components/movie/SectionHeader";
+    20→import { MovieRow } from "@/components/movie/MovieRow";
+    21→import { AddMovieDialog } from "@/components/movie/AddMovieDialog";
+    22→import { TranslatedStory } from "@/components/movie/TranslatedStory";
+    23→import { GalleryLightbox } from "@/components/movie/GalleryLightbox";
+    24→import { Phototheque } from "@/components/movie/Phototheque";
+    25→import { Button } from "@/components/ui/button";
+    26→import { Card } from "@/components/ui/card";
+    27→import { Badge } from "@/components/ui/badge";
+    28→import { Textarea } from "@/components/ui/textarea";
+    29→import { Input } from "@/components/ui/input";
+    30→import { Skeleton } from "@/components/ui/skeleton";
+    31→import {
+    32→  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+    33→} from "@/components/ui/select";
+    34→import {
+    35→  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+    36→  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+    37→} from "@/components/ui/alert-dialog";
+    38→import { cn } from "@/lib/utils";
+    39→
+    40→export function MovieDetailView({ movieId }: { movieId: string }) {
+    41→  const { t } = useI18n();
+    42→  const { back, goGenre, goPerson, triggerRefresh } = useNav();
+    43→
+    44→  // Detect if this is a TMDb-only movie (not yet in the archive)
+    45→  const isTmdbMovie = movieId.startsWith("tmdb-");
+    46→  const tmdbId = isTmdbMovie ? parseInt(movieId.replace("tmdb-", ""), 10) : null;
+    47→
+    48→  const { data: dbMovie, loading: dbLoading, refetch } = useFetch<Movie>(
+    49→    isTmdbMovie ? null : `/api/movies/${movieId}`
+    50→  );
+    51→  const { data: tmdbMovie, loading: tmdbLoading } = useFetch<Movie>(
+    52→    tmdbId ? `/api/tmdb/details?id=${tmdbId}` : null
+    53→  );
+    54→
+    55→  const movie = isTmdbMovie ? tmdbMovie : dbMovie;
+    56→  const loading = isTmdbMovie ? tmdbLoading : dbLoading;
+    57→  const { data: recsData } = useFetch<{ items: Recommendation[] }>(
+    58→    isTmdbMovie
+    59→      ? `/api/recommendations?movieId=tmdb-${tmdbId}`
+    60→      : `/api/recommendations?movieId=${movieId}`
+    61→  );
+    62→
+    63→  const [editOpen, setEditOpen] = useState(false);
+    64→  const [deleteOpen, setDeleteOpen] = useState(false);
+    65→  const [savingField, setSavingField] = useState(false);
+    66→  const [refreshing, setRefreshing] = useState(false);
+    67→  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+    68→  const [adding, setAdding] = useState(false);
+    69→
+    70→  if (loading && !movie) {
+    71→    return (
+    72→      <div className="space-y-4 p-4 md:p-6">
+    73→        <Skeleton className="h-8 w-24" />
+    74→        <Skeleton className="h-72 w-full" />
+    75→        <Skeleton className="h-64 w-full" />
+    76→      </div>
+    77→    );
+    78→  }
+    79→
+    80→  if (!movie) {
+    81→    return <div className="p-6 text-muted-foreground">Movie not found.</div>;
+    82→  }
+    83→
+    84→  const recs = recsData?.items ?? [];
+    85→  const trailerEmbed = youtubeEmbed(movie.trailer);
+    86→
+    87→  // Inline update helper — for TMDb-only movies, creates the movie first
+    88→  const update = async (patch: Partial<Movie>) => {
+    89→    setSavingField(true);
+    90→    try {
+    91→      if (isTmdbMovie) {
+    92→        // Create the movie in DB first, then update
+    93→        const createRes = await fetch("/api/movies", {
+    94→          method: "POST",
+    95→          headers: { "Content-Type": "application/json" },
+    96→          body: JSON.stringify({ ...movie, ...patch, rewatchCount: 0, screenshots: [], gallery: movie.gallery || [] }),
+    97→        });
+    98→        if (!createRes.ok) throw new Error("create failed");
+    99→        const created = await createRes.json();
+   100→        toast.success(t("add_success"));
+   101→        triggerRefresh();
+   102→        useNav.getState().goMovie(created.id);
+   103→      } else {
+   104→        const res = await fetch(`/api/movies/${movie.id}`, {
+   105→          method: "PUT",
+   106→          headers: { "Content-Type": "application/json" },
+   107→          body: JSON.stringify(patch),
+   108→        });
+   109→        if (!res.ok) throw new Error("update failed");
+   110→        refetch();
+   111→      }
+   112→    } catch {
+   113→      toast.error("Update failed");
+   114→    } finally {
+   115→      setSavingField(false);
+   116→    }
+   117→  };
+   118→
+   119→  const handleDelete = async () => {
+   120→    try {
+   121→      const res = await fetch(`/api/movies/${movie.id}`, { method: "DELETE" });
+   122→      if (!res.ok) throw new Error();
+   123→      toast.success(t("action_delete"));
+   124→      triggerRefresh();
+   125→      back();
+   126→    } catch {
+   127→      toast.error("Delete failed");
+   128→    }
+   129→  };
+   130→
+   131→  // Add a TMDb-only movie to the archive
+   132→  const addToArchive = async (status: "watched" | "want") => {
+   133→    setAdding(true);
+   134→    try {
+   135→      const res = await fetch("/api/movies", {
+   136→        method: "POST",
+   137→        headers: { "Content-Type": "application/json" },
+   138→        body: JSON.stringify({ ...movie, status, rewatchCount: 0 }),
+   139→      });
+   140→      if (!res.ok) throw new Error();
+   141→      const saved = await res.json();
+   142→      toast.success(t("add_success"));
+   143→      triggerRefresh();
+   144→      // Navigate to the newly created DB movie
+   145→      useNav.getState().goMovie(saved.id);
+   146→    } catch {
+   147→      toast.error("Failed to add");
+   148→    } finally {
+   149→      setAdding(false);
+   150→    }
+   151→  };
+   152→
+   153→  const handleRewatch = async () => {
+   154→    await update({ rewatchCount: movie.rewatchCount + 1 });
+   155→    toast.success(`${t("movie_rewatch")}: ${movie.rewatchCount + 1}`);
+   156→  };
+   157→
+   158→  // Re-fetch fresh metadata (poster, cast, director, trailer, gallery, ratings)
+   159→  // from TMDb and merge it into the existing movie, preserving personal fields.
+   160→  // If the movie has no tmdbId (e.g. imported from IMDb CSV), search TMDb by title first.
+   161→  const refreshFromTmdb = async () => {
+   162→    setRefreshing(true);
+   163→    try {
+   164→      let tmdbId = movie.tmdbId;
+   165→
+   166→      // If no tmdbId, try to find it on TMDb:
+   167→      // 1. By IMDb ID (most reliable) if the movie has one
+   168→      // 2. By title + year search as fallback
+   169→      if (!tmdbId) {
+   170→        // Try IMDb ID lookup first via the /find endpoint
+   171→        if (movie.imdbId) {
+   172→          try {
+   173→            const findRes = await fetch(`/api/tmdb/find?imdbId=${encodeURIComponent(movie.imdbId)}`);
+   174→            if (findRes.ok) {
+   175→              const findData = await findRes.json();
+   176→              if (findData?.tmdbId) {
+   177→                tmdbId = findData.tmdbId;
+   178→              }
+   179→            }
+   180→          } catch {
+   181→            // ignore, fall back to title search
+   182→          }
+   183→        }
+   184→
+   185→        // If still no tmdbId, search by title + year
+   186→        if (!tmdbId) {
+   187→          const searchUrl = movie.year
+   188→            ? `/api/tmdb/search?q=${encodeURIComponent(movie.title)}&year=${movie.year}`
+   189→            : `/api/tmdb/search?q=${encodeURIComponent(movie.title)}`;
+   190→          const searchRes = await fetch(searchUrl);
+   191→          if (!searchRes.ok) throw new Error("search failed");
+   192→          const searchData = await searchRes.json();
+   193→          const firstResult = searchData?.results?.[0];
+   194→          if (!firstResult?.tmdbId) {
+   195→            throw new Error("Movie not found on TMDb");
+   196→          }
+   197→          tmdbId = firstResult.tmdbId;
+   198→        }
+   199→      }
+   200→
+   201→      const res = await fetch(`/api/tmdb/details?id=${tmdbId}`);
+   202→      if (!res.ok) throw new Error("fetch failed");
+   203→      const d = await res.json();
+   204→      await update({
+   205→        title: d.title ?? movie.title,
+   206→        originalTitle: d.originalTitle ?? movie.originalTitle,
+   207→        poster: d.poster ?? movie.poster,
+   208→        backdrop: d.backdrop ?? movie.backdrop,
+   209→        releaseDate: d.releaseDate ?? movie.releaseDate,
+   210→        year: d.year ?? movie.year,
+   211→        genres: Array.isArray(d.genres) ? d.genres : movie.genres,
+   212→        runtime: d.runtime ?? movie.runtime,
+   213→        country: d.country ?? movie.country,
+   214→        language: d.language ?? movie.language,
+   215→        director: d.director ?? movie.director,
+   216→        writers: Array.isArray(d.writers) ? d.writers : movie.writers,
+   217→        cast: Array.isArray(d.cast) ? d.cast : movie.cast,
+   218→        overview: d.overview ?? movie.overview,
+   219→        tmdbRating: d.tmdbRating ?? movie.tmdbRating,
+   220→        imdbId: d.imdbId ?? movie.imdbId,
+   221→        tmdbId: tmdbId,
+   222→        trailer: d.trailer ?? movie.trailer,
+   223→        gallery: Array.isArray(d.gallery) ? d.gallery : movie.gallery,
+   224→      });
+   225→      toast.success("Refreshed from TMDb");
+   226→    } catch {
+   227→      toast.error("TMDb refresh failed");
+   228→    } finally {
+   229→      setRefreshing(false);
+   230→    }
+   231→  };
+   232→
+   233→  return (
+   234→    <div className="pb-10">
+   235→      {/* Backdrop hero */}
+   236→      <div className="relative h-56 w-full overflow-hidden md:h-80 lg:h-96">
+   237→        {movie.backdrop ? (
+   238→          <img
+   239→            src={backdropUrl(movie.backdrop, "w1280") ?? undefined}
+   240→            alt=""
+   241→            className="size-full object-cover"
+   242→          />
+   243→        ) : (
+   244→          <div className="size-full bg-gradient-to-br from-primary/30 to-secondary" />
+   245→        )}
+   246→        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/70 to-transparent" />
+   247→        <div className="absolute left-4 top-4 md:left-6 md:top-6">
+   248→          <Button
+   249→            variant="ghost"
+   250→            size="sm"
+   251→            onClick={back}
+   252→            className="gap-1.5 bg-background/40 text-foreground/80 backdrop-blur-sm hover:bg-background/60 hover:text-foreground"
+   253→          >
+   254→            <ArrowLeft className="size-4" />
+   255→            {t("action_back")}
+   256→          </Button>
+   257→        </div>
+   258→      </div>
+   259→
+   260→      <div className="mx-auto max-w-6xl px-4 md:px-6">
+   261→        {/* Header: poster + title + meta */}
+   262→        <div className="-mt-24 flex flex-col gap-5 md:-mt-32 md:flex-row md:gap-6">
+   263→          <div className="w-32 shrink-0 md:w-48">
+   264→            <div className="overflow-hidden rounded-xl shadow-2xl ring-1 ring-border">
+   265→              <PosterImage src={movie.poster} alt={movie.title} size="w342" className="aspect-[2/3]" />
+   266→            </div>
+   267→          </div>
+   268→
+   269→          <div className="flex-1 space-y-3 pt-2 md:pt-32">
+   270→            <div className="flex flex-wrap items-start gap-3">
+   271→              <div className="flex-1">
+   272→                <h1 className="text-2xl font-bold tracking-tight md:text-4xl">{movie.title}</h1>
+   273→                {movie.originalTitle && movie.originalTitle !== movie.title && (
+   274→                  <p className="text-sm text-muted-foreground md:text-base">{movie.originalTitle}</p>
+   275→                )}
+   276→              </div>
+   277→              <div className="flex gap-2">
+   278→                {isTmdbMovie ? (
+   279→                  <Button
+   280→                    variant="outline"
+   281→                    size="icon"
+   282→                    onClick={refreshFromTmdb}
+   283→                    disabled={refreshing}
+   284→                    title="Refresh from TMDb"
+   285→                  >
+   286→                    <RefreshCw className={cn("size-4", refreshing && "animate-spin")} />
+   287→                  </Button>
+   288→                ) : (
+   289→                  <>
+   290→                    <Button
+   291→                      variant="outline"
+   292→                      size="icon"
+   293→                      onClick={refreshFromTmdb}
+   294→                      disabled={refreshing}
+   295→                      title="Refresh from TMDb"
+   296→                    >
+   297→                      <RefreshCw className={cn("size-4", refreshing && "animate-spin")} />
+   298→                    </Button>
+   299→                    <Button variant="outline" size="icon" onClick={() => setEditOpen(true)} title={t("action_edit")}>
+   300→                      <Pencil className="size-4" />
+   301→                    </Button>
+   302→                    <Button variant="outline" size="icon" onClick={() => setDeleteOpen(true)} title={t("action_delete")}>
+   303→                      <Trash2 className="size-4 text-destructive" />
+   304→                    </Button>
+   305→                  </>
+   306→                )}
+   307→              </div>
+   308→            </div>
+   309→
+   310→            {/* Quick meta row */}
+   311→            <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-sm text-muted-foreground">
+   312→              {movie.year && <span className="flex items-center gap-1"><Calendar className="size-3.5" />{movie.year}</span>}
+   313→              {movie.runtime && <span className="flex items-center gap-1"><Clock className="size-3.5" />{movie.runtime} {t("movie_min")}</span>}
+   314→              {movie.country && <span className="flex items-center gap-1"><MapPin className="size-3.5" />{movie.country}</span>}
+   315→              {movie.language && <span className="flex items-center gap-1"><Globe className="size-3.5" />{movie.language}</span>}
+   316→              <StatusBadge status={movie.status} />
+   317→            </div>
+   318→
+   319→            {/* Genres */}
+   320→            <div className="flex flex-wrap gap-2">
+   321→              {movie.genres.map((g) => (
+   322→                <GenrePill key={g} name={g} onClick={() => goGenre(g)} />
+   323→              ))}
+   324→            </div>
+   325→
+   326→            {/* Ratings */}
+   327→            <div className="flex flex-wrap items-center gap-3">
+   328→              {movie.imdbRating != null && (
+   329→                <Badge variant="outline" className="gap-1.5 bg-yellow-500/10">
+   330→                  <Star className="size-3.5 fill-yellow-500 text-yellow-500" />
+   331→                  <span className="font-semibold">{movie.imdbRating.toFixed(1)}</span>
+   332→                  <span className="text-muted-foreground">IMDb</span>
+   333→                </Badge>
+   334→              )}
+   335→              {movie.tmdbRating != null && (
+   336→                <Badge variant="outline" className="gap-1.5">
+   337→                  <Star className="size-3.5 fill-primary text-primary" />
+   338→                  <span className="font-semibold">{movie.tmdbRating.toFixed(1)}</span>
+   339→                  <span className="text-muted-foreground">TMDb</span>
+   340→                </Badge>
+   341→              )}
+   342→              {movie.lifetimeRank != null && <RankBadge rank={movie.lifetimeRank} />}
+   343→            </div>
+   344→          </div>
+   345→        </div>
+   346→
+   347→        {/* Body grid */}
+   348→        <div className="mt-8 grid gap-6 lg:grid-cols-3">
+   349→          {/* Left: story + details */}
+   350→          <div className="space-y-6 lg:col-span-2">
+   351→            {movie.overview && (
+   352→              <TranslatedStory
+   353→                overview={movie.overview}
+   354→                movieId={movie.id}
+   355→                context={{ title: movie.title, director: movie.director, year: movie.year }}
+   356→              />
+   357→            )}
+   358→
+   359→            {/* Crew details */}
+   360→            <Card className="p-5">
+   361→              <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+   362→                <DetailWithLinks
+   363→                  icon={User}
+   364→                  label={t("movie_director")}
+   365→                  names={movie.director ? [movie.director] : []}
+   366→                  role="director"
+   367→                />
+   368→                <DetailWithLinks
+   369→                  icon={PenLine}
+   370→                  label={t("movie_writer")}
+   371→                  names={movie.writers}
+   372→                  role="writer"
+   373→                />
+   374→                <Detail icon={Calendar} label={t("movie_releaseDate")} value={movie.releaseDate} />
+   375→                <Detail icon={Clock} label={t("movie_runtime")} value={movie.runtime ? `${movie.runtime} ${t("movie_min")}` : null} />
+   376→                <Detail icon={MapPin} label={t("movie_country")} value={movie.country} />
+   377→                <Detail icon={Globe} label={t("movie_language")} value={movie.language} />
+   378→                <DetailWithLinks
+   379→                  icon={Film}
+   380→                  label={t("movie_cast")}
+   381→                  names={movie.cast}
+   382→                  role="actor"
+   383→                  className="sm:col-span-2"
+   384→                />
+   385→              </dl>
+   386→            </Card>
+   387→
+   388→            {/* Trailer */}
+   389→            {trailerEmbed && (
+   390→              <section>
+   391→                <SectionHeader title={t("movie_trailer")} icon={<Play className="size-4" />} />
+   392→                <div className="mt-3 aspect-video overflow-hidden rounded-xl bg-black">
+   393→                  <iframe
+   394→                    src={trailerEmbed}
+   395→                    title={movie.title}
+   396→                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+   397→                    allowFullScreen
+   398→                    className="size-full"
+   399→                  />
+   400→                </div>
+   401→                {/* External links — centered below the video */}
+   402→                <div className="mt-3 flex flex-wrap justify-center gap-2">
+   403→                  {movie.imdbId && (
+   404→                    <a href={`https://www.imdb.com/title/${movie.imdbId}/`} target="_blank" rel="noopener noreferrer">
+   405→                      <Button variant="outline" size="sm">
+   406→                        <ExternalLink className="size-3.5" /> IMDb
+   407→                      </Button>
+   408→                    </a>
+   409→                  )}
+   410→                  {movie.tmdbId && (
+   411→                    <a href={`https://www.themoviedb.org/movie/${movie.tmdbId}`} target="_blank" rel="noopener noreferrer">
+   412→                      <Button variant="outline" size="sm">
+   413→                        <ExternalLink className="size-3.5" /> TMDb
+   414→                      </Button>
+   415→                    </a>
+   416→                  )}
+   417→                </div>
+   418→              </section>
+   419→            )}
+   420→
+   421→            {/* External links — shown here too if there's no trailer, centered */}
+   422→            {!trailerEmbed && (movie.imdbId || movie.tmdbId) && (
+   423→              <section className="flex flex-wrap justify-center gap-2">
+   424→                {movie.imdbId && (
+   425→                  <a href={`https://www.imdb.com/title/${movie.imdbId}/`} target="_blank" rel="noopener noreferrer">
+   426→                    <Button variant="outline" size="sm">
+   427→                      <ExternalLink className="size-3.5" /> IMDb
+   428→                    </Button>
+   429→                  </a>
+   430→                )}
+   431→                {movie.tmdbId && (
+   432→                  <a href={`https://www.themoviedb.org/movie/${movie.tmdbId}`} target="_blank" rel="noopener noreferrer">
+   433→                    <Button variant="outline" size="sm">
+   434→                      <ExternalLink className="size-3.5" /> TMDb
+   435→                    </Button>
+   436→                  </a>
+   437→                )}
+   438→              </section>
+   439→            )}
+   440→
+   441→            {/* Gallery (2 columns) + Photothèque side by side */}
+   442→            <div className="grid gap-6 lg:grid-cols-2">
+   443→              {/* Gallery */}
+   444→              {movie.gallery.length > 0 && (
+   445→                <section>
+   446→                  <SectionHeader title={t("movie_gallery")} icon={<Film className="size-4" />} />
+   447→                  <div className="mt-3 grid grid-cols-2 gap-2">
+   448→                    {movie.gallery.map((img, i) => (
+   449→                      <button
+   450→                        key={i}
+   451→                        onClick={() => setLightboxIndex(i)}
+   452→                        className="group relative overflow-hidden rounded-lg"
+   453→                      >
+   454→                        <img
+   455→                          src={backdropUrl(img, "w780") ?? img}
+   456→                          alt={`Gallery ${i + 1}`}
+   457→                          className="aspect-video w-full object-cover transition-transform group-hover:scale-105"
+   458→                          loading="lazy"
+   459→                        />
+   460→                        <div className="absolute inset-0 bg-black/0 transition-colors group-hover:bg-black/20" />
+   461→                      </button>
+   462→                    ))}
+   463→                  </div>
+   464→                  <GalleryLightbox
+   465→                    images={movie.gallery}
+   466→                    open={lightboxIndex !== null}
+   467→                    startIndex={lightboxIndex ?? 0}
+   468→                    onOpenChange={(o) => { if (!o) setLightboxIndex(null); }}
+   469→                  />
+   470→                </section>
+   471→              )}
+   472→
+   473→              {/* Photothèque — user-uploaded screenshots */}
+   474→              {!isTmdbMovie && (
+   475→                <Phototheque movie={movie} onUpdated={refetch} />
+   476→              )}
+   477→            </div>
+   478→          </div>
+   479→
+   480→          {/* Right: personal info — always shown, even for TMDb-only movies */}
+   481→          <div className="space-y-4">
+   482→            <Card className="space-y-2.5 p-5">
+   483→              <h2 className="text-center text-lg font-semibold">{t("movie_myInfo")}</h2>
+   484→
+   485→              {/* Favorite — full width button */}
+   486→              <Button
+   487→                variant={movie.favorite ? "default" : "outline"}
+   488→                size="sm"
+   489→                onClick={() => update({ favorite: !movie.favorite })}
+   490→                disabled={savingField}
+   491→                className="w-full"
+   492→              >
+   493→                <Heart className={cn("size-4", movie.favorite && "fill-current")} />
+   494→                {movie.favorite ? t("action_unmarkFavorite") : t("action_markFavorite")}
+   495→              </Button>
+   496→
+   497→              <div className="space-y-1">
+   498→                <label className="text-xs font-medium text-muted-foreground">{t("movie_status")}</label>
+   499→                <Select value={movie.status} onValueChange={(v) => update({ status: v as MovieStatus })}>
+   500→                  <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+   501→                  <SelectContent>
+   502→                    <SelectItem value="new">—</SelectItem>
+   503→                    <SelectItem value="watched">{t("status_watched")}</SelectItem>
+   504→                    <SelectItem value="want">{t("nav_wantToWatch")}</SelectItem>
+   505→                    <SelectItem value="watchlist">{t("nav_watchlist")}</SelectItem>
+   506→                    <SelectItem value="dropped">{t("status_dropped")}</SelectItem>
+   507→                  </SelectContent>
+   508→                </Select>
+   509→              </div>
+   510→
+   511→              {/* Movie / Series toggle */}
+   512→              {!isTmdbMovie && (
+   513→              <div className="space-y-1">
+   514→                <label className="text-xs font-medium text-muted-foreground">Type</label>
+   515→                <Select value={movie.mediaType ?? "movie"} onValueChange={(v) => update({ mediaType: v as "movie" | "series" })}>
+   516→                  <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+   517→                  <SelectContent>
+   518→                    <SelectItem value="movie">Movie</SelectItem>
+   519→                    <SelectItem value="series">Series</SelectItem>
+   520→                  </SelectContent>
+   521→                </Select>
+   522→              </div>
+   523→              )}
+   524→
+   525→              {/* Personal rating */}
+   526→              <div className="space-y-1">
+   527→                <label className="text-xs font-medium text-muted-foreground">{t("movie_myRating")}</label>
+   528→                <RatingStars value={movie.personalRating} onChange={(v) => update({ personalRating: v })} size="md" />
+   529→              </div>
+   530→
+   531→              {/* Lifetime rank + Rewatch — compact row, rank input left, rewatch count + buttons right */}
+   532→              <div className="space-y-1">
+   533→                <div className="flex items-center justify-between">
+   534→                  <label className="text-xs font-medium text-muted-foreground">{t("movie_lifetimeRank")}</label>
+   535→                  <span className="text-xs text-muted-foreground">{t("movie_rewatch")}: <span className="font-semibold text-foreground">{movie.rewatchCount}</span></span>
+   536→                </div>
+   537→                <div className="flex items-center gap-2">
+   538→                  <Input
+   539→                    type="number"
+   540→                    min={1}
+   541→                    value={movie.lifetimeRank ?? ""}
+   542→                    placeholder={t("movie_noRank")}
+   543→                    onChange={(e) => {
+   544→                      const v = e.target.value ? parseInt(e.target.value, 10) : null;
+   545→                      update({ lifetimeRank: v && v > 0 ? v : null });
+   546→                    }}
+   547→                    className="min-w-0 flex-1"
+   548→                  />
+   549→                  {movie.lifetimeRank != null && (
+   550→                    <Button variant="ghost" size="sm" onClick={() => update({ lifetimeRank: null })} className="shrink-0">
+   551→                      {t("action_clearRank")}
+   552→                    </Button>
+   553→                  )}
+   554→                  <Button variant="ghost" size="sm" onClick={handleRewatch} disabled={savingField} className="shrink-0" title={t("action_addRewatch")}>
+   555→                    <Repeat className="size-4" />
+   556→                  </Button>
+   557→                </div>
+   558→              </div>
+   559→
+   560→              {/* Watch date */}
+   561→              <div className="space-y-1">
+   562→                <label className="text-xs font-medium text-muted-foreground">{t("movie_watchDate")}</label>
+   563→                <Input
+   564→                  type="date"
+   565→                  value={movie.watchDate ?? ""}
+   566→                  onChange={(e) => update({ watchDate: e.target.value || null })}
+   567→                  className="w-full"
+   568→                />
+   569→              </div>
+   570→
+   571→              {/* Tags */}
+   572→              {movie.tags.length > 0 && (
+   573→                <div className="space-y-1">
+   574→                  <label className="text-xs font-medium text-muted-foreground">{t("movie_tags")}</label>
+   575→                  <div className="flex flex-wrap gap-1.5">
+   576→                    {movie.tags.map((tag) => (
+   577→                      <Badge key={tag} variant="secondary" className="gap-1">
+   578→                        <Tag className="size-3" />
+   579→                        {tag}
+   580→                      </Badge>
+   581→                    ))}
+   582→                  </div>
+   583→                </div>
+   584→              )}
+   585→            </Card>
+   586→
+   587→            {/* Notes */}
+   588→            <Card className="space-y-2 p-5">
+   589→              <SectionHeader title={t("movie_notes")} icon={<PenLine className="size-4" />} />
+   590→              <NotesEditor
+   591→                value={movie.notes}
+   592→                onSave={(v) => update({ notes: v })}
+   593→              />
+   594→            </Card>
+   595→          </div>
+   596→        </div>
+   597→
+   598→        {/* Recommendations */}
+   599→        {recs.length > 0 && (
+   600→          <div className="mt-10">
+   601→            <MovieRow
+   602→              title={t("movie_recommendations")}
+   603→              icon={<Sparkles className="text-primary" />}
+   604→              movies={recs.slice(0, 12).map((r) => r.movie)}
+   605→            />
+   606→          </div>
+   607→        )}
+   608→      </div>
+   609→
+   610→      <AddMovieDialog open={editOpen} onOpenChange={setEditOpen} editMovie={movie} onSaved={refetch} />
+   611→
+   612→      <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+   613→        <AlertDialogContent>
+   614→          <AlertDialogHeader>
+   615→            <AlertDialogTitle>{t("action_delete")}</AlertDialogTitle>
+   616→            <AlertDialogDescription>{t("add_deleteConfirm")}</AlertDialogDescription>
+   617→          </AlertDialogHeader>
+   618→          <AlertDialogFooter>
+   619→            <AlertDialogCancel>{t("action_cancel")}</AlertDialogCancel>
+   620→            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+   621→              {t("action_delete")}
+   622→            </AlertDialogAction>
+   623→          </AlertDialogFooter>
+   624→        </AlertDialogContent>
+   625→      </AlertDialog>
+   626→    </div>
+   627→  );
+   628→}
+   629→
+   630→function Detail({
+   631→  icon: Icon, label, value, className,
+   632→}: {
+   633→  icon: React.ComponentType<{ className?: string }>;
+   634→  label: string;
+   635→  value: string | null | undefined;
+   636→  className?: string;
+   637→}) {
+   638→  return (
+   639→    <div className={className}>
+   640→      <dt className="flex items-center gap-1.5 text-xs text-muted-foreground">
+   641→        <Icon className="size-3.5" />
+   642→        {label}
+   643→      </dt>
+   644→      <dd className="mt-0.5 text-sm font-normal text-secondary/90">{value || "—"}</dd>
+   645→    </div>
+   646→  );
+   647→}
+   648→
+   649→/** A detail row where each name is a clickable link to that person's filmography. */
+   650→function DetailWithLinks({
+   651→  icon: Icon, label, names, role, className,
+   652→}: {
+   653→  icon: React.ComponentType<{ className?: string }>;
+   654→  label: string;
+   655→  names: string[];
+   656→  role: "director" | "actor" | "writer";
+   657→  className?: string;
+   658→}) {
+   659→  const { goPerson } = useNav();
+   660→  return (
+   661→    <div className={className}>
+   662→      <dt className="flex items-center gap-1.5 text-xs text-muted-foreground">
+   663→        <Icon className="size-3.5" />
+   664→        {label}
+   665→      </dt>
+   666→      <dd className="mt-0.5 flex flex-wrap gap-x-1.5 gap-y-1 text-sm font-medium">
+   667→        {names.length === 0 ? (
+   668→          <span className="text-muted-foreground">—</span>
+   669→        ) : (
+   670→          names.map((n, i) => (
+   671→            <span key={n} className="flex items-center gap-1.5">
+   672→              <button
+   673→                onClick={() => goPerson(n, role)}
+   674→                className="text-primary/80 underline-offset-2 transition-colors hover:text-primary hover:underline"
+   675→              >
+   676→                {n}
+   677→              </button>
+   678→              {i < names.length - 1 && <span className="text-muted-foreground">,</span>}
+   679→            </span>
+   680→          ))
+   681→        )}
+   682→      </dd>
+   683→    </div>
+   684→  );
+   685→}
+   686→
+   687→function NotesEditor({ value, onSave }: { value: string | null; onSave: (v: string | null) => void }) {
+   688→  const { t } = useI18n();
+   689→  const [text, setText] = useState(value ?? "");
+   690→  const [editing, setEditing] = useState(false);
+   691→
+   692→  if (!editing) {
+   693→    return (
+   694→      <button
+   695→        onClick={() => { setText(value ?? ""); setEditing(true); }}
+   696→        className="block min-h-[3rem] w-full rounded-md p-2 text-left text-sm text-muted-foreground hover:bg-accent"
+   697→      >
+   698→        {value || <span className="flex items-center gap-1.5"><Plus className="size-3.5" />{t("movie_notes")}</span>}
+   699→      </button>
+   700→    );
+   701→  }
+   702→
+   703→  return (
+   704→    <div className="space-y-2">
+   705→      <Textarea
+   706→        value={text}
+   707→        onChange={(e) => setText(e.target.value)}
+   708→        rows={4}
+   709→        autoFocus
+   710→      />
+   711→      <div className="flex gap-2">
+   712→        <Button size="sm" onClick={() => { onSave(text.trim() || null); setEditing(false); }}>
+   713→          {t("action_save")}
+   714→        </Button>
+   715→        <Button size="sm" variant="ghost" onClick={() => { setText(value ?? ""); setEditing(false); }}>
+   716→          {t("action_cancel")}
+   717→        </Button>
+   718→      </div>
+   719→    </div>
+   720→  );
+   721→}
+   722→

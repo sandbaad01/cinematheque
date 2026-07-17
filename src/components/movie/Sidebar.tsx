@@ -53,6 +53,7 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { view: "home", labelKey: "nav_home", icon: Home },
       { view: "watched", labelKey: "nav_watched", icon: Film },
+      { view: "watchedSeries", labelKey: "nav_watchedSeries", icon: Film },
       { view: "watchlist", labelKey: "nav_watchlist", icon: Film },
       { view: "wantToWatch", labelKey: "nav_wantToWatch", icon: Film },
       { view: "genres", labelKey: "nav_genres", icon: Clapperboard },
@@ -117,7 +118,7 @@ export function Sidebar({ mobileOpen, onMobileOpenChange }: SidebarProps) {
         </span>
       </div>
 
-      {/* Add Movie button */}
+      {/* Add Picture button */}
       <div className="px-3 pb-2">
         <Button
           type="button"
@@ -127,8 +128,7 @@ export function Sidebar({ mobileOpen, onMobileOpenChange }: SidebarProps) {
             setMobileOpen(false);
           }}
         >
-          <Plus className="size-4" />
-          {t("nav_add")}
+          <span className="text-xs">Add Picture</span>
         </Button>
       </div>
 

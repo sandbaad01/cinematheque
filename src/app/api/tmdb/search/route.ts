@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
     const data = await searchMovies(q, 1, year);
 
     const results = (data.results ?? [])
-      .filter((r) => r.media_type !== "tv" && r.id)
+      .filter((r) => r.id)
       .slice(0, 12)
       .map((r: TmdbSearchResult) => ({
         tmdbId: r.id,
