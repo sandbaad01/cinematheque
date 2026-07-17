@@ -3,9 +3,63 @@ import { db } from "@/lib/db";
 import { parseMovie, safeJsonArr } from "@/lib/movie/types";
 import { writeFile, mkdir, unlink } from "fs/promises";
 import path from "path";
+import os from "os";
+import fs from "fs";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
+
+// Determine the best writable directory for storing uploaded screenshots.
+// In the Tauri desktop build, process.cwd() is a read-only directory
+// (inside Program Files), so we must use a writable data directory.
+// Priority: LOCALAPPDATA/Cinematheque > APPDATA/Cinematheque > home/.cinematheque > cwd/public
+function getUploadDir(): { dir: string; urlPrefix: string } {
+  const candidates: Array<{ dir: string; urlPrefix: string }> = [];
+
+  // 1. LOCALAPPDATA/Cinematheque/screenshots (Windows, per-user)
+  if (process.env.LOCALAPPDATA) {
+    candidates.push({
+      dir: path.join(process.env.LOCALAPPDATA, "Cinematheque", "screenshots"),
+      urlPrefix: "/api/uploads/screenshots",
+    });
+  }
+  // 2. APPDATA/Cinematheque/screenshots (Windows fallback)
+  if (process.env.APPDATA) {
+    candidates.push({
+      dir: path.join(process.env.APPDATA, "Cinematheque", "screenshots"),
+      urlPrefix: "/api/uploads/screenshots",
+    });
+  }
+  // 3. HOME/.cinematheque/screenshots (Linux/Mac)
+  const home = os.homedir();
+  candidates.push({
+    dir: path.join(home, ".cinematheque", "screenshots"),
+    urlPrefix: "/api/uploads/screenshots",
+  });
+
+  // Try each candidate — return the first one we can write to
+  for (const c of candidates) {
+    try {
+      fs.mkdirSync(c.dir, { recursive: true });
+      // Test writability
+      const testFile = path.join(c.dir, ".write-test");
+      fs.writeFileSync(testFile, "test");
+      fs.unlinkSync(testFile);
+      return c;
+    } catch {
+      // Not writable, try next
+    }
+  }
+
+  // 4. Last resort: cwd/public/screenshots (works in dev, may fail in desktop)
+  const fallback = path.join(process.cwd(), "public", "screenshots");
+  try {
+    fs.mkdirSync(fallback, { recursive: true });
+  } catch {
+    // ignore
+  }
+  return { dir: fallback, urlPrefix: "/screenshots" };
+}
 
 /**
  * POST /api/movies/[id]/screenshots
@@ -14,7 +68,8 @@ export const maxDuration = 60;
  *   1. FormData with "file" field (multipart)
  *   2. JSON body { image: "data:image/jpeg;base64,..." } (base64 data URL)
  *
- * Saves to public/screenshots/{movieId}-{timestamp}.{ext}
+ * Saves to a writable data directory (NOT public/ in desktop builds).
+ * The URL prefix is /api/uploads/screenshots/ in desktop, /screenshots/ in dev.
  */
 export async function POST(
   req: NextRequest,
@@ -76,15 +131,15 @@ export async function POST(
       fileBuffer = Buffer.from(bytes);
     }
 
-    // Save to disk
+    // Save to the writable upload directory
+    const { dir: uploadDir, urlPrefix } = getUploadDir();
     const filename = `${id}-${Date.now()}.${ext}`;
-    const uploadDir = path.join(process.cwd(), "public", "screenshots");
     const filepath = path.join(uploadDir, filename);
 
     await mkdir(uploadDir, { recursive: true });
     await writeFile(filepath, fileBuffer);
 
-    const screenshotPath = `/screenshots/${filename}`;
+    const screenshotPath = `${urlPrefix}/${filename}`;
     const screenshots = [...safeJsonArr(movie.screenshots), screenshotPath];
 
     const updated = await db.movie.update({
@@ -95,6 +150,7 @@ export async function POST(
     return NextResponse.json(parseMovie(updated));
   } catch (err) {
     const message = err instanceof Error ? err.message : "Upload failed";
+    console.error("POST /api/movies/[id]/screenshots error:", message);
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
@@ -122,11 +178,20 @@ export async function DELETE(
       (s) => s !== screenshotPath
     );
 
+    // Try to delete the file from multiple possible locations
+    const { dir: uploadDir } = getUploadDir();
+    const filename = path.basename(screenshotPath);
+
+    // Try the writable data dir
     try {
-      const filepath = path.join(process.cwd(), "public", screenshotPath);
-      await unlink(filepath);
+      await unlink(path.join(uploadDir, filename));
     } catch {
-      // File might not exist
+      // Try public/screenshots (dev mode)
+      try {
+        await unlink(path.join(process.cwd(), "public", "screenshots", filename));
+      } catch {
+        // File might not exist — that's OK
+      }
     }
 
     const updated = await db.movie.update({

@@ -16,39 +16,78 @@ const ZAI_CONFIG = {
   userId: "3474d209-fde2-4a43-8598-b64d6f1f6c30",
 };
 
-// Ensure the SDK config file exists in the home directory.
+// Ensure the SDK config file exists in a writable location.
 // The SDK reads from: process.cwd()/.z-ai-config, os.homedir()/.z-ai-config, /etc/.z-ai-config
-// In the Tauri desktop build, process.cwd() is the (read-only) standalone dir,
-// so we MUST write to os.homedir() for the SDK to find it.
-function ensureConfig() {
+// In the Tauri desktop build, process.cwd() is read-only (Program Files),
+// so we MUST write to os.homedir() which is always writable.
+function ensureConfig(): { ok: boolean; path?: string; error?: string } {
+  const configJson = JSON.stringify(ZAI_CONFIG);
+
+  // Try writing to home directory first (always writable, SDK checks it 2nd)
   const homeConfig = path.join(os.homedir(), ".z-ai-config");
   try {
-    // Always ensure the home config is up to date (overwrite if stale/missing)
-    if (!fs.existsSync(homeConfig)) {
-      fs.writeFileSync(homeConfig, JSON.stringify(ZAI_CONFIG));
-      return true;
-    }
-    // Verify it's valid JSON with required keys; if not, rewrite
-    const existing = JSON.parse(fs.readFileSync(homeConfig, "utf-8"));
-    if (!existing.baseUrl || !existing.apiKey) {
-      fs.writeFileSync(homeConfig, JSON.stringify(ZAI_CONFIG));
-    }
-    return true;
+    // Always overwrite to ensure it's fresh and valid
+    fs.writeFileSync(homeConfig, configJson);
+    return { ok: true, path: homeConfig };
+  } catch (e) {
+    // Home not writable, try other locations
+  }
+
+  // Try cwd (works in dev)
+  const cwdConfig = path.join(process.cwd(), ".z-ai-config");
+  try {
+    fs.writeFileSync(cwdConfig, configJson);
+    return { ok: true, path: cwdConfig };
   } catch {
-    // Home dir not writable — try cwd and tmp as fallback
-    const fallbacks = [
-      path.join(process.cwd(), ".z-ai-config"),
-      path.join(os.tmpdir(), ".z-ai-config"),
-    ];
-    for (const p of fallbacks) {
-      try {
-        fs.writeFileSync(p, JSON.stringify(ZAI_CONFIG));
-        return true;
-      } catch {
-        // continue
+    // continue
+  }
+
+  // Try tmp dir as last resort
+  const tmpConfig = path.join(os.tmpdir(), ".z-ai-config");
+  try {
+    fs.writeFileSync(tmpConfig, configJson);
+    return { ok: true, path: tmpConfig };
+  } catch {
+    // all failed
+  }
+
+  // Check if a valid config already exists somewhere the SDK will find it
+  for (const p of [homeConfig, cwdConfig, tmpConfig]) {
+    try {
+      const existing = JSON.parse(fs.readFileSync(p, "utf-8"));
+      if (existing.baseUrl && existing.apiKey) {
+        return { ok: true, path: p };
       }
+    } catch {
+      // continue
     }
-    return false;
+  }
+
+  return { ok: false, error: "Could not write or find .z-ai-config in any writable location" };
+}
+
+// Cache the ZAI instance so we don't re-create it on every request.
+let zaiInstance: any = null;
+let zaiError: string | null = null;
+
+async function getZai() {
+  if (zaiInstance) return zaiInstance;
+  if (zaiError) throw new Error(zaiError);
+
+  const cfg = ensureConfig();
+  if (!cfg.ok) {
+    zaiError = cfg.error ?? "config error";
+    throw new Error(zaiError);
+  }
+
+  try {
+    // ZAI.create() reads the config file — we've ensured it exists in home dir
+    zaiInstance = await ZAI.create();
+    return zaiInstance;
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    zaiError = `ZAI.create() failed: ${msg} (config at ${cfg.path ?? "unknown"})`;
+    throw new Error(zaiError);
   }
 }
 
@@ -82,9 +121,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ translated: cached, lang: targetLang, rtl: targetLang === "fa", cached: true });
     }
 
-    // Ensure SDK config file exists
-    ensureConfig();
-
     const langName = LANG_NAMES[targetLang];
     const contextParts: string[] = [];
     if (ctx.title) contextParts.push(`Film: "${ctx.title}"`);
@@ -102,7 +138,7 @@ export async function POST(req: NextRequest) {
       `- Keep proper nouns as transliterations when appropriate.\n` +
       `- Output ONLY the translated synopsis.`;
 
-    const zai = await ZAI.create();
+    const zai = await getZai();
     const completion = await zai.chat.completions.create({
       messages: [
         { role: "assistant", content: systemPrompt },
@@ -121,6 +157,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ translated, lang: targetLang, rtl: targetLang === "fa" });
   } catch (err) {
     console.error("POST /api/translate error", err);
-    return NextResponse.json({ error: "Translation failed" }, { status: 500 });
+    const msg = err instanceof Error ? err.message : String(err);
+    return NextResponse.json({ error: `Translation failed: ${msg}` }, { status: 500 });
   }
 }

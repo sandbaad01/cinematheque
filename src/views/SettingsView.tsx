@@ -12,6 +12,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { LanguageSwitcher } from "@/components/movie/LanguageSwitcher";
 import {
   AlertDialog,
@@ -33,6 +40,7 @@ export function SettingsView() {
   const [listName, setListName] = useState("");
   const [busy, setBusy] = useState(false);
   const [skipTmdb, setSkipTmdb] = useState(false);
+  const [importStatus, setImportStatus] = useState<"new" | "watched" | "want" | "watchlist">("new");
   const [resetOpen, setResetOpen] = useState(false);
   const [resetConfirm, setResetConfirm] = useState("");
   const [resetting, setResetting] = useState(false);
@@ -89,11 +97,15 @@ export function SettingsView() {
           csv: csvText,
           listName: listName.trim() || "IMDb List",
           skipTmdb: skipTmdb,
+          status: importStatus,
         }),
       });
       const result = await res.json();
       if (result.error) throw new Error(result.error);
-      const msg = `Imported ${result.imported} movies, skipped ${result.skipped} duplicates → "${listName.trim() || "IMDb List"}"` +
+      const statusLabel = importStatus === "new" ? "no status" :
+        importStatus === "watched" ? "Watched" :
+        importStatus === "want" ? "Wishlist" : "Watchlist";
+      const msg = `Imported ${result.imported} movies (${statusLabel}), skipped ${result.skipped} duplicates → "${listName.trim() || "IMDb List"}"` +
         (result.tmdbFailed > 0 ? ` (${result.tmdbFailed} TMDb lookups failed, used CSV only)` : "");
       toast.success(msg);
       setCsvText("");
@@ -181,6 +193,17 @@ export function SettingsView() {
             placeholder="List name (e.g. My Watchlist, Favorite Movies)"
             className="text-sm"
           />
+          <Select value={importStatus} onValueChange={(v) => setImportStatus(v as "new" | "watched" | "want" | "watchlist")} disabled={busy}>
+            <SelectTrigger className="w-[140px] text-sm">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="new">— (No status)</SelectItem>
+              <SelectItem value="watched">Watched</SelectItem>
+              <SelectItem value="want">Wishlist</SelectItem>
+              <SelectItem value="watchlist">Watchlist</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
         <Textarea
           value={csvText}

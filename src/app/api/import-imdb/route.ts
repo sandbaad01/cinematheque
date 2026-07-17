@@ -65,9 +65,10 @@ function headerIndex(headers: string[], name: string): number {
   return lower.indexOf(name.toLowerCase());
 }
 
-// POST /api/import-imdb { csv: string, listName?: string }
+// POST /api/import-imdb { csv: string, listName?: string, skipTmdb?: boolean, status?: "new"|"watched"|"want"|"watchlist" }
 // Creates movies from an IMDb CSV export AND adds them to a named collection.
-// All movies get status "new" — no status assigned until user chooses.
+// The status parameter lets the user choose what status to assign to all
+// imported movies (default: "new" = no status / line).
 // TMDb lookups are best-effort: if TMDb is slow/unreachable, the import
 // still succeeds using the CSV data only.
 export async function POST(req: NextRequest) {
@@ -76,6 +77,10 @@ export async function POST(req: NextRequest) {
     const csv: string = typeof body?.csv === "string" ? body.csv : "";
     const listName: string = (body?.listName ?? "IMDb List").toString().trim() || "IMDb List";
     const skipTmdb: boolean = body?.skipTmdb === true;
+    // User-chosen status for all imported movies.
+    // "new" = no status (line/—), "watched" = watched, "want" = wishlist, "watchlist" = watchlist
+    const importStatus: "new" | "watched" | "want" | "watchlist" =
+      ["new", "watched", "want", "watchlist"].includes(body?.status) ? body.status : "new";
 
     if (!csv.trim()) {
       return NextResponse.json(
@@ -189,26 +194,13 @@ export async function POST(req: NextRequest) {
           gallery: JSON.stringify(tmdbData?.gallery ?? []),
           tags: JSON.stringify([]),
           screenshots: JSON.stringify([]),
-          status: "new",
-          watchDate: null,
+          // Use the user-chosen status, or fall back to watched if there's a Date Rated
+          status: importStatus === "new" && dateRated ? "watched" : importStatus,
+          watchDate: importStatus === "watched" || (importStatus === "new" && dateRated)
+            ? (dateRated || new Date().toISOString().slice(0, 10))
+            : null,
         },
-        // If IMDb rating + date rated exist, treat as "watched" so it shows in archive
       });
-      // If there's a Date Rated in the CSV, set status to "watched" with that date
-      if (dateRated) {
-        try {
-          const d = new Date(dateRated);
-          if (!Number.isNaN(d.getTime())) {
-            const iso = d.toISOString().slice(0, 10);
-            await db.movie.update({
-              where: { id: created.id },
-              data: { status: "watched", watchDate: iso },
-            });
-          }
-        } catch {
-          /* ignore date parsing errors */
-        }
-      }
       movieIds.push(created.id);
       imported++;
     }
