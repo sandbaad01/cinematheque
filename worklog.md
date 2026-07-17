@@ -803,3 +803,25 @@ Stage Summary:
 - **Diagnostics**: New `/api/db-health` endpoint reports all environment + db + config state in one JSON payload — visit `http://localhost:3000/api/db-health` in the browser to see exactly what's wrong.
 - **5GB size**: Normal for Tauri projects (`node_modules` 1.2GB + Rust `target/` 3-4GB + `.next` 200MB). The MSI installer is only 50-100MB. `target/` can be deleted after building.
 - User needs to rebuild the Tauri desktop app for these fixes to take effect (the changes are in `src/`, `scripts/`, and `src-tauri/` which are all bundled into the standalone resources).
+
+---
+Task ID: 5
+Agent: Main (Z.ai Code)
+Task: Fix Google Fonts build error (module-not-found for Geist/Geist_Mono/Vazirmatn during production build)
+
+Work Log:
+- User reported build failure: "Module not found: Can't resolve '@/components/DbAutoMigrator'" plus Google Fonts module-not-found errors during `tauri build`. The root cause was `next/font/google` (Geist, Geist_Mono, Vazirmatn) which requires downloading font files from Google's servers at build time — this fails in restricted/offline network environments.
+- Removed all three `next/font/google` imports from `src/app/layout.tsx` (Geist, Geist_Mono, Vazirmatn) and the corresponding `variable` class names on `<body>`.
+- Added CSS variables for the fonts directly in `src/app/globals.css` under `:root`:
+  * `--font-geist-sans`: system font stack (ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif)
+  * `--font-geist-mono`: monospace system stack (ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace)
+  * `--font-vazirmatn`: Persian/Arabic-capable stack ("Vazirmatn", "Tahoma", "Segoe UI", system-ui, sans-serif)
+- These variables match the names expected by the existing `@theme inline` block (`--font-sans: var(--font-geist-sans)`, `--font-mono: var(--font-geist-mono)`), so all Tailwind `font-sans`/`font-mono` utilities continue to work without changes.
+- Verified: `bun run lint` → 0 errors, 7 warnings. `npx tsc --noEmit` → 0 errors. `npx next build` → succeeded, all routes built (including new `/api/uploads/[filename]`). `node scripts/postbuild.js` → all assets copied successfully.
+- Page renders correctly in dev (verified via Agent Browser: "Cinémathèque — Personal Movie Archive" title, "Add Picture" button, "Dashboard" heading all present).
+
+Stage Summary:
+- Google Fonts removed from build pipeline — no more network dependency during `tauri build`.
+- System fonts (with "Tahoma" fallback for Persian) provide equivalent visual quality.
+- Build + postbuild both succeed end-to-end.
+- User needs to replace `src/app/layout.tsx` and `src/app/globals.css`, then rebuild.

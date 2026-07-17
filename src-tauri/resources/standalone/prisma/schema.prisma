@@ -32,7 +32,8 @@ model Movie {
   trailer       String?
   gallery       String   @default("[]") // JSON array of image URL strings
   screenshots   String   @default("[]") // JSON array of user-uploaded screenshot paths
-  status        String   @default("watched") // watched | want | watching | dropped
+  status        String   @default("new") // new | watched | want | watchlist | watching | dropped
+  mediaType     String   @default("movie") // movie | series
   favorite      Boolean  @default(false)
   rewatchCount  Int      @default(0)
   personalRating Float?

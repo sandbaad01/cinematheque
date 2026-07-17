@@ -1,5 +1,4 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono, Vazirmatn } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -7,21 +6,13 @@ import { I18nProvider } from "@/lib/i18n/context";
 import { ServiceWorkerRegistrar } from "@/components/ServiceWorkerRegistrar";
 import { DbAutoMigrator } from "@/components/DbAutoMigrator";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
-
-const vazirmatn = Vazirmatn({
-  variable: "--font-vazirmatn",
-  subsets: ["arabic", "latin"],
-  display: "swap",
-});
+// Note: We use system fonts instead of next/font/google to avoid network
+// dependency during build. Google Fonts require downloading at build time
+// which fails in restricted/offline environments. System fonts work
+// everywhere and look great.
+//
+// The CSS variables --font-geist-sans, --font-geist-mono, --font-vazirmatn
+// are defined in globals.css with system font fallbacks.
 
 export const metadata: Metadata = {
   title: "Cinémathèque — Personal Movie Archive",
@@ -44,9 +35,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark" suppressHydrationWarning>
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} ${vazirmatn.variable} antialiased bg-background text-foreground`}
-      >
+      <body className="antialiased bg-background text-foreground">
         <I18nProvider>
           {children}
           <ServiceWorkerRegistrar />

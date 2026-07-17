@@ -52,6 +52,14 @@
         "nxtPid": "nxtPid"
       },
       "namedRegex": "^/api/movies/(?<nxtPid>[^/]+?)/screenshots(?:/)?$"
+    },
+    {
+      "page": "/api/uploads/[filename]",
+      "regex": "^/api/uploads/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPfilename": "nxtPfilename"
+      },
+      "namedRegex": "^/api/uploads/(?<nxtPfilename>[^/]+?)(?:/)?$"
     }
   ],
   "staticRoutes": [
@@ -92,6 +100,12 @@
       "namedRegex": "^/api/collections(?:/)?$"
     },
     {
+      "page": "/api/db-health",
+      "regex": "^/api/db\\-health(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/db\\-health(?:/)?$"
+    },
+    {
       "page": "/api/genres",
       "regex": "^/api/genres(?:/)?$",
       "routeKeys": {},
@@ -108,6 +122,12 @@
       "regex": "^/api/lists(?:/)?$",
       "routeKeys": {},
       "namedRegex": "^/api/lists(?:/)?$"
+    },
+    {
+      "page": "/api/migrate",
+      "regex": "^/api/migrate(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/migrate(?:/)?$"
     },
     {
       "page": "/api/movies",
@@ -170,10 +190,34 @@
       "namedRegex": "^/api/tmdb/find(?:/)?$"
     },
     {
+      "page": "/api/tmdb/multisearch",
+      "regex": "^/api/tmdb/multisearch(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/tmdb/multisearch(?:/)?$"
+    },
+    {
+      "page": "/api/tmdb/popular",
+      "regex": "^/api/tmdb/popular(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/tmdb/popular(?:/)?$"
+    },
+    {
       "page": "/api/tmdb/search",
       "regex": "^/api/tmdb/search(?:/)?$",
       "routeKeys": {},
       "namedRegex": "^/api/tmdb/search(?:/)?$"
+    },
+    {
+      "page": "/api/tmdb/top_rated",
+      "regex": "^/api/tmdb/top_rated(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/tmdb/top_rated(?:/)?$"
+    },
+    {
+      "page": "/api/tmdb/upcoming",
+      "regex": "^/api/tmdb/upcoming(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/tmdb/upcoming(?:/)?$"
     },
     {
       "page": "/api/translate",

@@ -19,7 +19,19 @@
     "/api/tmdb/find": {
       "maxDuration": 15
     },
+    "/api/tmdb/multisearch": {
+      "maxDuration": 20
+    },
+    "/api/tmdb/popular": {
+      "maxDuration": 20
+    },
     "/api/tmdb/search": {
+      "maxDuration": 20
+    },
+    "/api/tmdb/top_rated": {
+      "maxDuration": 20
+    },
+    "/api/tmdb/upcoming": {
       "maxDuration": 20
     },
     "/api/translate": {
