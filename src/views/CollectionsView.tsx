@@ -92,7 +92,7 @@ export function CollectionsView() {
         />
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {collections.map((c) => (
+          {(collections ?? []).filter((c) => !c.description?.includes("IMDb List ·")).map((c) => (
             <Card key={c.id} className="group relative overflow-hidden p-5 transition-all hover:border-primary/50">
               <button onClick={() => goCollection(c.id)} className="block w-full text-left">
                 <div className="mb-3 flex size-12 items-center justify-center rounded-lg bg-primary/15 text-primary">

@@ -1,95 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
-import ZAI from "z-ai-web-dev-sdk";
-import fs from "fs";
-import path from "path";
-import os from "os";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
-// Configuration for z-ai-web-dev-sdk
-const ZAI_CONFIG = {
-  baseUrl: "https://internal-api.z.ai/v1",
-  apiKey: "Z.ai",
-  chatId: "chat-b63c9f08-d581-44c0-9176-b3519170dbb0",
-  token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiMzQ3NGQyMDktZmRlMi00YTQzLTg1OTgtYjY0ZDZmMWY2YzMwIiwiY2hhdF9pZCI6ImNoYXQtYjYzYzlmMDgtZDU4MS00NGMwLTkxNzYtYjM1MTkxNzBkYmIwIiwicGxhdGZvcm0iOiJ6YWkifQ.TtVfTdhb5zKdgXC2b5kAwrsd5wu7I8Vi-TIvUvEQxak",
-  userId: "3474d209-fde2-4a43-8598-b64d6f1f6c30",
-};
-
-// Ensure the SDK config file exists in a writable location.
-// The SDK reads from: process.cwd()/.z-ai-config, os.homedir()/.z-ai-config, /etc/.z-ai-config
-// In the Tauri desktop build, process.cwd() is read-only (Program Files),
-// so we MUST write to os.homedir() which is always writable.
-function ensureConfig(): { ok: boolean; path?: string; error?: string } {
-  const configJson = JSON.stringify(ZAI_CONFIG);
-
-  // Try writing to home directory first (always writable, SDK checks it 2nd)
-  const homeConfig = path.join(os.homedir(), ".z-ai-config");
-  try {
-    // Always overwrite to ensure it's fresh and valid
-    fs.writeFileSync(homeConfig, configJson);
-    return { ok: true, path: homeConfig };
-  } catch (e) {
-    // Home not writable, try other locations
-  }
-
-  // Try cwd (works in dev)
-  const cwdConfig = path.join(process.cwd(), ".z-ai-config");
-  try {
-    fs.writeFileSync(cwdConfig, configJson);
-    return { ok: true, path: cwdConfig };
-  } catch {
-    // continue
-  }
-
-  // Try tmp dir as last resort
-  const tmpConfig = path.join(os.tmpdir(), ".z-ai-config");
-  try {
-    fs.writeFileSync(tmpConfig, configJson);
-    return { ok: true, path: tmpConfig };
-  } catch {
-    // all failed
-  }
-
-  // Check if a valid config already exists somewhere the SDK will find it
-  for (const p of [homeConfig, cwdConfig, tmpConfig]) {
-    try {
-      const existing = JSON.parse(fs.readFileSync(p, "utf-8"));
-      if (existing.baseUrl && existing.apiKey) {
-        return { ok: true, path: p };
-      }
-    } catch {
-      // continue
-    }
-  }
-
-  return { ok: false, error: "Could not write or find .z-ai-config in any writable location" };
-}
-
-// Cache the ZAI instance so we don't re-create it on every request.
-let zaiInstance: any = null;
-let zaiError: string | null = null;
-
-async function getZai() {
-  if (zaiInstance) return zaiInstance;
-  if (zaiError) throw new Error(zaiError);
-
-  const cfg = ensureConfig();
-  if (!cfg.ok) {
-    zaiError = cfg.error ?? "config error";
-    throw new Error(zaiError);
-  }
-
-  try {
-    // ZAI.create() reads the config file — we've ensured it exists in home dir
-    zaiInstance = await ZAI.create();
-    return zaiInstance;
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e);
-    zaiError = `ZAI.create() failed: ${msg} (config at ${cfg.path ?? "unknown"})`;
-    throw new Error(zaiError);
-  }
-}
+// ZAI API configuration — used to call the translation API directly.
+// We call the API directly (instead of using the z-ai-web-dev-sdk SDK)
+// because the SDK reads its config from a file, which fails in the
+// Tauri desktop build where process.cwd() is read-only.
+const ZAI_API_URL = "https://internal-api.z.ai/v1/chat/completions";
+const ZAI_API_KEY = "Z.ai";
+const ZAI_CHAT_ID = "chat-b63c9f08-d581-44c0-9176-b3519170dbb0";
+const ZAI_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiMzQ3NGQyMDktZmRlMi00YTQzLTg1OTgtYjY0ZDZmMWY2YzMwIiwiY2hhdF9pZCI6ImNoYXQtYjYzYzlmMDgtZDU4MS00NGMwLTkxNzYtYjM1MTkxNzBkYmIwIiwicGxhdGZvcm0iOiJ6YWkifQ.TtVfTdhb5zKdgXC2b5kAwrsd5wu7I8Vi-TIvUvEQxak";
+const ZAI_USER_ID = "3474d209-fde2-4a43-8598-b64d6f1f6c30";
 
 // Server-side in-memory cache
 const cache = new Map<string, string>();
@@ -138,16 +60,37 @@ export async function POST(req: NextRequest) {
       `- Keep proper nouns as transliterations when appropriate.\n` +
       `- Output ONLY the translated synopsis.`;
 
-    const zai = await getZai();
-    const completion = await zai.chat.completions.create({
-      messages: [
-        { role: "assistant", content: systemPrompt },
-        { role: "user", content: text },
-      ],
-      thinking: { type: "enabled" },
+    // Call the ZAI API directly via fetch — no SDK, no file I/O.
+    // This works in both dev and the Tauri desktop build.
+    // Headers match exactly what the z-ai-web-dev-sdk sends.
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${ZAI_API_KEY}`,
+      "X-Z-AI-From": "Z",
+    };
+    if (ZAI_CHAT_ID) headers["X-Chat-Id"] = ZAI_CHAT_ID;
+    if (ZAI_USER_ID) headers["X-User-Id"] = ZAI_USER_ID;
+    if (ZAI_TOKEN) headers["X-Token"] = ZAI_TOKEN;
+
+    const response = await fetch(ZAI_API_URL, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        messages: [
+          { role: "assistant", content: systemPrompt },
+          { role: "user", content: text },
+        ],
+        thinking: { type: "enabled" },
+      }),
     });
 
-    const translated = (completion.choices[0]?.message?.content ?? "").trim();
+    if (!response.ok) {
+      const errText = await response.text().catch(() => "");
+      throw new Error(`ZAI API returned ${response.status}: ${errText.slice(0, 200)}`);
+    }
+
+    const data = await response.json();
+    const translated = (data?.choices?.[0]?.message?.content ?? "").toString().trim();
 
     if (!translated) {
       return NextResponse.json({ translated: text, lang: targetLang, rtl: targetLang === "fa" });

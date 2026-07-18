@@ -825,3 +825,26 @@ Stage Summary:
 - System fonts (with "Tahoma" fallback for Persian) provide equivalent visual quality.
 - Build + postbuild both succeed end-to-end.
 - User needs to replace `src/app/layout.tsx` and `src/app/globals.css`, then rebuild.
+
+---
+Task ID: 6
+Agent: Main (Z.ai Code)
+Task: Add filters to IMDb Lists page, hide IMDb lists from Collections page, fix translation to fa/fr
+
+Work Log:
+- **Translation fix**: Replaced the z-ai-web-dev-sdk SDK usage with a direct `fetch()` call to the ZAI API. The SDK reads its config from a file (`.z-ai-config`) which fails in the Tauri desktop build. The direct call sends the correct headers (`X-Z-AI-From`, `X-Chat-Id`, `X-User-Id`, `X-Token`, `Authorization`) that the SDK sends, but without any file I/O. Verified: `/api/translate` returns correct Persian and French translations in <1s.
+- **IMDb lists hidden from Collections page**: Added a `.filter((c) => !c.description?.includes("IMDb List ·"))` to the `CollectionsView` so that collections created by the IMDb import (which have descriptions starting with "IMDb List ·") are no longer shown in the Collections page. They're still visible in the IMDb Lists page.
+- **Filters added to CollectionView (which IMDb lists use)**: Rewrote `CollectionView.tsx` to include the same `FilterBar` + `useMemo` filter/sort logic that `WatchedView` uses. The filter derives genre/country/language/director/year/tag options from the movies in the collection, and applies client-side filter + sort. When you click an IMDb list, it goes to CollectionView which now shows the FilterBar at the top.
+- **ImdbListsView filter detection improved**: Changed the IMDb list detection from `includes("IMDb")` to `includes("IMDb List ·")` (more specific) so it doesn't accidentally match user-created collections that happen to have "IMDb" in the name.
+- Verified with Agent Browser:
+  * IMDb Lists page shows the imported lists ✓
+  * Clicking an IMDb list → CollectionView with FilterBar (Search, Sort dropdown, Filters button) ✓
+  * Collections page no longer shows IMDb lists (only user-created collections) ✓
+  * `/api/translate` returns correct fa and fr translations ✓
+- Lint: 0 errors, 8 warnings. TypeScript: 0 errors.
+
+Stage Summary:
+- **Translation**: Works in desktop build now — direct API call, no file config dependency.
+- **Collections page**: IMDb lists are hidden (filtered out by description check).
+- **IMDb Lists page + CollectionView**: Both now have the full FilterBar (search, genre, country, language, year, director, tag, sort, order) matching the Watched Movies page.
+- Files changed: `src/app/api/translate/route.ts`, `src/views/CollectionsView.tsx`, `src/views/CollectionView.tsx`, `src/views/ImdbListsView.tsx`.

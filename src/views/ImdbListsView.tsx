@@ -34,9 +34,10 @@ export function ImdbListsView() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
-  // Filter for IMDb-imported collections (those with "IMDb" in description)
+  // Filter for IMDb-imported collections (those created by the IMDb import).
+  // The import-imdb API creates collections with description starting with "IMDb List ·"
   const imdbLists = (collections ?? []).filter(
-    (c) => c.description?.includes("IMDb") || c.name.toLowerCase().includes("imdb")
+    (c) => c.description?.includes("IMDb List ·") || c.name.toLowerCase().includes("imdb")
   );
 
   const startEdit = (c: Collection) => {
