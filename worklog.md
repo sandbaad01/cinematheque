@@ -848,3 +848,57 @@ Stage Summary:
 - **Collections page**: IMDb lists are hidden (filtered out by description check).
 - **IMDb Lists page + CollectionView**: Both now have the full FilterBar (search, genre, country, language, year, director, tag, sort, order) matching the Watched Movies page.
 - Files changed: `src/app/api/translate/route.ts`, `src/views/CollectionsView.tsx`, `src/views/CollectionView.tsx`, `src/views/ImdbListsView.tsx`.
+
+---
+Task ID: 7
+Agent: Main (Z.ai Code)
+Task: Build Android mobile app — PWA + Tauri Android setup
+
+Work Log:
+- Analyzed the project architecture: Next.js 16 (frontend + API routes) + Prisma/SQLite + Tauri desktop. The key challenge for mobile is that the app relies on a running Node.js server for its backend — this can't run inside an APK.
+- Chose a two-pronged approach:
+  1. **PWA (immediate)**: The app already has a service worker + manifest. Enhanced these for better Android installation.
+  2. **Tauri Android APK**: Set up configuration so the user can build a real APK that loads a deployed server URL.
+
+**PWA enhancements:**
+- Updated `public/manifest.webmanifest` with:
+  - Proper `display_override` (standalone → fullscreen → minimal-ui)
+  - `scope`, `orientation`, `categories`, `lang`, `dir` fields
+  - 4 icon entries: 192px + 512px (any purpose) + 192px + 512px (maskable purpose for Android adaptive icons)
+  - 3 app shortcuts: Add Picture, Watched Movies, Search
+- Created 4 PNG icons in `public/`:
+  - `icon-512.png` (512×512, from existing Tauri icon)
+  - `icon-192.png` (192×192, resized from 512 using sharp)
+  - `icon-maskable-512.png` (512×512, icon on navy #0f1620 background with 75% padding for Android adaptive icons)
+  - `icon-maskable-192.png` (192×192, same maskable treatment)
+- Used `sharp` (already in node_modules) for image resizing and compositing.
+
+**Tauri Android setup:**
+- Created `src-tauri/tauri.android.conf.json` — Android-specific Tauri config that:
+  - Uses `com.cinematheque.app` as the identifier
+  - Points `frontendDist` to `../src-tauri/html/mobile` (separate from desktop HTML)
+  - Uses PNG icons (not .ico/.icns which are desktop-only)
+- Created `src-tauri/html/mobile/index.html` — Mobile entry point that:
+  - Shows a teal loading spinner on navy background
+  - Redirects to `SERVER_URL` (configurable, defaults to `http://10.0.2.2:3000` for Android emulator)
+  - Shows an error message if the server is unreachable after 5 seconds
+  - Includes instructions for setting the deployed URL
+- Updated `src-tauri/src/lib.rs` with `#[cfg(not(mobile))]` / `#[cfg(mobile)]` split:
+  - Desktop: starts the Node.js server (existing behavior, unchanged)
+  - Mobile: just runs the Tauri app (loads the HTML which redirects to the server URL)
+  - The `#[cfg_attr(mobile, tauri::mobile_entry_point)]` attribute was already present
+
+**Documentation:**
+- Created `MOBILE.md` with comprehensive instructions for:
+  - Option A: PWA (deploy to Vercel, install via Chrome "Add to Home Screen")
+  - Option B: Android APK (prerequisites, Vercel deployment, tauri android init/build, APK signing)
+  - Option C: Testing on Android emulator (10.0.2.2 alias for host localhost)
+  - Troubleshooting guide
+
+- Verified: PWA manifest + all 4 icons served correctly (200 OK). App still renders normally. Lint: 0 errors, 8 warnings. TypeScript: 0 errors.
+
+Stage Summary:
+- **PWA**: Fully configured — installable on Android via Chrome with proper icons, maskable icons, shortcuts, and offline support via service worker.
+- **Tauri Android**: Configuration files ready (`tauri.android.conf.json`, `mobile/index.html`, updated `lib.rs`). User needs to: (1) install Android Studio + NDK + Rust Android targets, (2) deploy Next.js to Vercel, (3) set SERVER_URL, (4) run `npx tauri android init` + `npx tauri android build`.
+- **Key limitation**: The Android app requires a deployed server (Vercel) because the Next.js API routes + Prisma backend can't run inside an APK. The mobile app is a native WebView wrapper that loads the deployed URL.
+- Files created: `public/manifest.webmanifest` (updated), `public/icon-{192,512,maskable-192,maskable-512}.png`, `src-tauri/tauri.android.conf.json`, `src-tauri/html/mobile/index.html`, `src-tauri/src/lib.rs` (updated), `MOBILE.md`.

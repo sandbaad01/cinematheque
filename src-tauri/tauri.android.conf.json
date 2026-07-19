@@ -1,0 +1,30 @@
+{
+  "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
+  "productName": "Cinémathèque",
+  "version": "1.0.0",
+  "identifier": "com.cinematheque.app",
+  "build": {
+    "frontendDist": "../src-tauri/html/mobile"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "Cinémathèque",
+        "fullscreen": false,
+        "center": true
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": [
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.png"
+    ]
+  }
+}

@@ -1,17 +1,61 @@
 {
   "name": "Cinémathèque — Personal Movie Archive",
   "short_name": "Cinémathèque",
-  "description": "A lightweight, offline-first personal movie archive.",
+  "description": "A lightweight, offline-first personal movie archive. Track watched films, discover recommendations, and build your lifetime favorites.",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
+  "display_override": ["standalone", "fullscreen", "minimal-ui"],
+  "orientation": "any",
   "background_color": "#0f1620",
   "theme_color": "#3bb5a3",
+  "categories": ["entertainment", "lifestyle"],
+  "lang": "en",
+  "dir": "ltr",
   "icons": [
     {
-      "src": "/logo.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
       "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-maskable-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Add Picture",
+      "short_name": "Add",
+      "description": "Add a new movie or series",
+      "url": "/?action=add"
+    },
+    {
+      "name": "Watched Movies",
+      "short_name": "Watched",
+      "description": "View your watched movies",
+      "url": "/?view=watched"
+    },
+    {
+      "name": "Search",
+      "short_name": "Search",
+      "description": "Search your archive",
+      "url": "/?view=search"
     }
   ]
 }

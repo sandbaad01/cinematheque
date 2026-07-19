@@ -83,95 +83,114 @@ fn wait_for_server(timeout: Duration) -> bool {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    let is_dev = cfg!(debug_assertions);
-    let server_child: Option<Child> = if !is_dev {
-        let log_path = get_data_dir().join("debug.log");
-        let _ = std::fs::write(&log_path, "=== Starting ===\n");
+    // On mobile (Android/iOS), we don't start a local Node.js server.
+    // The app loads a remote URL configured in tauri.android.conf.json.
+    // The user deploys the Next.js app to a server (e.g. Vercel) and
+    // the mobile app connects to it.
+    #[cfg(not(mobile))]
+    {
+        let is_dev = cfg!(debug_assertions);
+        let server_child: Option<Child> = if !is_dev {
+            let log_path = get_data_dir().join("debug.log");
+            let _ = std::fs::write(&log_path, "=== Starting ===\n");
 
-        match find_server() {
-            Some(standalone_dir) => {
-                let data_dir = get_data_dir();
-                let db_path = data_dir.join("db").join("custom.db");
+            match find_server() {
+                Some(standalone_dir) => {
+                    let data_dir = get_data_dir();
+                    let db_path = data_dir.join("db").join("custom.db");
 
-                log(&format!("Standalone: {:?}", standalone_dir));
-                log(&format!("DB: {:?}", db_path));
+                    log(&format!("Standalone: {:?}", standalone_dir));
+                    log(&format!("DB: {:?}", db_path));
 
-                if !db_path.exists() {
-                    let db_src = standalone_dir.join("db").join("custom.db");
-                    if db_src.exists() { let _ = std::fs::copy(&db_src, &db_path); }
-                }
-
-                let init_script = standalone_dir.join("init-db.js");
-                if init_script.exists() {
-                    let mut cmd = Command::new("node");
-                    cmd.arg(&init_script)
-                        .current_dir(&data_dir)
-                        .env("DATABASE_URL", format!("file:{}", db_path.display()));
-                    #[cfg(windows)]
-                    { cmd.creation_flags(CREATE_NO_WINDOW); }
-                    if let Ok(o) = cmd.output() {
-                        log(&format!("init-db: {}", String::from_utf8_lossy(&o.stderr)));
+                    if !db_path.exists() {
+                        let db_src = standalone_dir.join("db").join("custom.db");
+                        if db_src.exists() { let _ = std::fs::copy(&db_src, &db_path); }
                     }
-                }
 
-                let server_path = standalone_dir.join("server.js");
-                let stdout_log = data_dir.join("server-stdout.log");
-                let stderr_log = data_dir.join("server-stderr.log");
-                let stdout_file = OpenOptions::new().create(true).write(true).truncate(true).open(&stdout_log).ok();
-                let stderr_file = OpenOptions::new().create(true).write(true).truncate(true).open(&stderr_log).ok();
-
-                let child = {
-                    let mut cmd = Command::new("node");
-                    cmd.arg(&server_path)
-                        .current_dir(&standalone_dir)
-                        .env("NODE_ENV", "production")
-                        .env("PORT", "3000")
-                        .env("HOSTNAME", "127.0.0.1")
-                        .env("DATABASE_URL", format!("file:{}", db_path.display()))
-                        .env("TMDB_API_KEY", "39adf355a4930c90981a9d8abc608dec")
-                        .env("TMDB_READ_ACCESS_TOKEN", "eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiIzOWFkZjM1NWE0OTMwYzkwOTgxYTlkOGFiYzYwOGRlYyIsIm5iZiI6MTc4Mzc3ODYzMy4zMDgsInN1YiI6IjZhNTI0ZDQ5YjQzM2ZkZGZhMWFiMDhmYSIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.jIx1c4qk-q8lsnc6yCWFW4X0e4N8LYfMIwgI2YKbmTA");
-                    if let Some(ref f) = stdout_file { cmd.stdout(Stdio::from(f.try_clone().unwrap())); }
-                    if let Some(ref f) = stderr_file { cmd.stderr(Stdio::from(f.try_clone().unwrap())); }
-                    #[cfg(windows)]
-                    { cmd.creation_flags(CREATE_NO_WINDOW); }
-                    cmd.spawn()
-                };
-
-                match child {
-                    Ok(c) => {
-                        log(&format!("PID: {}", c.id()));
-                        if wait_for_server(Duration::from_secs(30)) {
-                            log("Ready!");
-                        } else {
-                            log("TIMEOUT");
-                            if let Ok(c) = std::fs::read_to_string(&stderr_log) { log(&format!("stderr:\n{}", c)); }
+                    let init_script = standalone_dir.join("init-db.js");
+                    if init_script.exists() {
+                        let mut cmd = Command::new("node");
+                        cmd.arg(&init_script)
+                            .current_dir(&data_dir)
+                            .env("DATABASE_URL", format!("file:{}", db_path.display()));
+                        #[cfg(windows)]
+                        { cmd.creation_flags(CREATE_NO_WINDOW); }
+                        if let Ok(o) = cmd.output() {
+                            log(&format!("init-db: {}", String::from_utf8_lossy(&o.stderr)));
                         }
-                        Some(c)
                     }
-                    Err(e) => { log(&format!("Failed: {}", e)); None }
-                }
-            }
-            None => { log("server.js NOT FOUND"); None }
-        }
-    } else {
-        wait_for_server(Duration::from_secs(60));
-        None
-    };
 
-    tauri::Builder::default()
-        .plugin(tauri_plugin_shell::init())
-        .manage(ServerState(Mutex::new(server_child)))
-        .on_window_event(|window, event| {
-            if let tauri::WindowEvent::Destroyed = event {
-                if let Some(state) = window.app_handle().try_state::<ServerState>() {
-                    if let Some(mut c) = state.0.lock().unwrap().take() {
-                        let _ = c.kill(); let _ = c.wait();
+                    let server_path = standalone_dir.join("server.js");
+                    let stdout_log = data_dir.join("server-stdout.log");
+                    let stderr_log = data_dir.join("server-stderr.log");
+                    let stdout_file = OpenOptions::new().create(true).write(true).truncate(true).open(&stdout_log).ok();
+                    let stderr_file = OpenOptions::new().create(true).write(true).truncate(true).open(&stderr_log).ok();
+
+                    let child = {
+                        let mut cmd = Command::new("node");
+                        cmd.arg(&server_path)
+                            .current_dir(&standalone_dir)
+                            .env("NODE_ENV", "production")
+                            .env("PORT", "3000")
+                            .env("HOSTNAME", "127.0.0.1")
+                            .env("DATABASE_URL", format!("file:{}", db_path.display()))
+                            .env("TMDB_API_KEY", "39adf355a4930c90981a9d8abc608dec")
+                            .env("TMDB_READ_ACCESS_TOKEN", "eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiIzOWFkZjM1NWE0OTMwYzkwOTgxYTlkOGFiYzYwOGRlYyIsIm5iZiI6MTc4Mzc3ODYzMy4zMDgsInN1YiI6IjZhNTI0ZDQ5YjQzM2ZkZGZhMWFiMDhmYSIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.jIx1c4qk-q8lsnc6yCWFW4X0e4N8LYfMIwgI2YKbmTA");
+                        if let Some(ref f) = stdout_file { cmd.stdout(Stdio::from(f.try_clone().unwrap())); }
+                        if let Some(ref f) = stderr_file { cmd.stderr(Stdio::from(f.try_clone().unwrap())); }
+                        #[cfg(windows)]
+                        { cmd.creation_flags(CREATE_NO_WINDOW); }
+                        cmd.spawn()
+                    };
+
+                    match child {
+                        Ok(c) => {
+                            log(&format!("PID: {}", c.id()));
+                            if wait_for_server(Duration::from_secs(30)) {
+                                log("Ready!");
+                            } else {
+                                log("TIMEOUT");
+                                if let Ok(c) = std::fs::read_to_string(&stderr_log) { log(&format!("stderr:\n{}", c)); }
+                            }
+                            Some(c)
+                        }
+                        Err(e) => { log(&format!("Failed: {}", e)); None }
                     }
                 }
+                None => { log("server.js NOT FOUND"); None }
             }
-        })
-        .run(tauri::generate_context!())
-        .unwrap_or_else(|e| {
-            log(&format!("FATAL: {}", e));
-        });
+        } else {
+            wait_for_server(Duration::from_secs(60));
+            None
+        };
+
+        tauri::Builder::default()
+            .plugin(tauri_plugin_shell::init())
+            .manage(ServerState(Mutex::new(server_child)))
+            .on_window_event(|window, event| {
+                if let tauri::WindowEvent::Destroyed = event {
+                    if let Some(state) = window.app_handle().try_state::<ServerState>() {
+                        if let Some(mut c) = state.0.lock().unwrap().take() {
+                            let _ = c.kill(); let _ = c.wait();
+                        }
+                    }
+                }
+            })
+            .run(tauri::generate_context!())
+            .unwrap_or_else(|e| {
+                log(&format!("FATAL: {}", e));
+            });
+    }
+
+    // On mobile, just run the Tauri app — it loads the URL from the config.
+    // The URL should point to a deployed instance of the Next.js app.
+    #[cfg(mobile)]
+    {
+        tauri::Builder::default()
+            .plugin(tauri_plugin_shell::init())
+            .run(tauri::generate_context!())
+            .unwrap_or_else(|e| {
+                eprintln!("FATAL: {}", e);
+            });
+    }
 }

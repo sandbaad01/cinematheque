@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>Cinémathèque</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background: #0f1620;
+      color: #3bb5a3;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid rgba(59, 181, 163, 0.2);
+      border-top-color: #3bb5a3;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    p { font-size: 14px; opacity: 0.7; }
+    .error {
+      color: #ef4444;
+      font-size: 12px;
+      max-width: 300px;
+      text-align: center;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="spinner" id="spinner"></div>
+  <p>Loading Cinémathèque...</p>
+  <p class="error" id="error"></p>
+  <script>
+    // ============================================================
+    // DEPLOYED SERVER URL
+    // ============================================================
+    // Replace the URL below with your deployed Next.js app URL.
+    //
+    // To deploy:
+    //   1. Push your project to GitHub
+    //   2. Go to https://vercel.com and import the repo
+    //   3. Set environment variables (see README)
+    //   4. Deploy — you'll get a URL like https://cinematheque.vercel.app
+    //   5. Replace the URL below with your deployed URL
+    //
+    // You can also use localhost for testing on an emulator:
+    //   const SERVER_URL = "http://10.0.2.2:3000";  // Android emulator
+    //   const SERVER_URL = "http://192.168.1.100:3000";  // Real device via WiFi
+    // ============================================================
+    const SERVER_URL = "http://10.0.2.2:3000";
+
+    // Attempt to load the server URL
+    window.location.href = SERVER_URL;
+
+    // Show error if redirect fails after 5 seconds
+    setTimeout(() => {
+      document.getElementById("spinner").style.display = "none";
+      const err = document.getElementById("error");
+      err.style.display = "block";
+      err.textContent = "Cannot connect to " + SERVER_URL + ". Make sure the server is running and accessible.";
+    }, 5000);
+  </script>
+</body>
+</html>
