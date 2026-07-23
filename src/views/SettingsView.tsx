@@ -336,6 +336,9 @@ export function SettingsView() {
           <Badge variant="secondary">EN · FA · FR</Badge>
           <Badge variant="secondary">Dark mode</Badge>
         </div>
+        <p className="pt-2 text-center text-sm font-medium text-muted-foreground">
+          Developed with love and passion by Massoud
+        </p>
       </Card>
     </div>
   );

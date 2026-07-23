@@ -77,6 +77,7 @@ const NAV_GROUPS: NavGroup[] = [
       { view: "favorites", labelKey: "nav_favorites", icon: Heart },
       { view: "collections", labelKey: "nav_collections", icon: FolderOpen },
       { view: "lists", labelKey: "nav_lists", icon: ListOrdered },
+      { view: "watchedArchive", labelKey: "nav_watchedArchive", icon: Film },
       { view: "report", labelKey: "nav_report", icon: FileText },
     ],
   },

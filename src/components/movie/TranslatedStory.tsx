@@ -65,29 +65,47 @@ export function TranslatedStory({ overview, movieId, context }: TranslatedStoryP
   useEffect(() => {
     if (lang === "en" || !overview) return;
     let cancelled = false;
+
+    // Add a timeout controller (30s) — in the Tauri desktop build,
+    // network calls to the ZAI API might be slow or fail silently.
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
+
     fetch("/api/translate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ text: overview, targetLang: lang, context }),
+      signal: controller.signal,
     })
       .then(async (res) => {
-        if (!res.ok) throw new Error("translate failed");
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.error || `HTTP ${res.status}`);
+        }
         const data: TranslateResponse = await res.json();
         if (!cancelled) {
           setTranslated(data.translated || overview);
           setLoading(false);
+          setError(false);
         }
       })
-      .catch(() => {
-        if (!cancelled) {
-          // Fall back to the original English text.
-          setTranslated(overview);
-          setError(true);
-          setLoading(false);
-        }
+      .catch((err) => {
+        if (cancelled) return;
+        // Fall back to the original English text.
+        setTranslated(overview);
+        setError(true);
+        setLoading(false);
+        // Log the actual error for debugging
+        console.warn("Translation failed:", err.message);
+      })
+      .finally(() => {
+        clearTimeout(timeoutId);
       });
+
     return () => {
       cancelled = true;
+      clearTimeout(timeoutId);
+      controller.abort();
     };
   }, [lang, overview]);
 
@@ -121,7 +139,7 @@ export function TranslatedStory({ overview, movieId, context }: TranslatedStoryP
       </p>
       {error && (
         <p className="mt-1 text-xs text-muted-foreground/60">
-          (Translation unavailable — showing original)
+          (Translation unavailable — showing original English text. Check your internet connection.)
         </p>
       )}
     </section>

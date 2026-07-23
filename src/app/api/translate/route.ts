@@ -80,7 +80,7 @@ export async function POST(req: NextRequest) {
           { role: "assistant", content: systemPrompt },
           { role: "user", content: text },
         ],
-        thinking: { type: "enabled" },
+        thinking: { type: "disabled" },
       }),
     });
 

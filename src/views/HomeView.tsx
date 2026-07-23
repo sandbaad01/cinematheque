@@ -29,7 +29,7 @@ interface Stats {
 
 export function HomeView() {
   const { t } = useI18n();
-  const { go, goGenre, go: goView, refreshTick } = useNav();
+  const { go, goGenre, goSearch, refreshTick } = useNav();
   const { data: stats, loading } = useFetch<Stats>("/api/stats", [refreshTick]);
   const { data: recsData } = useFetch<{ items: Recommendation[] }>("/api/recommendations", [refreshTick]);
 
@@ -132,11 +132,15 @@ export function HomeView() {
             </div>
             <div className="space-y-2">
               {(stats?.topDirectors ?? []).map((d, i) => (
-                <div key={d.name} className="flex items-center gap-3">
+                <button
+                  key={d.name}
+                  onClick={() => goSearch(d.name)}
+                  className="flex w-full items-center gap-3 text-left transition-colors hover:bg-accent/50 rounded-md px-1 py-0.5 -mx-1"
+                >
                   <span className="w-5 text-sm text-muted-foreground">{i + 1}</span>
-                  <span className="flex-1 truncate text-sm font-medium text-[hsl(45_70%_55%)]/85">{d.name}</span>
+                  <span className="flex-1 truncate text-sm font-medium text-[hsl(45_70%_55%)]/85 hover:text-primary">{d.name}</span>
                   <span className="text-xs text-muted-foreground">{d.count}</span>
-                </div>
+                </button>
               ))}
               {(stats?.topDirectors ?? []).length === 0 && (
                 <p className="text-sm text-muted-foreground">—</p>
@@ -161,7 +165,7 @@ export function HomeView() {
           movies={recs.slice(0, 12).map((r) => r.movie)}
           emptyText={t("rec_noUnwatched")}
           action={
-            <Button variant="ghost" size="sm" onClick={() => goView("recommendations")}>
+            <Button variant="ghost" size="sm" onClick={() => go("recommendations")}>
               {t("nav_recommendations")}
               <ArrowRight className="size-4" />
             </Button>

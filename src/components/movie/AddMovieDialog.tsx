@@ -588,6 +588,9 @@ export function AddMovieDialog({
                       <SelectItem value="dropped">
                         {t("status_dropped")}
                       </SelectItem>
+                      <SelectItem value="watchedArchive">
+                        {t("status_watchedArchive")}
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                 </Field>

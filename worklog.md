@@ -902,3 +902,55 @@ Stage Summary:
 - **Tauri Android**: Configuration files ready (`tauri.android.conf.json`, `mobile/index.html`, updated `lib.rs`). User needs to: (1) install Android Studio + NDK + Rust Android targets, (2) deploy Next.js to Vercel, (3) set SERVER_URL, (4) run `npx tauri android init` + `npx tauri android build`.
 - **Key limitation**: The Android app requires a deployed server (Vercel) because the Next.js API routes + Prisma backend can't run inside an APK. The mobile app is a native WebView wrapper that loads the deployed URL.
 - Files created: `public/manifest.webmanifest` (updated), `public/icon-{192,512,maskable-192,maskable-512}.png`, `src-tauri/tauri.android.conf.json`, `src-tauri/html/mobile/index.html`, `src-tauri/src/lib.rs` (updated), `MOBILE.md`.
+
+---
+Task ID: 8
+Agent: Main (Z.ai Code)
+Task: 5 desktop app improvements — poster actions, clickable dashboard, About text, Watched Archive, translation fix
+
+Work Log:
+**1. Watched + Delete icons on all movie posters:**
+- Created `src/components/movie/PosterActions.tsx` with two hover-revealed buttons:
+  - Bottom-right: green checkmark "Mark as watched" — marks the movie as watched with today's date. For TMDb-only movies (id=tmdb-xxx), creates the movie in DB first with status="watched". If already watched, shows a static green check.
+  - Bottom-left: trash icon "Delete" — two-click confirm (first click turns it red "Click again to confirm", second click deletes). Calls DELETE /api/movies/{id}. For TMDb-only movies, shows "not in archive" info toast.
+- Updated `MovieCard.tsx` to include `<PosterActions>` and moved the personal rating to bottom-center (hidden on hover to avoid overlap with the action buttons).
+- Verified: 186 delete buttons appear on the Watched Movies page (one per movie).
+
+**2. Clickable genres + directors on Dashboard:**
+- Genres were already clickable (goGenre). Made directors clickable too — each director row is now a `<button>` that calls `goSearch(d.name)`, navigating to the Search in Archive page with the director's name pre-filled.
+- Added `goSearch` to the destructured `useNav()` in HomeView (was missing).
+- Fixed the `goView` alias → `go` (was `go: goView`, now just `go`).
+- Verified: clicking "Alfred Hitchcock" navigates to Search page with "Alfred Hitchcock" in the search box, showing his movies.
+
+**3. About text in Settings:**
+- Added `<p className="pt-2 text-center text-sm font-medium text-muted-foreground">Developed with love and passion by Massoud</p>` to the About card in SettingsView, below the badges.
+- Verified via `agent-browser eval`: text "Developed with love and passion by Massoud" found in DOM.
+
+**4. Watched Movies Archive page + status:**
+- Added `"watchedArchive"` to `MovieStatus` type in `src/lib/movie/types.ts`.
+- Added `"watchedArchive"` to `ViewName` in `src/lib/store.ts`.
+- Added nav item `{ view: "watchedArchive", labelKey: "nav_watchedArchive", icon: Film }` in the Organize section of Sidebar (below Personal Lists, above Annual Report).
+- Created `src/views/WatchedArchiveView.tsx` — fetches both `?status=watched` and `?status=watchedArchive`, deduplicates by id, includes full FilterBar (same as WatchedView).
+- Added `case "watchedArchive": return <WatchedArchiveView />;` to page.tsx router.
+- Added i18n keys in EN/FA/FR: `nav_watchedArchive` ("Watched Movies Archive" / "آرشیو فیلم‌های دیده‌شده" / "Archive des films vus") and `status_watchedArchive` ("Watched Archive" / "آرشیو دیده‌شده" / "Archive vus").
+- Added "Watched Archive" status option to AddMovieDialog and MovieDetailView status selectors.
+- Updated `StatusBadge.tsx` with styles/dotColor/labelKey for the new status (emerald-600 variant).
+- Updated `import-imdb/route.ts`: when the user selects "watched" during IMDb import, movies now get status `"watchedArchive"` (instead of `"watched"`) so they automatically appear in the Watched Movies Archive page. Same for movies with a Date Rated.
+- Verified: "Watched Movies Archive" nav button shows, page loads with movies.
+
+**5. Translation fix for desktop:**
+- Changed `thinking` parameter from `{ type: "enabled" }` to `{ type: "disabled" }` in the translate API route — thinking mode can cause longer response times and timeouts in the Tauri desktop build.
+- Added `AbortController` with 30s timeout to the TranslatedStory fetch call — prevents infinite loading if the API is unreachable.
+- Added better error logging: `console.warn("Translation failed:", err.message)` so the actual error appears in the dev tools console.
+- Updated the error message to "Translation unavailable — showing original English text. Check your internet connection."
+- Verified: translate endpoint returns correct fa/fr translations in <1s with thinking disabled.
+
+- Lint: 0 errors, 8 warnings. TypeScript: 0 errors. All endpoints 200. Agent Browser verified all 5 features.
+
+Stage Summary:
+- All movie posters now have hover-revealed Watched (bottom-right) and Delete (bottom-left) buttons.
+- Dashboard directors are clickable → Search in Archive page. Genres were already clickable → Genre detail page.
+- Settings > About shows "Developed with love and passion by Massoud".
+- New "Watched Movies Archive" page in Organize section + "Watched Archive" status option. IMDb imports with "watched" status automatically go to watchedArchive.
+- Translation: thinking mode disabled (faster, more reliable in desktop), 30s timeout added, better error reporting.
+- Files: PosterActions.tsx (new), WatchedArchiveView.tsx (new), MovieCard.tsx, HomeView.tsx, SettingsView.tsx, MovieDetailView.tsx, AddMovieDialog.tsx, StatusBadge.tsx, TranslatedStory.tsx, translate/route.ts, import-imdb/route.ts, store.ts, types.ts, translations.ts, page.tsx, Sidebar.tsx.

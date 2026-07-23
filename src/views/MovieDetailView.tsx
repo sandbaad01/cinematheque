@@ -504,6 +504,7 @@ export function MovieDetailView({ movieId }: { movieId: string }) {
                     <SelectItem value="want">{t("nav_wantToWatch")}</SelectItem>
                     <SelectItem value="watchlist">{t("nav_watchlist")}</SelectItem>
                     <SelectItem value="dropped">{t("status_dropped")}</SelectItem>
+                    <SelectItem value="watchedArchive">{t("status_watchedArchive")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

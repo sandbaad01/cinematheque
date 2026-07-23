@@ -1,6 +1,6 @@
 // Shared movie types and helpers
 
-export type MovieStatus = "watched" | "want" | "watching" | "dropped" | "watchlist" | "new";
+export type MovieStatus = "watched" | "want" | "watching" | "dropped" | "watchlist" | "new" | "watchedArchive";
 
 export interface Movie {
   id: string;

@@ -9,6 +9,7 @@ import { PosterImage } from "./PosterImage";
 import { RankBadge } from "./RankBadge";
 import { QuickStatusToggle } from "./QuickStatusToggle";
 import { QuickAddButtons } from "./QuickAddButtons";
+import { PosterActions } from "./PosterActions";
 
 interface MovieCardProps {
   movie: Movie;
@@ -58,9 +59,12 @@ export function MovieCard({ movie }: MovieCardProps) {
         {showQuickToggle && <QuickStatusToggle movie={movie} />}
         <QuickAddButtons movie={movie} />
 
-        {/* Bottom-right personal rating */}
+        {/* Bottom-corner actions: Delete (left) + Watched (right) */}
+        <PosterActions movie={movie} />
+
+        {/* Bottom-center personal rating (hidden on hover to avoid overlap) */}
         {movie.personalRating != null && (
-          <div className="absolute bottom-1.5 right-1.5 inline-flex items-center gap-1 rounded-md bg-background/85 px-1.5 py-0.5 text-xs font-semibold text-primary backdrop-blur-sm">
+          <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 inline-flex items-center gap-1 rounded-md bg-background/85 px-1.5 py-0.5 text-xs font-semibold text-primary backdrop-blur-sm transition-opacity group-hover:opacity-0">
             <Star className="size-3" fill="currentColor" />
             {movie.personalRating.toFixed(1)}
           </div>

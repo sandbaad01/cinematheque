@@ -78,7 +78,9 @@ export async function POST(req: NextRequest) {
     const listName: string = (body?.listName ?? "IMDb List").toString().trim() || "IMDb List";
     const skipTmdb: boolean = body?.skipTmdb === true;
     // User-chosen status for all imported movies.
-    // "new" = no status (line/—), "watched" = watched, "want" = wishlist, "watchlist" = watchlist
+    // "new" = no status (line/—), "watched" = watched archive, "want" = wishlist, "watchlist" = watchlist
+    // When "watched" is chosen, movies get status "watchedArchive" so they appear in the
+    // Watched Movies Archive page automatically.
     const importStatus: "new" | "watched" | "want" | "watchlist" =
       ["new", "watched", "want", "watchlist"].includes(body?.status) ? body.status : "new";
 
@@ -194,8 +196,9 @@ export async function POST(req: NextRequest) {
           gallery: JSON.stringify(tmdbData?.gallery ?? []),
           tags: JSON.stringify([]),
           screenshots: JSON.stringify([]),
-          // Use the user-chosen status, or fall back to watched if there's a Date Rated
-          status: importStatus === "new" && dateRated ? "watched" : importStatus,
+          // Use the user-chosen status. "watched" → "watchedArchive" for the archive page.
+          // If "new" and there's a Date Rated, mark as "watchedArchive" with that date.
+          status: importStatus === "watched" ? "watchedArchive" : (importStatus === "new" && dateRated ? "watchedArchive" : importStatus),
           watchDate: importStatus === "watched" || (importStatus === "new" && dateRated)
             ? (dateRated || new Date().toISOString().slice(0, 10))
             : null,

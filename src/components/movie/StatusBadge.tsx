@@ -12,6 +12,8 @@ interface StatusBadgeProps {
 const styles: Record<MovieStatus, string> = {
   watched:
     "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
+  watchedArchive:
+    "bg-emerald-600/15 text-emerald-500 border-emerald-600/30",
   want: "bg-amber-500/15 text-amber-400 border-amber-500/30",
   watchlist: "bg-primary/15 text-primary border-primary/30",
   watching: "bg-teal-500/15 text-teal-400 border-teal-500/30",
@@ -21,6 +23,7 @@ const styles: Record<MovieStatus, string> = {
 
 const dotColor: Record<MovieStatus, string> = {
   watched: "bg-emerald-400",
+  watchedArchive: "bg-emerald-500",
   want: "bg-amber-400",
   watchlist: "bg-primary",
   watching: "bg-teal-400",
@@ -30,6 +33,7 @@ const dotColor: Record<MovieStatus, string> = {
 
 const labelKey: Record<MovieStatus, string> = {
   watched: "status_watched",
+  watchedArchive: "status_watchedArchive",
   want: "nav_wantToWatch",
   watchlist: "nav_watchlist",
   watching: "status_watching",

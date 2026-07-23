@@ -30,6 +30,7 @@ const en: Dict = {
   nav_timeline: "Timeline",
   nav_yearlyStats: "Yearly Stats",
   nav_report: "Annual Report",
+  nav_watchedArchive: "Watched Movies Archive",
   nav_imdbLists: "IMDb Lists",
   nav_collections: "Collections",
   nav_lists: "Personal Lists",
@@ -91,6 +92,7 @@ const en: Dict = {
   status_want: "Want to Watch",
   status_watching: "Watching",
   status_dropped: "Dropped",
+  status_watchedArchive: "Watched Archive",
   status_all: "All",
 
   // Movie detail
@@ -333,6 +335,7 @@ const fa: Dict = {
   nav_timeline: "خط زمانی",
   nav_yearlyStats: "آمار سالانه",
   nav_report: "گزارش سالانه",
+  nav_watchedArchive: "آرشیو فیلم‌های دیده‌شده",
   nav_imdbLists: "لیست‌های IMDb",
   nav_collections: "مجموعه‌ها",
   nav_lists: "لیست‌های شخصی",
@@ -389,6 +392,7 @@ const fa: Dict = {
   status_want: "اراده تماشا",
   status_watching: "در حال تماشا",
   status_dropped: "رهاشده",
+  status_watchedArchive: "آرشیو دیده‌شده",
   status_all: "همه",
 
   movie_story: "داستان",
@@ -616,6 +620,7 @@ const fr: Dict = {
   nav_timeline: "Chronologie",
   nav_yearlyStats: "Statistiques annuelles",
   nav_report: "Rapport annuel",
+  nav_watchedArchive: "Archive des films vus",
   nav_imdbLists: "Listes IMDb",
   nav_collections: "Collections",
   nav_lists: "Listes personnelles",
@@ -672,6 +677,7 @@ const fr: Dict = {
   status_want: "À voir",
   status_watching: "En cours",
   status_dropped: "Abandonné",
+  status_watchedArchive: "Archive vus",
   status_all: "Tous",
 
   movie_story: "Histoire",
