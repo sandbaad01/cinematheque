@@ -1,0 +1,14 @@
+[build]
+  command = "npx prisma generate && next build"
+  publish = ".next"
+
+[functions]
+  node_bundler = "esbuild"
+
+# Next.js plugin is auto-detected by Netlify
+
+# Force all API routes to use the serverless function
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/next_api"
+  status = 200
