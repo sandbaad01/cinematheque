@@ -1,5 +1,4 @@
-// Personal Movie Archive - Prisma Schema for Turso (libSQL)
-// This schema is used when deploying to Vercel/Netlify with Turso database.
+// Personal Movie Archive - Prisma Schema
 
 generator client {
   provider        = "prisma-client-js"
@@ -11,8 +10,24 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  name          String?
+  passwordHash  String?
+  image         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  movies      Movie[]
+  collections Collection[]
+  lists       PersonalList[]
+}
+
 model Movie {
   id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   tmdbId        Int?
   imdbId        String?
   title         String
@@ -46,6 +61,7 @@ model Movie {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
+  @@index([userId])
   @@index([status])
   @@index([year])
   @@index([director])
@@ -55,18 +71,26 @@ model Movie {
 
 model Collection {
   id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   name        String
   description String?
   movieIds    String   @default("[]") // JSON array of movie ids (ordered)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  @@index([userId])
 }
 
 model PersonalList {
   id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   name        String
   description String?
   items       String   @default("[]") // JSON array of { movieId, rank, note? }
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  @@index([userId])
 }

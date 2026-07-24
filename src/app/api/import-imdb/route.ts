@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { findByImdbId, getMovieDetails, tmdbToMoviePayload, posterUrl } from "@/lib/tmdb";
+import { requireUserId } from "@/lib/auth-server";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300; // 5 minutes for large imports with TMDb lookups
@@ -73,6 +74,9 @@ function headerIndex(headers: string[], name: string): number {
 // still succeeds using the CSV data only.
 export async function POST(req: NextRequest) {
   try {
+    const [userId, authError] = await requireUserId();
+    if (authError) return authError;
+
     const body = await req.json();
     const csv: string = typeof body?.csv === "string" ? body.csv : "";
     const listName: string = (body?.listName ?? "IMDb List").toString().trim() || "IMDb List";
@@ -142,8 +146,7 @@ export async function POST(req: NextRequest) {
       // Skip duplicates by imdbId
       if (imdbId) {
         const exists = await db.movie.findFirst({
-          where: { imdbId },
-          select: { id: true },
+          where: { imdbId, userId },
         });
         if (exists) {
           movieIds.push(exists.id);
@@ -171,6 +174,7 @@ export async function POST(req: NextRequest) {
 
       const created = await db.movie.create({
         data: {
+          userId,
           tmdbId: tmdbData?.tmdbId ?? null,
           imdbId: imdbId || null,
           title: tmdbData?.title ?? title,
@@ -213,6 +217,7 @@ export async function POST(req: NextRequest) {
     if (movieIds.length > 0) {
       const collection = await db.collection.create({
         data: {
+          userId,
           name: listName,
           description: `IMDb List · ${imported} movies, ${skipped} already in archive${tmdbFailed > 0 ? `, ${tmdbFailed} TMDb lookups failed (using CSV data only)` : ""}`,
           movieIds: JSON.stringify(movieIds),

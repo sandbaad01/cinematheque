@@ -1,13 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { parseCollection, type Collection } from "@/lib/movie/types";
+import { requireUserId } from "@/lib/auth-server";
 
 export const dynamic = "force-dynamic";
 
-// GET /api/collections
+// GET /api/collections (scoped to authenticated user)
 export async function GET() {
   try {
+    const [userId, authError] = await requireUserId();
+    if (authError) return authError;
+
     const rows = await db.collection.findMany({
+      where: { userId },
       orderBy: { updatedAt: "desc" },
     });
     const collections: Collection[] = rows.map(parseCollection);
@@ -21,15 +26,12 @@ export async function GET() {
   }
 }
 
-// POST /api/collections { name, description?, movieIds? }
-//
-// Smart collections: by default, the collection name is used to automatically
-// search the entire movie archive (title, originalTitle, director, cast,
-// overview, genres, tags) and every match is injected into the new collection.
-// Pass an explicit `movieIds` array to skip auto-matching and create a manual
-// collection instead.
+// POST /api/collections { name, description?, movieIds? } (scoped to authenticated user)
 export async function POST(req: NextRequest) {
   try {
+    const [userId, authError] = await requireUserId();
+    if (authError) return authError;
+
     const body = await req.json();
     const b: { name?: string; description?: string | null; movieIds?: string[] } =
       body || {};
@@ -50,10 +52,10 @@ export async function POST(req: NextRequest) {
       movieIds = b.movieIds;
     } else {
       // 1. Smart search across all relevant text fields based on the name.
-      //    SQLite `contains` is case-insensitive for ASCII; genres/cast/tags
-      //    are stored as JSON strings so `contains` matches their members.
+      //    Scoped to the current user's movies only.
       const matchingMovies = await db.movie.findMany({
         where: {
+          userId,
           OR: [
             { title: { contains: name } },
             { originalTitle: { contains: name } },
@@ -76,6 +78,7 @@ export async function POST(req: NextRequest) {
     // 3. Create the collection with auto-assigned movies.
     const created = await db.collection.create({
       data: {
+        userId,
         name,
         description: b.description ?? null,
         movieIds: JSON.stringify(movieIds),

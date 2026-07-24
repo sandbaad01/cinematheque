@@ -1,12 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { parseMovie, type Movie } from "@/lib/movie/types";
+import { requireUserId } from "@/lib/auth-server";
 
 export const dynamic = "force-dynamic";
 
-// GET /api/movies — list with filters/sort
+// GET /api/movies — list with filters/sort (scoped to authenticated user)
 export async function GET(req: NextRequest) {
   try {
+    const [userId, authError] = await requireUserId();
+    if (authError) return authError;
+
     const { searchParams } = new URL(req.url);
     const status = searchParams.get("status");
     const genre = searchParams.get("genre");
@@ -21,7 +25,7 @@ export async function GET(req: NextRequest) {
     const sort = searchParams.get("sort") || "watchDate";
     const order = searchParams.get("order") === "asc" ? "asc" : "desc";
 
-    const where: any = {};
+    const where: any = { userId };
     if (status) where.status = status;
     if (mediaType) where.mediaType = mediaType;
     if (country) where.country = country;
@@ -78,19 +82,22 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// POST /api/movies — create
+// POST /api/movies — create (scoped to authenticated user)
 export async function POST(req: NextRequest) {
   try {
+    const [userId, authError] = await requireUserId();
+    if (authError) return authError;
+
     const body = await req.json();
     const b: any = body || {};
 
     // When adding a "watched" movie without an explicit watchDate, default to today
-    // so it appears at the top of "Latest Watched" and "Last Watched" lists.
     const status = b.status ?? "new";
     const watchDate = b.watchDate ?? (status === "watched" ? new Date().toISOString().slice(0, 10) : null);
 
     const created = await db.movie.create({
       data: {
+        userId,
         tmdbId: typeof b.tmdbId === "number" ? b.tmdbId : null,
         imdbId: b.imdbId ?? null,
         title: b.title ?? "",

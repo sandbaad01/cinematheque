@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useSession, signOut } from "next-auth/react";
 import {
   Clapperboard,
   Home,
@@ -16,6 +17,7 @@ import {
   Sparkles,
   BarChart3,
   FileText,
+  LogOut,
   type LucideIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -95,6 +97,7 @@ export function Sidebar({ mobileOpen, onMobileOpenChange }: SidebarProps) {
   const [addOpen, setAddOpen] = useState(false);
   const { t } = useI18n();
   const { view, go, triggerRefresh } = useNav();
+  const { data: session } = useSession();
 
   const isMobileOpen = mobileOpen ?? internalMobileOpen;
   const setMobileOpen = (v: boolean) => {
@@ -155,14 +158,29 @@ export function Sidebar({ mobileOpen, onMobileOpenChange }: SidebarProps) {
         </nav>
       </ScrollArea>
 
-      {/* Settings at bottom */}
-      <div className="border-t p-2">
+      {/* Settings + Sign out at bottom */}
+      <div className="border-t p-2 space-y-1">
         <NavButton
           item={SETTINGS_ITEM}
           label={t(SETTINGS_ITEM.labelKey)}
           active={view === "settings"}
           onClick={() => navigate("settings")}
         />
+        {session?.user && (
+          <button
+            type="button"
+            onClick={() => signOut({ callbackUrl: "/auth/signin" })}
+            className="group relative flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          >
+            <LogOut className="size-4 shrink-0" />
+            <span className="truncate">Sign out</span>
+            {session.user.email && (
+              <span className="ml-auto truncate text-xs text-muted-foreground/60">
+                {session.user.email.split("@")[0]}
+              </span>
+            )}
+          </button>
+        )}
       </div>
 
       <AddMovieDialog open={addOpen} onOpenChange={setAddOpen} onSaved={() => triggerRefresh()} />

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { parseMovie } from "@/lib/movie/types";
+import { requireUserId } from "@/lib/auth-server";
 
 export const dynamic = "force-dynamic";
 
@@ -9,8 +10,13 @@ type Ctx = { params: Promise<{ id: string }> };
 // GET /api/movies/[id]
 export async function GET(_req: NextRequest, ctx: Ctx) {
   try {
+    const [userId, authError] = await requireUserId();
+    if (authError) return authError;
+
     const { id } = await ctx.params;
-    const row = await db.movie.findUnique({ where: { id } });
+    const row = await db.movie.findFirst({
+      where: { id, userId },
+    });
     if (!row) {
       return NextResponse.json({ error: "Movie not found" }, { status: 404 });
     }
@@ -27,8 +33,13 @@ export async function GET(_req: NextRequest, ctx: Ctx) {
 // PUT /api/movies/[id]
 export async function PUT(req: NextRequest, ctx: Ctx) {
   try {
+    const [userId, authError] = await requireUserId();
+    if (authError) return authError;
+
     const { id } = await ctx.params;
-    const existing = await db.movie.findUnique({ where: { id } });
+    const existing = await db.movie.findFirst({
+      where: { id, userId },
+    });
     if (!existing) {
       return NextResponse.json({ error: "Movie not found" }, { status: 404 });
     }
@@ -81,8 +92,13 @@ export async function PUT(req: NextRequest, ctx: Ctx) {
 // DELETE /api/movies/[id]
 export async function DELETE(_req: NextRequest, ctx: Ctx) {
   try {
+    const [userId, authError] = await requireUserId();
+    if (authError) return authError;
+
     const { id } = await ctx.params;
-    const existing = await db.movie.findUnique({ where: { id } });
+    const existing = await db.movie.findFirst({
+      where: { id, userId },
+    });
     if (!existing) {
       return NextResponse.json({ error: "Movie not found" }, { status: 404 });
     }
@@ -90,7 +106,7 @@ export async function DELETE(_req: NextRequest, ctx: Ctx) {
     await db.movie.delete({ where: { id } });
 
     // Remove id from collections.movieIds and personalLists.items
-    const collections = await db.collection.findMany();
+    const collections = await db.collection.findMany({ where: { userId } });
     for (const c of collections) {
       try {
         const arr: string[] = JSON.parse(c.movieIds || "[]");
@@ -106,7 +122,7 @@ export async function DELETE(_req: NextRequest, ctx: Ctx) {
       }
     }
 
-    const lists = await db.personalList.findMany();
+    const lists = await db.personalList.findMany({ where: { userId } });
     for (const l of lists) {
       try {
         const items: { movieId: string; rank: number; note?: string }[] =

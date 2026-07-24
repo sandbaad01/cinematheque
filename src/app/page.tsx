@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import { Sidebar } from "@/components/movie/Sidebar";
 import { Header } from "@/components/movie/Header";
 import { useNav } from "@/lib/store";
@@ -32,14 +34,23 @@ import { ImdbListsView } from "@/views/ImdbListsView";
 import { YearlyStatsView } from "@/views/YearlyStatsView";
 import { ReportView } from "@/views/ReportView";
 import { WatchedArchiveView } from "@/views/WatchedArchiveView";
-import { Github, Heart } from "lucide-react";
+import { Github, Heart, Loader2 } from "lucide-react";
 
 export default function Page() {
+  const { data: session, status } = useSession();
+  const router = useRouter();
   const { view, movieId, genreName, collectionId, listId, searchQuery, personName, personRole } = useNav();
   const { t } = useI18n();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [zoom, setZoom] = useState(100);
   const mainRef = useRef<HTMLDivElement>(null);
+
+  // Redirect to sign-in if not authenticated
+  useEffect(() => {
+    if (status === "unauthenticated") {
+      router.push("/auth/signin");
+    }
+  }, [status, router]);
 
   // Ctrl+/- zoom
   useEffect(() => {
@@ -109,13 +120,20 @@ export default function Page() {
 
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-background print:h-auto print:overflow-visible">
-      <div className="flex flex-1 overflow-hidden print:block print:overflow-visible">
-        <Sidebar mobileOpen={mobileOpen} onMobileOpenChange={setMobileOpen} />
+      {status === "loading" && (
+        <div className="flex flex-1 items-center justify-center">
+          <Loader2 className="size-8 animate-spin text-primary" />
+        </div>
+      )}
+      {status === "authenticated" && (
+        <>
+          <div className="flex flex-1 overflow-hidden print:block print:overflow-visible">
+            <Sidebar mobileOpen={mobileOpen} onMobileOpenChange={setMobileOpen} />
 
-        <div className="flex min-w-0 flex-1 flex-col print:block">
-          <div className="shrink-0 print:hidden">
-            <Header onMenuClick={() => setMobileOpen(true)} />
-          </div>
+            <div className="flex min-w-0 flex-1 flex-col print:block">
+              <div className="shrink-0 print:hidden">
+                <Header onMenuClick={() => setMobileOpen(true)} />
+              </div>
 
           <main ref={mainRef} className="flex-1 overflow-y-auto scrollbar-thin print:block print:overflow-visible">
             <div className="mx-auto w-full max-w-7xl" style={{ transform: `scale(${zoom / 100})`, transformOrigin: "top center" }}>
@@ -133,26 +151,30 @@ export default function Page() {
             </AnimatePresence>
             </div>
           </main>
-        </div>
-      </div>
+            </div>
+          </div>
+        </>
+      )}
 
       {/* Sticky footer (hidden when printing) */}
-      <footer className="mt-auto shrink-0 border-t bg-background/80 backdrop-blur print:hidden">
-        <div className="flex flex-col items-center justify-between gap-2 px-4 py-3 text-xs text-muted-foreground sm:flex-row md:px-6">
-          <div className="flex items-center gap-1.5">
-            <span className="text-gradient font-semibold">{t("appName")}</span>
-            <span>·</span>
-            <span>{t("appTagline")}</span>
+      {status === "authenticated" && (
+        <footer className="mt-auto shrink-0 border-t bg-background/80 backdrop-blur print:hidden">
+          <div className="flex flex-col items-center justify-between gap-2 px-4 py-3 text-xs text-muted-foreground sm:flex-row md:px-6">
+            <div className="flex items-center gap-1.5">
+              <span className="text-gradient font-semibold">{t("appName")}</span>
+              <span>·</span>
+              <span>{t("appTagline")}</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span>{t("today")}: {new Date().toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })}</span>
+              <span>·</span>
+              <span className="flex items-center gap-1">
+                Made with <Heart className="size-3 fill-primary text-primary" /> for cinephiles
+              </span>
+            </div>
           </div>
-          <div className="flex items-center gap-1.5">
-            <span>{t("today")}: {new Date().toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })}</span>
-            <span>·</span>
-            <span className="flex items-center gap-1">
-              Made with <Heart className="size-3 fill-primary text-primary" /> for cinephiles
-            </span>
-          </div>
-        </div>
-      </footer>
+        </footer>
+      )}
     </div>
   );
 }

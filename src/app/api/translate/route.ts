@@ -4,9 +4,6 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 // ZAI API configuration — used to call the translation API directly.
-// We call the API directly (instead of using the z-ai-web-dev-sdk SDK)
-// because the SDK reads its config from a file, which fails in the
-// Tauri desktop build where process.cwd() is read-only.
 const ZAI_API_URL = "https://internal-api.z.ai/v1/chat/completions";
 const ZAI_API_KEY = "Z.ai";
 const ZAI_CHAT_ID = "chat-b63c9f08-d581-44c0-9176-b3519170dbb0";
@@ -60,37 +57,61 @@ export async function POST(req: NextRequest) {
       `- Keep proper nouns as transliterations when appropriate.\n` +
       `- Output ONLY the translated synopsis.`;
 
-    // Call the ZAI API directly via fetch — no SDK, no file I/O.
-    // This works in both dev and the Tauri desktop build.
-    // Headers match exactly what the z-ai-web-dev-sdk sends.
-    const headers: Record<string, string> = {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${ZAI_API_KEY}`,
-      "X-Z-AI-From": "Z",
-    };
-    if (ZAI_CHAT_ID) headers["X-Chat-Id"] = ZAI_CHAT_ID;
-    if (ZAI_USER_ID) headers["X-User-Id"] = ZAI_USER_ID;
-    if (ZAI_TOKEN) headers["X-Token"] = ZAI_TOKEN;
+    // Try direct fetch first (works in dev and most production environments)
+    let translated = "";
+    let lastError = "";
 
-    const response = await fetch(ZAI_API_URL, {
-      method: "POST",
-      headers,
-      body: JSON.stringify({
-        messages: [
-          { role: "assistant", content: systemPrompt },
-          { role: "user", content: text },
-        ],
-        thinking: { type: "disabled" },
-      }),
-    });
+    try {
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${ZAI_API_KEY}`,
+        "X-Z-AI-From": "Z",
+      };
+      if (ZAI_CHAT_ID) headers["X-Chat-Id"] = ZAI_CHAT_ID;
+      if (ZAI_USER_ID) headers["X-User-Id"] = ZAI_USER_ID;
+      if (ZAI_TOKEN) headers["X-Token"] = ZAI_TOKEN;
 
-    if (!response.ok) {
-      const errText = await response.text().catch(() => "");
-      throw new Error(`ZAI API returned ${response.status}: ${errText.slice(0, 200)}`);
+      const response = await fetch(ZAI_API_URL, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          messages: [
+            { role: "assistant", content: systemPrompt },
+            { role: "user", content: text },
+          ],
+          thinking: { type: "disabled" },
+        }),
+        signal: AbortSignal.timeout(20000),
+      });
+
+      if (!response.ok) {
+        const errText = await response.text().catch(() => "");
+        throw new Error(`ZAI API returned ${response.status}: ${errText.slice(0, 200)}`);
+      }
+
+      const data = await response.json();
+      translated = (data?.choices?.[0]?.message?.content ?? "").toString().trim();
+    } catch (err) {
+      lastError = err instanceof Error ? err.message : String(err);
+      console.warn("Direct fetch translation failed, trying SDK:", lastError);
+
+      // Fallback: use the z-ai-web-dev-sdk
+      try {
+        const ZAI = (await import("z-ai-web-dev-sdk")).default;
+        const zai = await ZAI.create();
+        const completion = await zai.chat.completions.create({
+          messages: [
+            { role: "assistant", content: systemPrompt },
+            { role: "user", content: text },
+          ],
+          thinking: { type: "disabled" },
+        });
+        translated = (completion.choices?.[0]?.message?.content ?? "").toString().trim();
+      } catch (sdkErr) {
+        const sdkMsg = sdkErr instanceof Error ? sdkErr.message : String(sdkErr);
+        throw new Error(`Both direct fetch and SDK failed. Direct: ${lastError}. SDK: ${sdkMsg}`);
+      }
     }
-
-    const data = await response.json();
-    const translated = (data?.choices?.[0]?.message?.content ?? "").toString().trim();
 
     if (!translated) {
       return NextResponse.json({ translated: text, lang: targetLang, rtl: targetLang === "fa" });
