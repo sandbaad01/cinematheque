@@ -1,11 +1,13 @@
 import type { NextConfig } from "next";
 
-const isVercel = process.env.VERCEL === "1";
+// Detect serverless environments (Vercel, Netlify).
+// In these, we don't use standalone output — the platform handles it.
+// For Tauri desktop builds (local), we use standalone output so the
+// built app can be bundled into the MSI installer.
+const isServerless = process.env.VERCEL === "1" || process.env.NETLIFY === "true" || !!process.env.NETLIFY;
 
 const nextConfig: NextConfig = {
-  // Use standalone output for Tauri desktop builds.
-  // On Vercel, use the default (serverless) output.
-  ...(isVercel ? {} : { output: "standalone" }),
+  ...(isServerless ? {} : { output: "standalone" }),
   typescript: {
     ignoreBuildErrors: true,
   },
