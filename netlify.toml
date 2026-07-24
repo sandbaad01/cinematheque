@@ -1,9 +1,6 @@
 [build]
-  command = "npx prisma generate && next build"
+  command = "rm -rf node_modules/.prisma && npx prisma generate && next build"
   publish = ".next"
 
 [functions]
   node_bundler = "esbuild"
-
-# Next.js plugin is auto-detected by Netlify
-# No custom redirects needed — the @netlify/plugin-nextjs handles API routing
