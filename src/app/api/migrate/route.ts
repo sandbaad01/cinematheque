@@ -14,6 +14,15 @@ export async function POST() {
 
   // CREATE TABLE statements (matches prisma/schema.prisma exactly)
   const CREATE_TABLES: Record<string, string> = {
+    User: `CREATE TABLE IF NOT EXISTS "User" (
+      "id" TEXT PRIMARY KEY NOT NULL,
+      "email" TEXT NOT NULL UNIQUE,
+      "name" TEXT,
+      "passwordHash" TEXT,
+      "image" TEXT,
+      "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "updatedAt" DATETIME NOT NULL
+    )`,
     Movie: `CREATE TABLE IF NOT EXISTS "Movie" (
       "id" TEXT PRIMARY KEY NOT NULL,
       "tmdbId" INTEGER,
@@ -70,6 +79,7 @@ export async function POST() {
   // Columns that might be missing on older databases (for ALTER TABLE)
   const TABLE_COLUMNS: Record<string, Record<string, string>> = {
     Movie: {
+      userId: "TEXT",
       tmdbId: "INTEGER",
       imdbId: "TEXT",
       originalTitle: "TEXT",
@@ -100,10 +110,12 @@ export async function POST() {
       tags: "TEXT NOT NULL DEFAULT '[]'",
     },
     Collection: {
+      userId: "TEXT",
       description: "TEXT",
       movieIds: "TEXT NOT NULL DEFAULT '[]'",
     },
     PersonalList: {
+      userId: "TEXT",
       description: "TEXT",
       items: "TEXT NOT NULL DEFAULT '[]'",
     },

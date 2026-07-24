@@ -3,7 +3,7 @@
 import { Suspense, useState, useEffect } from "react";
 import { signIn, signOut, useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Film, Loader2, Mail, Lock, User as UserIcon, Github } from "lucide-react";
+import { Film, Loader2, Mail, Lock, User as UserIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,7 +19,6 @@ function SignInForm() {
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
-  const [githubLoading, setGithubLoading] = useState(false);
 
   const callbackUrl = searchParams.get("callbackUrl") || "/";
 
@@ -43,7 +42,6 @@ function SignInForm() {
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || "Signup failed");
 
-        // After successful signup, sign in automatically
         const result = await signIn("credentials", {
           email,
           password,
@@ -71,11 +69,6 @@ function SignInForm() {
     }
   };
 
-  const handleGitHub = async () => {
-    setGithubLoading(true);
-    await signIn("github", { callbackUrl });
-  };
-
   if (status === "loading") {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
@@ -99,7 +92,6 @@ function SignInForm() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md space-y-6 p-8">
-        {/* Logo */}
         <div className="flex flex-col items-center gap-3 text-center">
           <div className="flex size-14 items-center justify-center rounded-xl bg-primary/15 text-primary">
             <Film className="size-7" />
@@ -112,25 +104,6 @@ function SignInForm() {
           </div>
         </div>
 
-        {/* GitHub OAuth */}
-        <Button
-          variant="outline"
-          className="w-full"
-          onClick={handleGitHub}
-          disabled={githubLoading || loading}
-        >
-          {githubLoading ? <Loader2 className="size-4 animate-spin" /> : <Github className="size-4" />}
-          Continue with GitHub
-        </Button>
-
-        {/* Divider */}
-        <div className="flex items-center gap-3">
-          <div className="h-px flex-1 bg-border" />
-          <span className="text-xs text-muted-foreground">OR</span>
-          <div className="h-px flex-1 bg-border" />
-        </div>
-
-        {/* Email/Password Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
           {mode === "signup" && (
             <div className="space-y-1.5">
@@ -187,7 +160,6 @@ function SignInForm() {
           </Button>
         </form>
 
-        {/* Toggle mode */}
         <p className="text-center text-sm text-muted-foreground">
           {mode === "signin" ? "Don't have an account? " : "Already have an account? "}
           <button
