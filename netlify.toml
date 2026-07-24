@@ -1,5 +1,5 @@
 [build]
-  command = "npx prisma generate && next build"
+  command = "rm -rf node_modules/.prisma && npx prisma generate && next build"
   publish = ".next"
 
 [functions]
