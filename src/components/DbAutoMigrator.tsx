@@ -3,28 +3,44 @@
 import { useEffect } from "react";
 
 /**
- * Automatically runs database migration on app startup.
- * This fixes "column does not exist" errors on databases created by
- * older versions of the app (e.g., before mediaType was added).
+ * Automatically runs database migration on app startup — but only ONCE
+ * per browser session. This fixes "column does not exist" errors on
+ * databases created by older versions of the app.
  *
- * It calls POST /api/migrate once on mount. If migration is needed,
- * it reloads the page so the app re-fetches data with the correct schema.
+ * Uses sessionStorage to ensure it doesn't run repeatedly (which would
+ * cause infinite reload loops).
  */
 export function DbAutoMigrator() {
   useEffect(() => {
+    // Check if we already ran migration in this session
+    if (typeof window === "undefined") return;
+    const alreadyMigrated = sessionStorage.getItem("cinematheque_migrated");
+    if (alreadyMigrated) return;
+
     const runMigration = async () => {
       try {
         const res = await fetch("/api/migrate", { method: "POST" });
-        if (!res.ok) return;
+        if (!res.ok) {
+          // Mark as attempted so we don't retry every reload
+          sessionStorage.setItem("cinematheque_migrated", "attempted");
+          return;
+        }
         const data = await res.json();
-        // If any migrations were applied (columns added), reload to refresh data
+
+        // Mark as migrated regardless — we only run once per session
+        sessionStorage.setItem("cinematheque_migrated", "done");
+
+        // Only reload if migrations were actually applied (columns added)
+        // AND we haven't reloaded already for this reason
         if (data.migrations && data.migrations.length > 0) {
           console.log("Database migrated:", data.migrations);
-          // Reload after a short delay so the user sees the console message
-          setTimeout(() => window.location.reload(), 500);
+          // Don't reload — just trigger a refresh via custom event
+          // (reloading causes issues if migration keeps "succeeding")
+          window.dispatchEvent(new CustomEvent("cinematheque:migrated"));
         }
       } catch {
-        // Silently fail — the app will show errors if the schema is truly broken
+        // Mark as attempted so we don't retry every reload
+        sessionStorage.setItem("cinematheque_migrated", "attempted");
       }
     };
     runMigration();
