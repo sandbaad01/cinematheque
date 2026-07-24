@@ -1,7 +1,11 @@
 import type { NextConfig } from "next";
 
+const isVercel = process.env.VERCEL === "1";
+
 const nextConfig: NextConfig = {
-  output: "standalone",
+  // Use standalone output for Tauri desktop builds.
+  // On Vercel, use the default (serverless) output.
+  ...(isVercel ? {} : { output: "standalone" }),
   typescript: {
     ignoreBuildErrors: true,
   },

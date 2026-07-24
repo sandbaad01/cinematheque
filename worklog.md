@@ -954,3 +954,39 @@ Stage Summary:
 - New "Watched Movies Archive" page in Organize section + "Watched Archive" status option. IMDb imports with "watched" status automatically go to watchedArchive.
 - Translation: thinking mode disabled (faster, more reliable in desktop), 30s timeout added, better error reporting.
 - Files: PosterActions.tsx (new), WatchedArchiveView.tsx (new), MovieCard.tsx, HomeView.tsx, SettingsView.tsx, MovieDetailView.tsx, AddMovieDialog.tsx, StatusBadge.tsx, TranslatedStory.tsx, translate/route.ts, import-imdb/route.ts, store.ts, types.ts, translations.ts, page.tsx, Sidebar.tsx.
+
+---
+Task ID: 9
+Agent: Main (Z.ai Code)
+Task: Convert desktop app to a website (Vercel + Turso deployment)
+
+Work Log:
+- Analyzed the project: Next.js 16 + Prisma/SQLite + Tauri. The app already works as a web app (it's Next.js), but uses a local SQLite file which doesn't work on serverless platforms like Vercel.
+- Chose **Turso** (libSQL) as the cloud database because it's SQLite-compatible (no schema changes, no SQL dialect differences) and has a generous free tier (9GB, 1B reads/month).
+- Installed `@prisma/adapter-libsql` and `@libsql/client` packages.
+- Rewrote `src/lib/db.ts` to detect the database type at runtime:
+  - If `DATABASE_URL` starts with `libsql://` or `https://` → use Turso with the PrismaLibSQL adapter
+  - Otherwise → use local SQLite (for desktop/dev)
+  - This means the same code works in both environments — no separate builds needed.
+- Updated `next.config.ts` to conditionally set `output: "standalone"` only for desktop (Tauri) builds. On Vercel (`VERCEL=1`), it uses the default serverless output.
+- Updated `scripts/postbuild.js` to skip the standalone-copy logic when building on Vercel or when the standalone dir doesn't exist.
+- Created `vercel.json` with build config, 60s function timeout for API routes, and proper headers for service worker + manifest.
+- Created `.env.example` documenting all environment variables.
+- Created `WEBSITE.md` — comprehensive deployment guide with:
+  - Step 1: Create Turso database (get URL + auth token)
+  - Step 2: Push to GitHub
+  - Step 3: Deploy to Vercel (with all env vars)
+  - Step 4: Initialize database schema
+  - Step 5: Migrate existing data (backup/export)
+  - Step 6: Install as PWA on mobile/desktop
+  - Cost analysis ($0/month), troubleshooting, custom domain
+- Verified: Lint 0 errors, TypeScript 0 errors, all API endpoints 200, 223 movies still accessible.
+
+Stage Summary:
+- The app can now be deployed as a website on Vercel with Turso cloud database.
+- Same codebase works for both desktop (Tauri) and web (Vercel) — no forks needed.
+- The `db.ts` auto-detects which environment it's in based on the DATABASE_URL format.
+- Desktop build is unaffected — still uses local SQLite, still works offline.
+- Web deployment is free ($0/month) for personal use.
+- PWA support means the deployed site can be installed on phones/desktops via browser.
+- Files: src/lib/db.ts (rewritten), next.config.ts (conditional), scripts/postbuild.js (skip on Vercel), vercel.json (new), .env.example (new), WEBSITE.md (new).

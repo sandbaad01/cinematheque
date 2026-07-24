@@ -1,6 +1,17 @@
 const fs = require("fs");
 const path = require("path");
 
+// Skip postbuild when building for Vercel/web deployment.
+// Vercel sets VERCEL=1 during builds. Also skip if the standalone dir
+// doesn't exist (e.g. when Next.js is building for serverless).
+const isVercel = process.env.VERCEL === "1" || process.env.CI === "1";
+const standaloneExists = fs.existsSync(".next/standalone");
+
+if (isVercel || !standaloneExists) {
+  console.log("Skipping postbuild (web/Vercel deployment) — standalone copy not needed.");
+  process.exit(0);
+}
+
 function copyRecursive(src, dest, skipDirs = []) {
   if (!fs.existsSync(src)) { return; }
   fs.mkdirSync(path.dirname(dest), { recursive: true });
