@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
+import { db } from "@/lib/db";
 import bcrypt from "bcryptjs";
-
-const prisma = new PrismaClient();
 
 export const dynamic = "force-dynamic";
 
@@ -24,16 +22,16 @@ export async function POST(req: NextRequest) {
     }
 
     // Check if user already exists
-    const existing = await prisma.user.findUnique({ where: { email } });
+    const existing = await db.user.findUnique({ where: { email } });
     if (existing) {
       return NextResponse.json({ error: "An account with this email already exists" }, { status: 409 });
     }
 
-    // Hash password
-    const passwordHash = await bcrypt.hash(password, 10);
+    // Hash password (use 8 rounds for faster serverless performance)
+    const passwordHash = await bcrypt.hash(password, 8);
 
     // Create user
-    const user = await prisma.user.create({
+    const user = await db.user.create({
       data: {
         email,
         name: name || null,
@@ -48,6 +46,10 @@ export async function POST(req: NextRequest) {
     }, { status: 201 });
   } catch (err) {
     console.error("POST /api/auth/signup error", err);
-    return NextResponse.json({ error: "Failed to create account" }, { status: 500 });
+    const msg = err instanceof Error ? err.message : String(err);
+    return NextResponse.json(
+      { error: `Failed to create account: ${msg}` },
+      { status: 500 }
+    );
   }
 }
