@@ -173,14 +173,12 @@ export function Sidebar({ mobileOpen, onMobileOpenChange }: SidebarProps) {
             className="group relative flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
           >
             <LogOut className="size-4 shrink-0" />
-            <span className="truncate">
-              Sign out
-              {(session.user.name || session.user.email) && (
-                <span className="ml-1.5 text-xs text-muted-foreground/60">
-                  {session.user.name || session.user.email?.split("@")[0]}
-                </span>
-              )}
-            </span>
+            <span className="truncate">Sign out</span>
+            {(session.user.name || session.user.email) && (
+              <span className="ml-auto max-w-[100px] truncate text-sm font-bold text-primary">
+                {session.user.name || session.user.email?.split("@")[0]}
+              </span>
+            )}
           </button>
         )}
       </div>

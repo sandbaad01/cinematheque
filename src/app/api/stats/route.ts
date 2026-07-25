@@ -70,7 +70,9 @@ export async function GET() {
       0
     );
 
-    const latestWatched = watched
+    // Latest watched: ONLY movies with status "watched" (NOT "watchedArchive")
+    const latestWatched = movies
+      .filter((m) => m.status === "watched" && m.watchDate)
       .slice()
       .sort((a, b) => {
         const at = a.watchDate ?? "";

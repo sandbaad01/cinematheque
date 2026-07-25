@@ -88,8 +88,8 @@ export function HomeView() {
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
           <StatCard icon={Film} label={t("home_stat_total")} value={stats?.totalWatched ?? 0} accent />
           <StatCard icon={Tv} label="Series Watched" value={stats?.seriesWatched ?? 0} />
-          <StatCard icon={Calendar} label={t("home_stat_thisYear")} value={stats?.thisYear ?? 0} />
           <StatCard icon={Calendar} label={t("home_stat_thisMonth")} value={stats?.thisMonth ?? 0} />
+          <StatCard icon={Calendar} label={t("home_stat_thisYear")} value={stats?.thisYear ?? 0} />
         </div>
 
         {/* Top genres + directors */}
