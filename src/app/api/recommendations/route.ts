@@ -10,6 +10,7 @@ import {
   posterUrl,
   type TmdbRecommendationItem,
 } from "@/lib/tmdb";
+import { requireUserId } from "@/lib/auth-server";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -41,12 +42,15 @@ interface TmdbCandidate {
  */
 export async function GET(req: NextRequest) {
   try {
+    const [userId, authError] = await requireUserId();
+    if (authError) return authError;
+
     const { searchParams } = new URL(req.url);
     const movieId = searchParams.get("movieId");
     const genre = searchParams.get("genre");
     const hideWatched = searchParams.get("hideWatched") !== "false";
 
-    const all = await db.movie.findMany();
+    const all = await db.movie.findMany({ where: { userId } });
     const archiveMovies: Movie[] = all.map(parseMovie);
 
     // Build a set of tmdbIds already in the archive (for filtering)

@@ -482,18 +482,6 @@ export function MovieDetailView({ movieId }: { movieId: string }) {
             <Card className="space-y-2.5 p-5">
               <h2 className="text-center text-lg font-semibold">{t("movie_myInfo")}</h2>
 
-              {/* Favorite — full width button */}
-              <Button
-                variant={movie.favorite ? "default" : "outline"}
-                size="sm"
-                onClick={() => update({ favorite: !movie.favorite })}
-                disabled={savingField}
-                className="w-full"
-              >
-                <Heart className={cn("size-4", movie.favorite && "fill-current")} />
-                {movie.favorite ? t("action_unmarkFavorite") : t("action_markFavorite")}
-              </Button>
-
               <div className="space-y-1">
                 <label className="text-xs font-medium text-muted-foreground">{t("movie_status")}</label>
                 <Select value={movie.status} onValueChange={(v) => update({ status: v as MovieStatus })}>

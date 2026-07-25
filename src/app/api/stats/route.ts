@@ -21,6 +21,7 @@ export async function GET() {
     const watched = movies.filter((m) => m.status === "watched" || m.status === "watchedArchive");
     const totalWatched = watched.length;
     const totalMovies = movies.length;
+    const seriesWatched = watched.filter((m) => m.mediaType === "series").length;
     const thisYear = watched.filter(
       (m) => m.watchDate && m.watchDate.startsWith(yearStr)
     ).length;
@@ -92,6 +93,7 @@ export async function GET() {
     return NextResponse.json({
       totalWatched,
       totalMovies,
+      seriesWatched,
       thisYear,
       thisMonth,
       favorites,

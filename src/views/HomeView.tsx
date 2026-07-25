@@ -1,6 +1,6 @@
 "use client";
 
-import { Film, Star, Heart, Calendar, Clapperboard, Sparkles, ArrowRight, Clock } from "lucide-react";
+import { Film, Star, Tv, Calendar, Clapperboard, Sparkles, ArrowRight, Clock } from "lucide-react";
 import { useFetch } from "@/lib/useFetch";
 import { useI18n } from "@/lib/i18n/context";
 import { useNav } from "@/lib/store";
@@ -16,6 +16,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 interface Stats {
   totalWatched: number;
   totalMovies: number;
+  seriesWatched: number;
   thisYear: number;
   thisMonth: number;
   favorites: number;
@@ -86,9 +87,9 @@ export function HomeView() {
         {/* Stat cards */}
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
           <StatCard icon={Film} label={t("home_stat_total")} value={stats?.totalWatched ?? 0} accent />
+          <StatCard icon={Tv} label="Series Watched" value={stats?.seriesWatched ?? 0} />
           <StatCard icon={Calendar} label={t("home_stat_thisYear")} value={stats?.thisYear ?? 0} />
           <StatCard icon={Calendar} label={t("home_stat_thisMonth")} value={stats?.thisMonth ?? 0} />
-          <StatCard icon={Heart} label={t("home_stat_favorites")} value={stats?.favorites ?? 0} />
         </div>
 
         {/* Top genres + directors */}

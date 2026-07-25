@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
+import fs from "fs";
+import path from "path";
+import os from "os";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
-// ZAI API configuration — used to call the translation API directly.
+// ZAI API configuration
 const ZAI_API_URL = "https://internal-api.z.ai/v1/chat/completions";
 const ZAI_API_KEY = "Z.ai";
 const ZAI_CHAT_ID = "chat-b63c9f08-d581-44c0-9176-b3519170dbb0";
@@ -18,6 +21,32 @@ const LANG_NAMES: Record<string, string> = {
   fr: "French",
   en: "English",
 };
+
+// Ensure SDK config exists for fallback
+function ensureZaiConfig() {
+  const config = {
+    baseUrl: "https://internal-api.z.ai/v1",
+    apiKey: ZAI_API_KEY,
+    chatId: ZAI_CHAT_ID,
+    userId: ZAI_USER_ID,
+    token: ZAI_TOKEN,
+  };
+  const configJson = JSON.stringify(config);
+  const locations = [
+    path.join(os.homedir(), ".z-ai-config"),
+    path.join(process.cwd(), ".z-ai-config"),
+    path.join(os.tmpdir(), ".z-ai-config"),
+  ];
+  for (const loc of locations) {
+    try {
+      fs.writeFileSync(loc, configJson);
+      return true;
+    } catch {
+      // continue
+    }
+  }
+  return false;
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -57,19 +86,19 @@ export async function POST(req: NextRequest) {
       `- Keep proper nouns as transliterations when appropriate.\n` +
       `- Output ONLY the translated synopsis.`;
 
-    // Try direct fetch first (works in dev and most production environments)
+    // Try 1: Direct fetch with all required headers
     let translated = "";
-    let lastError = "";
+    let directError = "";
 
     try {
       const headers: Record<string, string> = {
         "Content-Type": "application/json",
         Authorization: `Bearer ${ZAI_API_KEY}`,
         "X-Z-AI-From": "Z",
+        "X-Chat-Id": ZAI_CHAT_ID,
+        "X-User-Id": ZAI_USER_ID,
+        "X-Token": ZAI_TOKEN,
       };
-      if (ZAI_CHAT_ID) headers["X-Chat-Id"] = ZAI_CHAT_ID;
-      if (ZAI_USER_ID) headers["X-User-Id"] = ZAI_USER_ID;
-      if (ZAI_TOKEN) headers["X-Token"] = ZAI_TOKEN;
 
       const response = await fetch(ZAI_API_URL, {
         method: "POST",
@@ -81,22 +110,23 @@ export async function POST(req: NextRequest) {
           ],
           thinking: { type: "disabled" },
         }),
-        signal: AbortSignal.timeout(20000),
       });
 
       if (!response.ok) {
         const errText = await response.text().catch(() => "");
-        throw new Error(`ZAI API returned ${response.status}: ${errText.slice(0, 200)}`);
+        throw new Error(`HTTP ${response.status}: ${errText.slice(0, 100)}`);
       }
 
       const data = await response.json();
       translated = (data?.choices?.[0]?.message?.content ?? "").toString().trim();
     } catch (err) {
-      lastError = err instanceof Error ? err.message : String(err);
-      console.warn("Direct fetch translation failed, trying SDK:", lastError);
+      directError = err instanceof Error ? err.message : String(err);
+    }
 
-      // Fallback: use the z-ai-web-dev-sdk
+    // Try 2: SDK fallback (if direct fetch failed)
+    if (!translated) {
       try {
+        ensureZaiConfig();
         const ZAI = (await import("z-ai-web-dev-sdk")).default;
         const zai = await ZAI.create();
         const completion = await zai.chat.completions.create({
@@ -109,7 +139,9 @@ export async function POST(req: NextRequest) {
         translated = (completion.choices?.[0]?.message?.content ?? "").toString().trim();
       } catch (sdkErr) {
         const sdkMsg = sdkErr instanceof Error ? sdkErr.message : String(sdkErr);
-        throw new Error(`Both direct fetch and SDK failed. Direct: ${lastError}. SDK: ${sdkMsg}`);
+        return NextResponse.json({
+          error: `Translation failed. Direct: ${directError}. SDK: ${sdkMsg}`,
+        }, { status: 500 });
       }
     }
 

@@ -137,7 +137,7 @@ export function Sidebar({ mobileOpen, onMobileOpenChange }: SidebarProps) {
       </div>
 
       {/* Nav */}
-      <ScrollArea className="flex-1 px-2">
+      <div className="flex-1 overflow-y-auto scrollbar-thin px-2">
         <nav className="space-y-4 pb-4">
           {NAV_GROUPS.map((group) => (
             <div key={group.titleKey} className="space-y-1">
@@ -156,7 +156,7 @@ export function Sidebar({ mobileOpen, onMobileOpenChange }: SidebarProps) {
             </div>
           ))}
         </nav>
-      </ScrollArea>
+      </div>
 
       {/* Settings + Sign out at bottom */}
       <div className="border-t p-2 space-y-1">
@@ -173,12 +173,14 @@ export function Sidebar({ mobileOpen, onMobileOpenChange }: SidebarProps) {
             className="group relative flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
           >
             <LogOut className="size-4 shrink-0" />
-            <span className="truncate">Sign out</span>
-            {session.user.email && (
-              <span className="ml-auto truncate text-xs text-muted-foreground/60">
-                {session.user.email.split("@")[0]}
-              </span>
-            )}
+            <span className="truncate">
+              Sign out
+              {(session.user.name || session.user.email) && (
+                <span className="ml-1.5 text-xs text-muted-foreground/60">
+                  {session.user.name || session.user.email?.split("@")[0]}
+                </span>
+              )}
+            </span>
           </button>
         )}
       </div>

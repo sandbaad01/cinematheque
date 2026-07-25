@@ -1,6 +1,6 @@
 "use client";
 
-import { Heart, Star } from "lucide-react";
+import { Star } from "lucide-react";
 import { motion } from "framer-motion";
 import type { Movie } from "@/lib/movie/types";
 import { useNav } from "@/lib/store";
@@ -50,12 +50,7 @@ export function MovieCard({ movie }: MovieCardProps) {
           </div>
         )}
 
-        {/* Top indicators: favorite (left), quick add buttons for non-watched */}
-        {movie.favorite && (
-          <div className="absolute left-1.5 top-1.5 flex size-7 items-center justify-center rounded-full bg-background/80 backdrop-blur-sm">
-            <Heart className="size-4 text-primary" fill="currentColor" />
-          </div>
-        )}
+        {/* Quick add buttons for non-watched */}
         {showQuickToggle && <QuickStatusToggle movie={movie} />}
         <QuickAddButtons movie={movie} />
 

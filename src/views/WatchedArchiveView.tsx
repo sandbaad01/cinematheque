@@ -15,20 +15,8 @@ export function WatchedArchiveView() {
   const { t } = useI18n();
   const refreshTick = useNav((s) => s.refreshTick);
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
-  // Show both "watched" and "watchedArchive" status movies
-  const { data: moviesWatched, loading } = useFetch<Movie[]>("/api/movies?status=watched", [refreshTick]);
-  const { data: moviesArchive } = useFetch<Movie[]>("/api/movies?status=watchedArchive", [refreshTick]);
-
-  const movies = useMemo(() => {
-    const all = [...(moviesWatched ?? []), ...(moviesArchive ?? [])];
-    // Deduplicate by id
-    const seen = new Set<string>();
-    return all.filter((m) => {
-      if (seen.has(m.id)) return false;
-      seen.add(m.id);
-      return true;
-    });
-  }, [moviesWatched, moviesArchive]);
+  // Show only "watchedArchive" status movies (NOT "watched")
+  const { data: movies, loading } = useFetch<Movie[]>("/api/movies?status=watchedArchive", [refreshTick]);
 
   const { genres, countries, languages, directors, years, tags } = useMemo(() => {
     const g = new Set<string>();
@@ -37,7 +25,7 @@ export function WatchedArchiveView() {
     const d = new Set<string>();
     const y = new Set<number>();
     const tg = new Set<string>();
-    for (const m of movies) {
+    for (const m of movies ?? []) {
       m.genres.forEach((x) => g.add(x));
       if (m.country) c.add(m.country);
       if (m.language) l.add(m.language);
@@ -56,7 +44,7 @@ export function WatchedArchiveView() {
   }, [movies]);
 
   const filtered = useMemo(() => {
-    let list = movies.filter((m) => {
+    let list = (movies ?? []).filter((m) => {
       if (filters.genre !== "all" && !m.genres.includes(filters.genre)) return false;
       if (filters.country !== "all" && m.country !== filters.country) return false;
       if (filters.language !== "all" && m.language !== filters.language) return false;

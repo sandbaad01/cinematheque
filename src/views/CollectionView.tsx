@@ -251,16 +251,18 @@ export function CollectionView({ collectionId }: { collectionId: string }) {
       </div>
 
       {moviesInCollection.length > 0 && (
-        <FilterBar
-          filters={filters}
-          onChange={setFilters}
-          genres={genres}
-          countries={countries}
-          languages={languages}
-          directors={directors}
-          years={years}
-          tags={tags}
-        />
+        <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-sm -mx-4 px-4 py-2 md:-mx-6 md:px-6">
+          <FilterBar
+            filters={filters}
+            onChange={setFilters}
+            genres={genres}
+            countries={countries}
+            languages={languages}
+            directors={directors}
+            years={years}
+            tags={tags}
+          />
+        </div>
       )}
 
       {moviesInCollection.length === 0 ? (

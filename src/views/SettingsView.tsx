@@ -1,7 +1,8 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Download, Upload, FileText, Info, Database, Film, Globe, Palette, AlertTriangle, Loader2, Trash2 } from "lucide-react";
+import { useSession } from "next-auth/react";
+import { Download, Upload, FileText, Info, Database, Film, Globe, Palette, AlertTriangle, Loader2, Trash2, Mail, Calendar } from "lucide-react";
 import { toast } from "sonner";
 import { useI18n } from "@/lib/i18n/context";
 import { useNav } from "@/lib/store";
@@ -34,6 +35,7 @@ import {
 export function SettingsView() {
   const { t, lang } = useI18n();
   const { triggerRefresh } = useNav();
+  const { data: session } = useSession();
   const backupInputRef = useRef<HTMLInputElement>(null);
   const csvInputRef = useRef<HTMLInputElement>(null);
   const [csvText, setCsvText] = useState("");
@@ -256,6 +258,26 @@ export function SettingsView() {
         </div>
       </Card>
 
+      {/* Monthly Report Subscription */}
+      <Card className="space-y-4 p-5">
+        <div className="flex items-center gap-2">
+          <Mail className="size-4 text-primary" />
+          <h3 className="font-semibold">Monthly Report Subscription</h3>
+        </div>
+        <p className="text-sm text-muted-foreground">
+          Receive a beautifully designed PDF report of your movie watching activity
+          every month, sent to your email address.
+        </p>
+        <div className="rounded-lg border bg-muted/50 p-3 text-sm">
+          <div className="flex items-center gap-2">
+            <Calendar className="size-4 text-primary" />
+            <span className="font-medium">Your email:</span>
+            <span className="text-muted-foreground">{session?.user?.email || "Not signed in"}</span>
+          </div>
+        </div>
+        <MonthlyReportToggle email={session?.user?.email || ""} />
+      </Card>
+
       {/* Reset Application */}
       <Card className="space-y-4 border-destructive/30 p-5">
         <div className="flex items-center gap-2">
@@ -337,9 +359,51 @@ export function SettingsView() {
           <Badge variant="secondary">Dark mode</Badge>
         </div>
         <p className="pt-2 text-center text-sm font-medium text-muted-foreground">
-          Developed with love and passion by Massoud
+          Developed with passion by Massoud
         </p>
       </Card>
+    </div>
+  );
+}
+
+function MonthlyReportToggle({ email }: { email: string }) {
+  const [subscribed, setSubscribed] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const toggle = async () => {
+    if (!email) {
+      toast.error("Please sign in first");
+      return;
+    }
+    setLoading(true);
+    try {
+      const res = await fetch("/api/monthly-report/subscribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, subscribed: !subscribed }),
+      });
+      if (!res.ok) throw new Error();
+      setSubscribed(!subscribed);
+      toast.success(subscribed ? "Unsubscribed from monthly reports" : "Subscribed! You'll receive a report on the 1st of each month.");
+    } catch {
+      toast.error("Failed to update subscription");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="flex items-center gap-3">
+      <Switch
+        id="monthly-report"
+        checked={subscribed}
+        onCheckedChange={toggle}
+        disabled={loading || !email}
+      />
+      <Label htmlFor="monthly-report" className="cursor-pointer text-sm">
+        {subscribed ? "Subscribed — report sent on 1st of each month" : "Subscribe to monthly PDF report"}
+      </Label>
+      {loading && <Loader2 className="size-4 animate-spin text-muted-foreground" />}
     </div>
   );
 }

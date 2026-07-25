@@ -642,14 +642,6 @@ export function AddMovieDialog({
                     rows={2}
                   />
                 </Field>
-                <div className="flex items-center gap-3 md:col-span-2">
-                  <Switch
-                    id="favorite"
-                    checked={form.favorite}
-                    onCheckedChange={(v) => update("favorite", v)}
-                  />
-                  <Label htmlFor="favorite">{t("movie_favorite")}</Label>
-                </div>
               </div>
             </div>
 
