@@ -36,10 +36,7 @@ export const authOptions: NextAuthOptions = {
             authToken: authToken || undefined,
           });
 
-<<<<<<< HEAD
           // Find user by email
-=======
->>>>>>> 69d428b4cbb3609a0c0fefcedf6610228d332aed
           const result = await client.execute({
             sql: "SELECT id, email, name, passwordHash, image FROM User WHERE email = ?",
             args: [credentials.email.toLowerCase()],
