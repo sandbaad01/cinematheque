@@ -1,17 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-<<<<<<< HEAD
 import { createClient } from "@libsql/client";
-=======
-import { db } from "@/lib/db";
->>>>>>> 69d428b4cbb3609a0c0fefcedf6610228d332aed
 import bcrypt from "bcryptjs";
 
 export const dynamic = "force-dynamic";
 
-// POST /api/auth/signup
-// Create a new user account with email + password.
-// Uses @libsql/client directly (instead of Prisma) for maximum reliability
-// on Netlify serverless functions with Turso.
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
@@ -39,8 +31,6 @@ export async function POST(req: NextRequest) {
       authToken: authToken || undefined,
     });
 
-    // Check if user already exists
-<<<<<<< HEAD
     const existing = await client.execute({
       sql: "SELECT id FROM User WHERE email = ?",
       args: [email],
@@ -49,34 +39,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "An account with this email already exists" }, { status: 409 });
     }
 
-    // Hash password
     const passwordHash = await bcrypt.hash(password, 8);
-
-    // Generate a unique ID (cuid-like)
     const id = `user_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
     const now = new Date().toISOString();
 
-    // Create user
     await client.execute({
       sql: "INSERT INTO User (id, email, name, passwordHash, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?)",
       args: [id, email, name || null, passwordHash, now, now],
-=======
-    const existing = await db.user.findUnique({ where: { email } });
-    if (existing) {
-      return NextResponse.json({ error: "An account with this email already exists" }, { status: 409 });
-    }
-
-    // Hash password (use 8 rounds for faster serverless performance)
-    const passwordHash = await bcrypt.hash(password, 8);
-
-    // Create user
-    const user = await db.user.create({
-      data: {
-        email,
-        name: name || null,
-        passwordHash,
-      },
->>>>>>> 69d428b4cbb3609a0c0fefcedf6610228d332aed
     });
 
     return NextResponse.json({
