@@ -15,7 +15,7 @@ export function WatchedView() {
   const { t } = useI18n();
   const refreshTick = useNav((s) => s.refreshTick);
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
-  const { data: movies, loading } = useFetch<Movie[]>("/api/movies?status=watched", [refreshTick]);
+  const { data: movies, loading } = useFetch<Movie[]>("/api/movies?status=watched&mediaType=movie", [refreshTick]);
 
   // Derive filter option lists from data
   const { genres, countries, languages, directors, years, tags } = useMemo(() => {
