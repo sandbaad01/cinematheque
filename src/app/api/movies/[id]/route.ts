@@ -75,7 +75,32 @@ export async function PUT(req: NextRequest, ctx: Ctx) {
     if (b.personalRating !== undefined) data.personalRating = typeof b.personalRating === "number" ? b.personalRating : null;
     if (b.watchDate !== undefined) data.watchDate = b.watchDate ?? null;
     if (b.notes !== undefined) data.notes = b.notes ?? null;
-    if (b.lifetimeRank !== undefined) data.lifetimeRank = typeof b.lifetimeRank === "number" ? b.lifetimeRank : null;
+    if (b.lifetimeRank !== undefined) {
+      const newRank = typeof b.lifetimeRank === "number" ? b.lifetimeRank : null;
+      data.lifetimeRank = newRank;
+
+      // Auto-shift: if the new rank is already taken by another movie,
+      // shift that movie (and all movies with rank >= newRank) down by 1.
+      if (newRank !== null) {
+        // Find all movies with rank >= newRank (excluding the current movie)
+        const moviesToShift = await db.movie.findMany({
+          where: {
+            userId,
+            id: { not: id },
+            lifetimeRank: { gte: newRank },
+          },
+          orderBy: { lifetimeRank: "desc" }, // shift from highest to avoid conflicts
+        });
+
+        // Shift each movie's rank down by 1
+        for (const m of moviesToShift) {
+          await db.movie.update({
+            where: { id: m.id },
+            data: { lifetimeRank: (m.lifetimeRank ?? 0) + 1 },
+          });
+        }
+      }
+    }
     if (b.tags !== undefined) data.tags = JSON.stringify(Array.isArray(b.tags) ? b.tags : []);
 
     const updated = await db.movie.update({ where: { id }, data });

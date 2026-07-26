@@ -81,7 +81,7 @@ export function AddMovieSearchDialog({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...details,
-          status: "want",
+          status: "new",
           rewatchCount: 0,
           personalRating: null,
           watchDate: null,
