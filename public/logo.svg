@@ -1,35 +1,18 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
   <rect width="512" height="512" rx="112" fill="#0f1620"/>
-  <!-- Film strip on left -->
-  <rect x="80" y="96" width="120" height="320" rx="8" fill="#1a2332"/>
-  <!-- Film perforations top -->
-  <rect x="92" y="112" width="16" height="12" rx="2" fill="#3bb5a3"/>
-  <rect x="116" y="112" width="16" height="12" rx="2" fill="#3bb5a3"/>
-  <rect x="140" y="112" width="16" height="12" rx="2" fill="#3bb5a3"/>
-  <rect x="164" y="112" width="16" height="12" rx="2" fill="#3bb5a3"/>
-  <!-- Film perforations bottom -->
-  <rect x="92" y="388" width="16" height="12" rx="2" fill="#3bb5a3"/>
-  <rect x="116" y="388" width="16" height="12" rx="2" fill="#3bb5a3"/>
-  <rect x="140" y="388" width="16" height="12" rx="2" fill="#3bb5a3"/>
-  <rect x="164" y="388" width="16" height="12" rx="2" fill="#3bb5a3"/>
-  <!-- Film frames (movie scenes) -->
-  <rect x="92" y="140" width="88" height="60" rx="4" fill="#2a9d8f" opacity="0.8"/>
-  <rect x="92" y="212" width="88" height="60" rx="4" fill="#3bb5a3" opacity="0.6"/>
-  <rect x="92" y="284" width="88" height="60" rx="4" fill="#2a9d8f" opacity="0.7"/>
-  <!-- Clapperboard on right -->
-  <g transform="translate(240, 140)">
-    <!-- Clapperboard body -->
-    <rect x="0" y="60" width="192" height="140" rx="8" fill="#1a2332" stroke="#3bb5a3" stroke-width="3"/>
-    <!-- Top stripe (diagonal) -->
-    <path d="M 0 28 L 192 28 L 192 60 L 0 60 Z" fill="#0f1620" stroke="#3bb5a3" stroke-width="3"/>
-    <!-- Diagonal stripes on top -->
-    <path d="M 10 28 L 40 60 L 10 60 Z" fill="#3bb5a3"/>
-    <path d="M 58 28 L 88 60 L 58 60 Z" fill="#3bb5a3"/>
-    <path d="M 106 28 L 136 60 L 106 60 Z" fill="#3bb5a3"/>
-    <path d="M 154 28 L 184 60 L 154 60 Z" fill="#3bb5a3"/>
-    <!-- Center text "C" -->
-    <text x="96" y="145" font-family="Georgia, serif" font-size="72" font-weight="bold" fill="#3bb5a3" text-anchor="middle">C</text>
-  </g>
-  <!-- Star accent -->
-  <path d="M 140 80 L 148 100 L 170 100 L 152 114 L 158 136 L 140 122 L 122 136 L 128 114 L 110 100 L 132 100 Z" fill="#e8c547" opacity="0.9" transform="translate(280, -20) scale(0.5)"/>
+  <!-- Film reel outer ring -->
+  <circle cx="256" cy="256" r="164" fill="none" stroke="#3bb5a3" stroke-width="20"/>
+  <!-- Film reel inner circle -->
+  <circle cx="256" cy="256" r="102" fill="#3bb5a3" opacity="0.15"/>
+  <!-- Film reel holes (6 around) -->
+  <circle cx="256" cy="150" r="28" fill="#3bb5a3"/>
+  <circle cx="362" cy="256" r="28" fill="#3bb5a3"/>
+  <circle cx="256" cy="362" r="28" fill="#3bb5a3"/>
+  <circle cx="150" cy="256" r="28" fill="#3bb5a3"/>
+  <circle cx="330" cy="182" r="24" fill="#3bb5a3"/>
+  <circle cx="330" cy="330" r="24" fill="#3bb5a3"/>
+  <circle cx="182" cy="330" r="24" fill="#3bb5a3"/>
+  <circle cx="182" cy="182" r="24" fill="#3bb5a3"/>
+  <!-- Center dot -->
+  <circle cx="256" cy="256" r="24" fill="#3bb5a3"/>
 </svg>
