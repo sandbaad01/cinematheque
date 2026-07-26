@@ -13,7 +13,9 @@ export const metadata: Metadata = {
     "A lightweight, offline-first personal movie archive. Track watched films, discover recommendations, and build your lifetime favorites.",
   manifest: "/manifest.webmanifest",
   icons: {
-    icon: "https://z-cdn.chatglm.cn/z-ai/static/logo.svg",
+    icon: "/icon-192.png",
+    apple: "/icon-192.png",
+    shortcut: "/icon-192.png",
   },
 };
 

@@ -316,6 +316,28 @@ const en: Dict = {
   unknown: "Unknown",
   just_now: "Just now",
   today: "Today",
+
+  // Edit / Delete confirmations
+  action_rename: "Rename",
+  collection_delete_title: "Delete collection",
+  collection_delete_desc: "Delete this collection? The movies themselves will not be removed. This cannot be undone.",
+  list_delete_title: "Delete list",
+  list_delete_desc: "Delete this personal list? The movies themselves will not be removed. This cannot be undone.",
+  rename_title_collection: "Rename collection",
+  rename_title_list: "Rename list",
+  rename_desc: "Enter a new name.",
+
+  // List view: selection toolbar
+  list_remove_selected: "Remove from list",
+  list_change_rank: "Change rank",
+  list_selected_count: "{count} selected",
+  list_clear_selection: "Clear",
+  list_change_rank_title: "Change rank",
+  list_change_rank_desc: "Assign a new rank to the selected movies. They will be moved to that position; other items shift around them.",
+  list_change_rank_placeholder: "New rank (1, 2, 3...)",
+  list_change_rank_apply: "Apply",
+  list_removed_selected: "Removed selected movies",
+  list_rank_updated: "Rank updated",
 };
 
 const fa: Dict = {
@@ -601,6 +623,28 @@ const fa: Dict = {
   unknown: "نامشخص",
   just_now: "همین حالا",
   today: "امروز",
+
+  // Edit / Delete confirmations
+  action_rename: "تغییر نام",
+  collection_delete_title: "حذف مجموعه",
+  collection_delete_desc: "این مجموعه حذف شود؟ خود فیلم‌ها حذف نمی‌شوند. این عمل قابل بازگشت نیست.",
+  list_delete_title: "حذف لیست",
+  list_delete_desc: "این لیست شخصی حذف شود؟ خود فیلم‌ها حذف نمی‌شوند. این عمل قابل بازگشت نیست.",
+  rename_title_collection: "تغییر نام مجموعه",
+  rename_title_list: "تغییر نام لیست",
+  rename_desc: "نام جدید را وارد کنید.",
+
+  // List view: selection toolbar
+  list_remove_selected: "حذف از لیست",
+  list_change_rank: "تغییر رتبه",
+  list_selected_count: "{count} انتخاب شده",
+  list_clear_selection: "پاک کردن",
+  list_change_rank_title: "تغییر رتبه",
+  list_change_rank_desc: "رتبه جدید به فیلم‌های انتخاب‌شده اختصاص دهید. آن‌ها به آن موقعیت منتقل می‌شوند و دیگر موارد جابه‌جا می‌شوند.",
+  list_change_rank_placeholder: "رتبه جدید (۱، ۲، ۳...)",
+  list_change_rank_apply: "اعمال",
+  list_removed_selected: "فیلم‌های انتخاب‌شده حذف شدند",
+  list_rank_updated: "رتبه به‌روزرسانی شد",
 };
 
 const fr: Dict = {
@@ -886,6 +930,28 @@ const fr: Dict = {
   unknown: "Inconnu",
   just_now: "À l'instant",
   today: "Aujourd'hui",
+
+  // Edit / Delete confirmations
+  action_rename: "Renommer",
+  collection_delete_title: "Supprimer la collection",
+  collection_delete_desc: "Supprimer cette collection ? Les films eux-mêmes ne seront pas supprimés. Irréversible.",
+  list_delete_title: "Supprimer la liste",
+  list_delete_desc: "Supprimer cette liste personnelle ? Les films eux-mêmes ne seront pas supprimés. Irréversible.",
+  rename_title_collection: "Renommer la collection",
+  rename_title_list: "Renommer la liste",
+  rename_desc: "Saisissez un nouveau nom.",
+
+  // List view: selection toolbar
+  list_remove_selected: "Retirer de la liste",
+  list_change_rank: "Changer le rang",
+  list_selected_count: "{count} sélectionné(s)",
+  list_clear_selection: "Effacer",
+  list_change_rank_title: "Changer le rang",
+  list_change_rank_desc: "Attribuez un nouveau rang aux films sélectionnés. Ils seront déplacés à cette position ; les autres se décaleront autour.",
+  list_change_rank_placeholder: "Nouveau rang (1, 2, 3...)",
+  list_change_rank_apply: "Appliquer",
+  list_removed_selected: "Films sélectionnés retirés",
+  list_rank_updated: "Rang mis à jour",
 };
 
 export const translations: Record<Language, Dict> = { en, fa, fr };

@@ -16,7 +16,11 @@ interface GenreItem {
 export function GenresView() {
   const { t } = useI18n();
   const { goGenre } = useNav();
-  const { data: genres, loading } = useFetch<GenreItem[]>("/api/genres");
+  // Re-aggregate genres whenever the archive changes (add/edit/delete a movie,
+  // status change, list/collection update, etc.) so the page reflects every
+  // movie in the user's archive, from all statuses and lists.
+  const refreshTick = useNav((s) => s.refreshTick);
+  const { data: genres, loading } = useFetch<GenreItem[]>("/api/genres", [refreshTick]);
 
   return (
     <div className="space-y-6 p-4 md:p-6">

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { ArrowLeft, ListOrdered, Plus, X, ChevronUp, ChevronDown, Trophy } from "lucide-react";
+import { ArrowLeft, ListOrdered, Plus, X, ChevronUp, ChevronDown, Trophy, Trash2, Flag } from "lucide-react";
 import { toast } from "sonner";
 import { useFetch } from "@/lib/useFetch";
 import { useI18n } from "@/lib/i18n/context";
@@ -13,13 +13,25 @@ import { EmptyState } from "@/components/movie/EmptyState";
 import { AddMovieSearchDialog } from "@/components/movie/AddMovieSearchDialog";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
+} from "@/components/ui/dialog";
 
 export function ListView({ listId }: { listId: string }) {
   const { t } = useI18n();
   const { back, triggerRefresh } = useNav();
+  const refreshTick = useNav((s) => s.refreshTick);
   const { data: list, loading, refetch } = useFetch<PersonalList>(`/api/lists/${listId}`);
-  const { data: allMovies } = useFetch<Movie[]>("/api/movies", [useNav((s) => s.refreshTick)]);
+  const { data: allMovies } = useFetch<Movie[]>("/api/movies", [refreshTick]);
   const [addOpen, setAddOpen] = useState(false);
+
+  // Multi-selection state — Set of movieIds currently selected
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [rankDialogOpen, setRankDialogOpen] = useState(false);
+  const [rankInput, setRankInput] = useState("");
+  const [rankSaving, setRankSaving] = useState(false);
 
   const items = useMemo(() => {
     if (!list || !allMovies) return [];
@@ -38,11 +50,12 @@ export function ListView({ listId }: { listId: string }) {
   const saveItems = async (newItems: ListItem[]) => {
     if (!list) return;
     try {
-      await fetch(`/api/lists/${list.id}`, {
+      const res = await fetch(`/api/lists/${list.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ items: newItems }),
       });
+      if (!res.ok) throw new Error();
       triggerRefresh();
       refetch();
     } catch {
@@ -76,6 +89,70 @@ export function ListView({ listId }: { listId: string }) {
     saveItems(renumbered);
   };
 
+  // --- Selection handlers ---
+  const toggleSelect = (movieId: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(movieId)) next.delete(movieId);
+      else next.add(movieId);
+      return next;
+    });
+  };
+
+  const clearSelection = () => setSelected(new Set());
+
+  const selectAll = () => {
+    setSelected(new Set(items.map((x) => x.movie.id)));
+  };
+
+  // Remove all selected movies from the list (with re-numbering).
+  const removeSelected = async () => {
+    if (!list || selected.size === 0) return;
+    const filtered = list.items.filter((i) => !selected.has(i.movieId));
+    const renumbered = filtered.map((it, idx) => ({ ...it, rank: idx + 1 }));
+    await saveItems(renumbered);
+    clearSelection();
+    toast.success(t("list_removed_selected"));
+  };
+
+  // Assign a new starting rank to all selected movies. They are placed
+  // consecutively starting at `startRank`, in their current relative order.
+  // Other items fill the remaining positions around them.
+  const applyRankToSelected = async () => {
+    if (!list || selected.size === 0) return;
+    const n = parseInt(rankInput, 10);
+    if (!Number.isFinite(n) || n < 1) {
+      toast.error("Failed");
+      return;
+    }
+    setRankSaving(true);
+    try {
+      const selectedIds = new Set(selected);
+      // Preserve relative order of each group by their current rank.
+      const sortedItems = [...list.items].sort((a, b) => a.rank - b.rank);
+      const selectedItems = sortedItems.filter((i) => selectedIds.has(i.movieId));
+      const otherItems = sortedItems.filter((i) => !selectedIds.has(i.movieId));
+
+      // Clamp the insertion position to the available range.
+      const insertAt = Math.max(1, Math.min(n, otherItems.length + 1));
+      const before = otherItems.slice(0, insertAt - 1);
+      const after = otherItems.slice(insertAt - 1);
+
+      const reordered = [...before, ...selectedItems, ...after];
+      const renumbered = reordered.map((it, idx) => ({ ...it, rank: idx + 1 }));
+
+      await saveItems(renumbered);
+      setRankDialogOpen(false);
+      setRankInput("");
+      clearSelection();
+      toast.success(t("list_rank_updated"));
+    } catch {
+      toast.error("Failed");
+    } finally {
+      setRankSaving(false);
+    }
+  };
+
   if (loading && !list) {
     return <div className="p-6"><Skeleton className="h-40 w-full" /></div>;
   }
@@ -83,6 +160,9 @@ export function ListView({ listId }: { listId: string }) {
   if (!list) {
     return <div className="p-6 text-muted-foreground">Not found.</div>;
   }
+
+  const hasSelection = selected.size > 0;
+  const allSelected = items.length > 0 && selected.size === items.length;
 
   return (
     <div className="space-y-6 p-4 md:p-6">
@@ -113,36 +193,66 @@ export function ListView({ listId }: { listId: string }) {
         />
       ) : (
         <div className="space-y-2">
-          {items.map(({ item, movie }, i) => (
-            <div
-              key={movie.id}
-              className="flex items-center gap-3 rounded-xl border bg-card p-3"
-            >
-              <span className="flex w-10 shrink-0 items-center justify-center text-2xl font-black text-primary">
-                {item.rank}
-              </span>
-              <div className="h-20 w-14 shrink-0 overflow-hidden rounded-md">
-                <PosterImage src={movie.poster} alt={movie.title} size="w200" className="h-full w-full" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="truncate font-semibold">{movie.title}</p>
-                <p className="text-xs text-muted-foreground">{movie.year} · {movie.director}</p>
-                <div className="mt-1"><RatingStars value={movie.personalRating} readOnly size="sm" /></div>
-                {item.note && <p className="mt-1 text-xs italic text-muted-foreground">{item.note}</p>}
-              </div>
-              <div className="flex shrink-0 flex-col gap-1">
-                <Button variant="ghost" size="icon" className="size-7" onClick={() => moveItem(movie.id, -1)} disabled={i === 0}>
-                  <ChevronUp className="size-4" />
-                </Button>
-                <Button variant="ghost" size="icon" className="size-7" onClick={() => moveItem(movie.id, 1)} disabled={i === items.length - 1}>
-                  <ChevronDown className="size-4" />
-                </Button>
-              </div>
-              <Button variant="ghost" size="icon" className="size-7 shrink-0 text-destructive" onClick={() => removeItem(movie.id)}>
-                <X className="size-4" />
+          {/* Select-all row */}
+          <div className="flex items-center gap-3 rounded-xl border bg-muted/30 px-3 py-2">
+            <Checkbox
+              checked={allSelected}
+              onCheckedChange={(v) => { if (v) selectAll(); else clearSelection(); }}
+              aria-label="Select all"
+            />
+            <span className="text-sm text-muted-foreground">
+              {hasSelection
+                ? t("list_selected_count", { count: selected.size })
+                : t("list_change_rank")}
+            </span>
+            {hasSelection && (
+              <Button variant="ghost" size="sm" className="ml-auto h-7" onClick={clearSelection}>
+                {t("list_clear_selection")}
               </Button>
-            </div>
-          ))}
+            )}
+          </div>
+
+          {items.map(({ item, movie }, i) => {
+            const isSelected = selected.has(movie.id);
+            return (
+              <div
+                key={movie.id}
+                className={
+                  "flex items-center gap-3 rounded-xl border bg-card p-3 transition-colors " +
+                  (isSelected ? "border-primary ring-1 ring-primary" : "")
+                }
+              >
+                <Checkbox
+                  checked={isSelected}
+                  onCheckedChange={() => toggleSelect(movie.id)}
+                  aria-label={`Select ${movie.title}`}
+                />
+                <span className="flex w-10 shrink-0 items-center justify-center text-2xl font-black text-primary">
+                  {item.rank}
+                </span>
+                <div className="h-20 w-14 shrink-0 overflow-hidden rounded-md">
+                  <PosterImage src={movie.poster} alt={movie.title} size="w200" className="h-full w-full" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-semibold">{movie.title}</p>
+                  <p className="text-xs text-muted-foreground">{movie.year} · {movie.director}</p>
+                  <div className="mt-1"><RatingStars value={movie.personalRating} readOnly size="sm" /></div>
+                  {item.note && <p className="mt-1 text-xs italic text-muted-foreground">{item.note}</p>}
+                </div>
+                <div className="flex shrink-0 flex-col gap-1">
+                  <Button variant="ghost" size="icon" className="size-7" onClick={() => moveItem(movie.id, -1)} disabled={i === 0}>
+                    <ChevronUp className="size-4" />
+                  </Button>
+                  <Button variant="ghost" size="icon" className="size-7" onClick={() => moveItem(movie.id, 1)} disabled={i === items.length - 1}>
+                    <ChevronDown className="size-4" />
+                  </Button>
+                </div>
+                <Button variant="ghost" size="icon" className="size-7 shrink-0 text-destructive" onClick={() => removeItem(movie.id)}>
+                  <X className="size-4" />
+                </Button>
+              </div>
+            );
+          })}
         </div>
       )}
 
@@ -151,6 +261,77 @@ export function ListView({ listId }: { listId: string }) {
         onOpenChange={setAddOpen}
         onMovieAdded={(movieId) => { addMovieToList(movieId); setAddOpen(false); }}
       />
+
+      {/* Selection toolbar — shown only when at least one movie is selected */}
+      {hasSelection && (
+        <div className="sticky bottom-4 z-30 mx-auto flex w-fit items-center gap-2 rounded-full border bg-background/95 px-3 py-2 shadow-lg backdrop-blur">
+          <span className="px-2 text-sm font-medium">
+            {t("list_selected_count", { count: selected.size })}
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            className="rounded-full"
+            onClick={() => setRankDialogOpen(true)}
+          >
+            <Flag className="size-4" />
+            <span className="hidden sm:inline">{t("list_change_rank")}</span>
+          </Button>
+          <Button
+            variant="destructive"
+            size="sm"
+            className="rounded-full"
+            onClick={removeSelected}
+          >
+            <Trash2 className="size-4" />
+            <span className="hidden sm:inline">{t("list_remove_selected")}</span>
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="rounded-full"
+            onClick={clearSelection}
+            aria-label={t("list_clear_selection")}
+          >
+            <X className="size-4" />
+          </Button>
+        </div>
+      )}
+
+      {/* Change rank dialog */}
+      <Dialog open={rankDialogOpen} onOpenChange={(o) => { setRankDialogOpen(o); if (!o) setRankInput(""); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Flag className="size-5 text-primary" />
+              {t("list_change_rank_title")}
+            </DialogTitle>
+            <DialogDescription>{t("list_change_rank_desc")}</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Input
+              type="number"
+              min={1}
+              value={rankInput}
+              onChange={(e) => setRankInput(e.target.value)}
+              placeholder={t("list_change_rank_placeholder")}
+              autoFocus
+              onKeyDown={(e) => { if (e.key === "Enter") applyRankToSelected(); }}
+            />
+            <p className="text-xs text-muted-foreground">
+              {t("list_selected_count", { count: selected.size })}
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setRankDialogOpen(false); setRankInput(""); }}>
+              {t("action_cancel")}
+            </Button>
+            <Button onClick={applyRankToSelected} disabled={rankSaving || !rankInput.trim()}>
+              {t("list_change_rank_apply")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

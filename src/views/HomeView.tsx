@@ -106,10 +106,10 @@ export function HomeView() {
                   <button
                     key={g.name}
                     onClick={() => goGenre(g.name)}
-                    className="flex w-full items-center gap-3 text-left"
+                    className="flex w-full items-center gap-3 text-left transition-colors hover:bg-accent/50 rounded-md px-1 py-0.5 -mx-1"
                   >
                     <span className="w-5 text-sm text-muted-foreground">{i + 1}</span>
-                    <span className="w-28 shrink-0 truncate text-sm font-medium text-[hsl(45_70%_55%)]/85">{g.name}</span>
+                    <span className="w-28 shrink-0 truncate text-sm font-medium text-[hsl(45_70%_55%)]/85 transition-colors hover:text-primary">{g.name}</span>
                     <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
                       <div
                         className="h-full rounded-full bg-primary"

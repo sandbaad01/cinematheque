@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ListOrdered, Plus, Trash2 } from "lucide-react";
+import { ListOrdered, Plus, Trash2, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { useFetch } from "@/lib/useFetch";
 import { useI18n } from "@/lib/i18n/context";
@@ -16,15 +16,28 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export function ListsView() {
   const { t } = useI18n();
-  const { goList } = useNav();
+  const { goList, triggerRefresh } = useNav();
   const { data: lists, loading, refetch } = useFetch<PersonalList[]>("/api/lists");
   const [createOpen, setCreateOpen] = useState(false);
   const [name, setName] = useState("");
   const [desc, setDesc] = useState("");
   const [saving, setSaving] = useState(false);
+
+  // Edit (rename) state
+  const [editTarget, setEditTarget] = useState<PersonalList | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editSaving, setEditSaving] = useState(false);
+
+  // Delete confirmation state
+  const [deleteTarget, setDeleteTarget] = useState<PersonalList | null>(null);
+  const [deleteSaving, setDeleteSaving] = useState(false);
 
   const create = async () => {
     if (!name.trim()) return;
@@ -40,6 +53,7 @@ export function ListsView() {
       setDesc("");
       setCreateOpen(false);
       refetch();
+      triggerRefresh();
       toast.success(t("action_createList"));
     } catch {
       toast.error("Failed");
@@ -48,13 +62,47 @@ export function ListsView() {
     }
   };
 
-  const remove = async (id: string) => {
+  const startEdit = (l: PersonalList) => {
+    setEditTarget(l);
+    setEditName(l.name);
+  };
+
+  const renameList = async () => {
+    if (!editTarget || !editName.trim()) return;
+    setEditSaving(true);
     try {
-      await fetch(`/api/lists/${id}`, { method: "DELETE" });
+      const res = await fetch(`/api/lists/${editTarget.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: editName.trim() }),
+      });
+      if (!res.ok) throw new Error();
+      setEditTarget(null);
+      setEditName("");
       refetch();
+      triggerRefresh();
+      toast.success(t("action_save"));
+    } catch {
+      toast.error("Failed");
+    } finally {
+      setEditSaving(false);
+    }
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleteSaving(true);
+    try {
+      const res = await fetch(`/api/lists/${deleteTarget.id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error();
+      setDeleteTarget(null);
+      refetch();
+      triggerRefresh();
       toast.success(t("action_delete"));
     } catch {
       toast.error("Failed");
+    } finally {
+      setDeleteSaving(false);
     }
   };
 
@@ -87,12 +135,20 @@ export function ListsView() {
                 <div className="mb-3 flex size-12 items-center justify-center rounded-lg bg-primary/15 text-primary">
                   <ListOrdered className="size-6" />
                 </div>
-                <h3 className="font-semibold">{l.name}</h3>
+                <h3 className="pr-16 font-semibold">{l.name}</h3>
                 {l.description && <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{l.description}</p>}
                 <p className="mt-2 text-xs text-muted-foreground">{t("collection_movies", { count: l.items.length })}</p>
               </button>
               <button
-                onClick={() => remove(l.id)}
+                onClick={() => startEdit(l)}
+                title={t("action_rename")}
+                className="absolute right-10 top-3 rounded-md bg-background/80 p-1.5 text-muted-foreground opacity-0 transition-opacity hover:text-primary group-hover:opacity-100"
+              >
+                <Pencil className="size-4" />
+              </button>
+              <button
+                onClick={() => setDeleteTarget(l)}
+                title={t("action_delete")}
                 className="absolute right-3 top-3 rounded-md bg-background/80 p-1.5 text-muted-foreground opacity-0 transition-opacity hover:text-destructive group-hover:opacity-100"
               >
                 <Trash2 className="size-4" />
@@ -118,6 +174,52 @@ export function ListsView() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Rename dialog */}
+      <Dialog open={editTarget !== null} onOpenChange={(o) => { if (!o) { setEditTarget(null); setEditName(""); } }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Pencil className="size-5 text-primary" />
+              {t("rename_title_list")}
+            </DialogTitle>
+            <DialogDescription>{t("rename_desc")}</DialogDescription>
+          </DialogHeader>
+          <Input
+            value={editName}
+            onChange={(e) => setEditName(e.target.value)}
+            placeholder={t("lists_title")}
+            autoFocus
+            onKeyDown={(e) => { if (e.key === "Enter") renameList(); }}
+          />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setEditTarget(null); setEditName(""); }}>{t("action_cancel")}</Button>
+            <Button onClick={renameList} disabled={editSaving || !editName.trim() || (editTarget !== null && editName.trim() === editTarget.name)}>
+              {t("action_save")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete confirmation */}
+      <AlertDialog open={deleteTarget !== null} onOpenChange={(o) => { if (!o) setDeleteTarget(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("list_delete_title")}</AlertDialogTitle>
+            <AlertDialogDescription>{t("list_delete_desc")}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteSaving}>{t("action_cancel")}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              disabled={deleteSaving}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {t("action_delete")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

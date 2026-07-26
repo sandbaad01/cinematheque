@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { FolderOpen, Plus, Trash2, Sparkles, Wand2 } from "lucide-react";
+import { FolderOpen, Plus, Trash2, Sparkles, Wand2, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { useFetch } from "@/lib/useFetch";
 import { useI18n } from "@/lib/i18n/context";
@@ -17,15 +17,28 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export function CollectionsView() {
   const { t } = useI18n();
-  const { goCollection } = useNav();
+  const { goCollection, triggerRefresh } = useNav();
   const { data: collections, loading, refetch } = useFetch<Collection[]>("/api/collections");
   const [createOpen, setCreateOpen] = useState(false);
   const [name, setName] = useState("");
   const [desc, setDesc] = useState("");
   const [saving, setSaving] = useState(false);
+
+  // Edit (rename) state
+  const [editTarget, setEditTarget] = useState<Collection | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editSaving, setEditSaving] = useState(false);
+
+  // Delete confirmation state
+  const [deleteTarget, setDeleteTarget] = useState<Collection | null>(null);
+  const [deleteSaving, setDeleteSaving] = useState(false);
 
   const create = async () => {
     if (!name.trim()) return;
@@ -44,6 +57,7 @@ export function CollectionsView() {
       setDesc("");
       setCreateOpen(false);
       refetch();
+      triggerRefresh();
       // Smart feedback: tell the user how many movies were auto-added.
       if (typeof matched === "number" && matched > 0) {
         toast.success(
@@ -59,13 +73,47 @@ export function CollectionsView() {
     }
   };
 
-  const remove = async (id: string) => {
+  const startEdit = (c: Collection) => {
+    setEditTarget(c);
+    setEditName(c.name);
+  };
+
+  const renameCollection = async () => {
+    if (!editTarget || !editName.trim()) return;
+    setEditSaving(true);
     try {
-      await fetch(`/api/collections/${id}`, { method: "DELETE" });
+      const res = await fetch(`/api/collections/${editTarget.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: editName.trim() }),
+      });
+      if (!res.ok) throw new Error();
+      setEditTarget(null);
+      setEditName("");
       refetch();
+      triggerRefresh();
+      toast.success(t("action_save"));
+    } catch {
+      toast.error("Failed");
+    } finally {
+      setEditSaving(false);
+    }
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleteSaving(true);
+    try {
+      const res = await fetch(`/api/collections/${deleteTarget.id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error();
+      setDeleteTarget(null);
+      refetch();
+      triggerRefresh();
       toast.success(t("action_delete"));
     } catch {
       toast.error("Failed");
+    } finally {
+      setDeleteSaving(false);
     }
   };
 
@@ -98,7 +146,7 @@ export function CollectionsView() {
                 <div className="mb-3 flex size-12 items-center justify-center rounded-lg bg-primary/15 text-primary">
                   <FolderOpen className="size-6" />
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 pr-16">
                   <h3 className="font-semibold">{c.name}</h3>
                   {c.movieIds.length > 0 && (
                     <Badge variant="secondary" className="gap-1 bg-primary/15 text-primary">
@@ -111,7 +159,15 @@ export function CollectionsView() {
                 <p className="mt-2 text-xs text-muted-foreground">{t("collection_movies", { count: c.movieIds.length })}</p>
               </button>
               <button
-                onClick={() => remove(c.id)}
+                onClick={() => startEdit(c)}
+                title={t("action_rename")}
+                className="absolute right-10 top-3 rounded-md bg-background/80 p-1.5 text-muted-foreground opacity-0 transition-opacity hover:text-primary group-hover:opacity-100"
+              >
+                <Pencil className="size-4" />
+              </button>
+              <button
+                onClick={() => setDeleteTarget(c)}
+                title={t("action_delete")}
                 className="absolute right-3 top-3 rounded-md bg-background/80 p-1.5 text-muted-foreground opacity-0 transition-opacity hover:text-destructive group-hover:opacity-100"
               >
                 <Trash2 className="size-4" />
@@ -144,6 +200,52 @@ export function CollectionsView() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Rename dialog */}
+      <Dialog open={editTarget !== null} onOpenChange={(o) => { if (!o) { setEditTarget(null); setEditName(""); } }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Pencil className="size-5 text-primary" />
+              {t("rename_title_collection")}
+            </DialogTitle>
+            <DialogDescription>{t("rename_desc")}</DialogDescription>
+          </DialogHeader>
+          <Input
+            value={editName}
+            onChange={(e) => setEditName(e.target.value)}
+            placeholder={t("collection_name_placeholder")}
+            autoFocus
+            onKeyDown={(e) => { if (e.key === "Enter") renameCollection(); }}
+          />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setEditTarget(null); setEditName(""); }}>{t("action_cancel")}</Button>
+            <Button onClick={renameCollection} disabled={editSaving || !editName.trim() || (editTarget !== null && editName.trim() === editTarget.name)}>
+              {t("action_save")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete confirmation */}
+      <AlertDialog open={deleteTarget !== null} onOpenChange={(o) => { if (!o) setDeleteTarget(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("collection_delete_title")}</AlertDialogTitle>
+            <AlertDialogDescription>{t("collection_delete_desc")}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteSaving}>{t("action_cancel")}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              disabled={deleteSaving}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {t("action_delete")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
