@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { parseMovie, type Movie } from "@/lib/movie/types";
+import { requireUserId } from "@/lib/auth-server";
 
 export const dynamic = "force-dynamic";
 
@@ -9,11 +10,19 @@ export const dynamic = "force-dynamic";
 //   - count, avgRating, topGenres (5), topDirectors (3), favoriteMovie, monthly
 //     breakdown (12 months) and totalRuntime (minutes) — so the Annual Report
 //     page can render a complete summary for any selected year.
+// Scoped to the authenticated user.
 export async function GET() {
   try {
-    const all = await db.movie.findMany();
+    const [userId, authError] = await requireUserId();
+    if (authError) return authError;
+
+    const all = await db.movie.findMany({ where: { userId } });
     const movies: Movie[] = all.map(parseMovie);
-    const watched = movies.filter((m) => m.status === "watched");
+    // Include both "watched" and "watchedArchive" so the stats reflect every
+    // movie the user has marked as watched in either list.
+    const watched = movies.filter(
+      (m) => m.status === "watched" || m.status === "watchedArchive"
+    );
 
     // --- Group watched movies by year (based on watchDate) ---
     type YearEntry = {

@@ -142,14 +142,14 @@ export function ListsView() {
               <button
                 onClick={() => startEdit(l)}
                 title={t("action_rename")}
-                className="absolute right-10 top-3 rounded-md bg-background/80 p-1.5 text-muted-foreground opacity-0 transition-opacity hover:text-primary group-hover:opacity-100"
+                className="absolute right-10 top-3 rounded-md bg-background/80 p-1.5 text-muted-foreground transition-colors hover:text-primary"
               >
                 <Pencil className="size-4" />
               </button>
               <button
                 onClick={() => setDeleteTarget(l)}
                 title={t("action_delete")}
-                className="absolute right-3 top-3 rounded-md bg-background/80 p-1.5 text-muted-foreground opacity-0 transition-opacity hover:text-destructive group-hover:opacity-100"
+                className="absolute right-3 top-3 rounded-md bg-background/80 p-1.5 text-muted-foreground transition-colors hover:text-destructive"
               >
                 <Trash2 className="size-4" />
               </button>

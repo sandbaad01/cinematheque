@@ -11,6 +11,7 @@ import { PosterImage } from "@/components/movie/PosterImage";
 import { RatingStars } from "@/components/movie/RatingStars";
 import { EmptyState } from "@/components/movie/EmptyState";
 import { AddMovieSearchDialog } from "@/components/movie/AddMovieSearchDialog";
+import { FilterBar, DEFAULT_FILTERS, type FilterState } from "@/components/movie/FilterBar";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -21,11 +22,12 @@ import {
 
 export function ListView({ listId }: { listId: string }) {
   const { t } = useI18n();
-  const { back, triggerRefresh } = useNav();
+  const { back, triggerRefresh, goMovie } = useNav();
   const refreshTick = useNav((s) => s.refreshTick);
   const { data: list, loading, refetch } = useFetch<PersonalList>(`/api/lists/${listId}`);
   const { data: allMovies } = useFetch<Movie[]>("/api/movies", [refreshTick]);
   const [addOpen, setAddOpen] = useState(false);
+  const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
 
   // Multi-selection state — Set of movieIds currently selected
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -41,11 +43,73 @@ export function ListView({ listId }: { listId: string }) {
       .sort((a, b) => a.item.rank - b.item.rank);
   }, [list, allMovies]);
 
-  const addMovieToList = (movieId: string) => {
-    if (!list) return;
-    const nextRank = list.items.length + 1;
-    saveItems([...list.items, { movieId, rank: nextRank }]);
-  };
+  // Derive FilterBar option lists from the movies in this list.
+  const { genres, countries, languages, directors, years, tags } = useMemo(() => {
+    const g = new Set<string>();
+    const c = new Set<string>();
+    const l = new Set<string>();
+    const d = new Set<string>();
+    const y = new Set<number>();
+    const tg = new Set<string>();
+    for (const { movie: m } of items) {
+      m.genres.forEach((x) => g.add(x));
+      if (m.country) c.add(m.country);
+      if (m.language) l.add(m.language);
+      if (m.director) d.add(m.director);
+      if (m.year) y.add(m.year);
+      m.tags.forEach((x) => tg.add(x));
+    }
+    return {
+      genres: [...g].sort(),
+      countries: [...c].sort(),
+      languages: [...l].sort(),
+      directors: [...d].sort(),
+      years: [...y].sort((a, b) => b - a),
+      tags: [...tg].sort(),
+    };
+  }, [items]);
+
+  // Client-side filter + sort (same logic as CollectionView/WatchedView).
+  const filtered = useMemo(() => {
+    let list = items.filter(({ movie: m }) => {
+      if (filters.genre !== "all" && !m.genres.includes(filters.genre)) return false;
+      if (filters.country !== "all" && m.country !== filters.country) return false;
+      if (filters.language !== "all" && m.language !== filters.language) return false;
+      if (filters.year !== "all" && String(m.year) !== filters.year) return false;
+      if (filters.director !== "all" && m.director !== filters.director) return false;
+      if (filters.tag !== "all" && !m.tags.includes(filters.tag)) return false;
+      if (filters.search) {
+        const q = filters.search.toLowerCase();
+        const hay = [m.title, m.originalTitle, m.director, m.cast.join(" "), m.genres.join(" "), m.country, m.language]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    });
+
+    const dir = filters.order === "asc" ? 1 : -1;
+    list = [...list].sort((a, b) => {
+      switch (filters.sort) {
+        case "watchDate":
+          return ((a.movie.watchDate ?? "") < (b.movie.watchDate ?? "") ? -1 : 1) * dir;
+        case "releaseYear":
+          return ((a.movie.year ?? 0) - (b.movie.year ?? 0)) * dir;
+        case "title":
+          return a.movie.title.localeCompare(b.movie.title) * dir;
+        case "rating":
+          return ((a.movie.personalRating ?? 0) - (b.movie.personalRating ?? 0)) * dir;
+        case "rank":
+          return ((a.item.rank) - (b.item.rank)) * dir;
+        case "added":
+          return ((a.movie.createdAt ?? "") < (b.movie.createdAt ?? "") ? -1 : 1) * dir;
+        default:
+          return 0;
+      }
+    });
+    return list;
+  }, [items, filters]);
 
   const saveItems = async (newItems: ListItem[]) => {
     if (!list) return;
@@ -63,7 +127,7 @@ export function ListView({ listId }: { listId: string }) {
     }
   };
 
-  const addMovie = (movieId: string) => {
+  const addMovieToList = (movieId: string) => {
     if (!list) return;
     const nextRank = list.items.length + 1;
     saveItems([...list.items, { movieId, rank: nextRank }]);
@@ -71,9 +135,9 @@ export function ListView({ listId }: { listId: string }) {
 
   const removeItem = (movieId: string) => {
     if (!list) return;
-    const filtered = list.items.filter((i) => i.movieId !== movieId);
+    const filteredItems = list.items.filter((i) => i.movieId !== movieId);
     // re-number
-    const renumbered = filtered.map((it, idx) => ({ ...it, rank: idx + 1 }));
+    const renumbered = filteredItems.map((it, idx) => ({ ...it, rank: idx + 1 }));
     saveItems(renumbered);
   };
 
@@ -102,14 +166,14 @@ export function ListView({ listId }: { listId: string }) {
   const clearSelection = () => setSelected(new Set());
 
   const selectAll = () => {
-    setSelected(new Set(items.map((x) => x.movie.id)));
+    setSelected(new Set(filtered.map((x) => x.movie.id)));
   };
 
   // Remove all selected movies from the list (with re-numbering).
   const removeSelected = async () => {
     if (!list || selected.size === 0) return;
-    const filtered = list.items.filter((i) => !selected.has(i.movieId));
-    const renumbered = filtered.map((it, idx) => ({ ...it, rank: idx + 1 }));
+    const filteredItems = list.items.filter((i) => !selected.has(i.movieId));
+    const renumbered = filteredItems.map((it, idx) => ({ ...it, rank: idx + 1 }));
     await saveItems(renumbered);
     clearSelection();
     toast.success(t("list_removed_selected"));
@@ -162,10 +226,10 @@ export function ListView({ listId }: { listId: string }) {
   }
 
   const hasSelection = selected.size > 0;
-  const allSelected = items.length > 0 && selected.size === items.length;
+  const allSelected = filtered.length > 0 && selected.size === filtered.length;
 
   return (
-    <div className="space-y-6 p-4 md:p-6">
+    <div className="space-y-4 p-4 md:p-6">
       <Button variant="ghost" size="sm" onClick={back}>
         <ArrowLeft className="size-4" />
         {t("action_back")}
@@ -192,68 +256,100 @@ export function ListView({ listId }: { listId: string }) {
           action={<Button onClick={() => setAddOpen(true)}>{t("nav_add")}</Button>}
         />
       ) : (
-        <div className="space-y-2">
-          {/* Select-all row */}
-          <div className="flex items-center gap-3 rounded-xl border bg-muted/30 px-3 py-2">
-            <Checkbox
-              checked={allSelected}
-              onCheckedChange={(v) => { if (v) selectAll(); else clearSelection(); }}
-              aria-label="Select all"
-            />
-            <span className="text-sm text-muted-foreground">
-              {hasSelection
-                ? t("list_selected_count", { count: selected.size })
-                : t("list_change_rank")}
-            </span>
-            {hasSelection && (
-              <Button variant="ghost" size="sm" className="ml-auto h-7" onClick={clearSelection}>
-                {t("list_clear_selection")}
-              </Button>
+        <>
+          {/* Sticky FilterBar */}
+          {items.length > 0 && (
+            <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-sm -mx-4 px-4 py-2 md:-mx-6 md:px-6">
+              <FilterBar
+                filters={filters}
+                onChange={setFilters}
+                genres={genres}
+                countries={countries}
+                languages={languages}
+                directors={directors}
+                years={years}
+                tags={tags}
+              />
+            </div>
+          )}
+
+          <div className="space-y-2">
+            {/* Select-all row */}
+            <div className="flex items-center gap-3 rounded-xl border bg-muted/30 px-3 py-2">
+              <Checkbox
+                checked={allSelected}
+                onCheckedChange={(v) => { if (v) selectAll(); else clearSelection(); }}
+                aria-label="Select all"
+              />
+              <span className="text-sm text-muted-foreground">
+                {hasSelection
+                  ? t("list_selected_count", { count: selected.size })
+                  : t("list_change_rank")}
+              </span>
+              {hasSelection && (
+                <Button variant="ghost" size="sm" className="ml-auto h-7" onClick={clearSelection}>
+                  {t("list_clear_selection")}
+                </Button>
+              )}
+            </div>
+
+            {filtered.length === 0 ? (
+              <div className="rounded-xl border bg-card p-8 text-center text-sm text-muted-foreground">
+                {t("watched_empty")}
+              </div>
+            ) : (
+              filtered.map(({ item, movie }, i) => {
+                const isSelected = selected.has(movie.id);
+                return (
+                  <div
+                    key={movie.id}
+                    className={
+                      "flex items-center gap-3 rounded-xl border bg-card p-3 transition-colors " +
+                      (isSelected ? "border-primary ring-1 ring-primary" : "")
+                    }
+                  >
+                    {/* Checkbox — clicks only toggle selection, never navigate */}
+                    <Checkbox
+                      checked={isSelected}
+                      onCheckedChange={() => toggleSelect(movie.id)}
+                      aria-label={`Select ${movie.title}`}
+                    />
+                    <span className="flex w-10 shrink-0 items-center justify-center text-2xl font-black text-primary">
+                      {item.rank}
+                    </span>
+                    {/* Click target — poster + title block — navigates to movie detail */}
+                    <button
+                      type="button"
+                      onClick={() => goMovie(movie.id)}
+                      className="flex min-w-0 flex-1 items-center gap-3 text-left"
+                    >
+                      <div className="h-20 w-14 shrink-0 overflow-hidden rounded-md">
+                        <PosterImage src={movie.poster} alt={movie.title} size="w200" className="h-full w-full" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate font-semibold hover:text-primary">{movie.title}</p>
+                        <p className="text-xs text-muted-foreground">{movie.year} · {movie.director}</p>
+                        <div className="mt-1"><RatingStars value={movie.personalRating} readOnly size="sm" /></div>
+                        {item.note && <p className="mt-1 text-xs italic text-muted-foreground">{item.note}</p>}
+                      </div>
+                    </button>
+                    <div className="flex shrink-0 flex-col gap-1">
+                      <Button variant="ghost" size="icon" className="size-7" onClick={() => moveItem(movie.id, -1)} disabled={i === 0}>
+                        <ChevronUp className="size-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="size-7" onClick={() => moveItem(movie.id, 1)} disabled={i === items.length - 1}>
+                        <ChevronDown className="size-4" />
+                      </Button>
+                    </div>
+                    <Button variant="ghost" size="icon" className="size-7 shrink-0 text-destructive" onClick={() => removeItem(movie.id)}>
+                      <X className="size-4" />
+                    </Button>
+                  </div>
+                );
+              })
             )}
           </div>
-
-          {items.map(({ item, movie }, i) => {
-            const isSelected = selected.has(movie.id);
-            return (
-              <div
-                key={movie.id}
-                className={
-                  "flex items-center gap-3 rounded-xl border bg-card p-3 transition-colors " +
-                  (isSelected ? "border-primary ring-1 ring-primary" : "")
-                }
-              >
-                <Checkbox
-                  checked={isSelected}
-                  onCheckedChange={() => toggleSelect(movie.id)}
-                  aria-label={`Select ${movie.title}`}
-                />
-                <span className="flex w-10 shrink-0 items-center justify-center text-2xl font-black text-primary">
-                  {item.rank}
-                </span>
-                <div className="h-20 w-14 shrink-0 overflow-hidden rounded-md">
-                  <PosterImage src={movie.poster} alt={movie.title} size="w200" className="h-full w-full" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate font-semibold">{movie.title}</p>
-                  <p className="text-xs text-muted-foreground">{movie.year} · {movie.director}</p>
-                  <div className="mt-1"><RatingStars value={movie.personalRating} readOnly size="sm" /></div>
-                  {item.note && <p className="mt-1 text-xs italic text-muted-foreground">{item.note}</p>}
-                </div>
-                <div className="flex shrink-0 flex-col gap-1">
-                  <Button variant="ghost" size="icon" className="size-7" onClick={() => moveItem(movie.id, -1)} disabled={i === 0}>
-                    <ChevronUp className="size-4" />
-                  </Button>
-                  <Button variant="ghost" size="icon" className="size-7" onClick={() => moveItem(movie.id, 1)} disabled={i === items.length - 1}>
-                    <ChevronDown className="size-4" />
-                  </Button>
-                </div>
-                <Button variant="ghost" size="icon" className="size-7 shrink-0 text-destructive" onClick={() => removeItem(movie.id)}>
-                  <X className="size-4" />
-                </Button>
-              </div>
-            );
-          })}
-        </div>
+        </>
       )}
 
       <AddMovieSearchDialog

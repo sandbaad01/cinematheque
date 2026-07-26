@@ -1,13 +1,21 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { safeJsonArr } from "@/lib/movie/types";
+import { requireUserId } from "@/lib/auth-server";
 
 export const dynamic = "force-dynamic";
 
-// GET /api/genres — aggregate all genres with counts
+// GET /api/genres — aggregate all genres with counts across ALL movies
+// belonging to the authenticated user (every status, list, collection, etc.).
 export async function GET() {
   try {
-    const movies = await db.movie.findMany({ select: { genres: true } });
+    const [userId, authError] = await requireUserId();
+    if (authError) return authError;
+
+    const movies = await db.movie.findMany({
+      where: { userId },
+      select: { genres: true },
+    });
     const counts = new Map<string, number>();
     for (const m of movies) {
       const genres = safeJsonArr(m.genres);
