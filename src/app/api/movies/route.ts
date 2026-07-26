@@ -130,6 +130,10 @@ export async function POST(req: NextRequest) {
         lifetimeRank:
           typeof b.lifetimeRank === "number" ? b.lifetimeRank : null,
         tags: JSON.stringify(Array.isArray(b.tags) ? b.tags : []),
+        episodeCount: typeof b.episodeCount === "number" ? b.episodeCount : null,
+        episodeWatched: typeof b.episodeWatched === "number" ? b.episodeWatched : null,
+        seasonCount: typeof b.seasonCount === "number" ? b.seasonCount : null,
+        seasonWatched: typeof b.seasonWatched === "number" ? b.seasonWatched : null,
       },
     });
 

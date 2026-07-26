@@ -58,6 +58,11 @@ model Movie {
   notes         String?
   lifetimeRank  Int?
   tags          String   @default("[]") // JSON array of tag strings
+  // Series watch progress tracking
+  episodeCount  Int?     // total episodes (for series)
+  episodeWatched Int?    // episodes watched so far
+  seasonCount   Int?     // total seasons (for series)
+  seasonWatched Int?     // current season watching
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 

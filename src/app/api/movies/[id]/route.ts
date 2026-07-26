@@ -102,6 +102,10 @@ export async function PUT(req: NextRequest, ctx: Ctx) {
       }
     }
     if (b.tags !== undefined) data.tags = JSON.stringify(Array.isArray(b.tags) ? b.tags : []);
+    if (b.episodeCount !== undefined) data.episodeCount = typeof b.episodeCount === "number" ? b.episodeCount : null;
+    if (b.episodeWatched !== undefined) data.episodeWatched = typeof b.episodeWatched === "number" ? b.episodeWatched : null;
+    if (b.seasonCount !== undefined) data.seasonCount = typeof b.seasonCount === "number" ? b.seasonCount : null;
+    if (b.seasonWatched !== undefined) data.seasonWatched = typeof b.seasonWatched === "number" ? b.seasonWatched : null;
 
     const updated = await db.movie.update({ where: { id }, data });
     return NextResponse.json(parseMovie(updated));

@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/sheet";
 import { useNav, type ViewName } from "@/lib/store";
 import { useI18n } from "@/lib/i18n/context";
+import { useFetch } from "@/lib/useFetch";
 import { cn } from "@/lib/utils";
 import { AddMovieDialog } from "./AddMovieDialog";
 
@@ -98,6 +99,21 @@ export function Sidebar({ mobileOpen, onMobileOpenChange }: SidebarProps) {
   const { t } = useI18n();
   const { view, go, triggerRefresh } = useNav();
   const { data: session } = useSession();
+  const refreshTick = useNav((s) => s.refreshTick);
+
+  // Fetch all movies to compute counts for sidebar badges
+  const { data: allMovies } = useFetch<any[]>("/api/movies", [refreshTick]);
+
+  // Compute counts for each nav item
+  const counts: Partial<Record<ViewName, number>> = {
+    watched: (allMovies ?? []).filter((m) => m.status === "watched").length,
+    watchedSeries: (allMovies ?? []).filter((m) => m.status === "watched" && m.mediaType === "series").length,
+    wantToWatch: (allMovies ?? []).filter((m) => m.status === "want").length,
+    watchlist: (allMovies ?? []).filter((m) => m.status === "watchlist").length,
+    watchedArchive: (allMovies ?? []).filter((m) => m.status === "watchedArchive").length,
+    favorites: (allMovies ?? []).filter((m) => m.lifetimeRank != null).length,
+    ratings: (allMovies ?? []).filter((m) => m.personalRating != null).length,
+  };
 
   const isMobileOpen = mobileOpen ?? internalMobileOpen;
   const setMobileOpen = (v: boolean) => {
@@ -151,6 +167,7 @@ export function Sidebar({ mobileOpen, onMobileOpenChange }: SidebarProps) {
                   label={t(item.labelKey)}
                   active={view === item.view}
                   onClick={() => navigate(item.view)}
+                  count={counts[item.view]}
                 />
               ))}
             </div>
@@ -212,11 +229,13 @@ function NavButton({
   label,
   active,
   onClick,
+  count,
 }: {
   item: NavItem;
   label: string;
   active: boolean;
   onClick: () => void;
+  count?: number;
 }) {
   const Icon = Item.icon;
   return (
@@ -239,6 +258,14 @@ function NavButton({
       )}
       <Icon className="size-4 shrink-0" />
       <span className="truncate">{label}</span>
+      {count != null && count > 0 && (
+        <span className={cn(
+          "ml-auto rounded-full px-1.5 py-0.5 text-xs font-bold tabular-nums",
+          active ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground"
+        )}>
+          {count}
+        </span>
+      )}
     </button>
   );
 }

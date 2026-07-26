@@ -1,6 +1,7 @@
 "use client";
 
-import { Film, Star, Tv, Calendar, Clapperboard, Sparkles, ArrowRight, Clock } from "lucide-react";
+import { useState } from "react";
+import { Film, Star, Tv, Calendar, Clapperboard, Sparkles, ArrowRight, Clock, Shuffle } from "lucide-react";
 import { useFetch } from "@/lib/useFetch";
 import { useI18n } from "@/lib/i18n/context";
 import { useNav } from "@/lib/store";
@@ -12,6 +13,7 @@ import { EmptyState } from "@/components/movie/EmptyState";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { toast } from "sonner";
 
 interface Stats {
   totalWatched: number;
@@ -30,9 +32,29 @@ interface Stats {
 
 export function HomeView() {
   const { t } = useI18n();
-  const { go, goGenre, goSearch, refreshTick } = useNav();
+  const { go, goGenre, goSearch, goMovie, refreshTick } = useNav();
   const { data: stats, loading } = useFetch<Stats>("/api/stats", [refreshTick]);
   const { data: recsData } = useFetch<{ items: Recommendation[] }>("/api/recommendations", [refreshTick]);
+  const [surprising, setSurprising] = useState(false);
+
+  const surpriseMe = async () => {
+    setSurprising(true);
+    try {
+      const res = await fetch("/api/random");
+      if (!res.ok) throw new Error();
+      const movie = await res.json();
+      if (movie?.id) {
+        toast.success(`🎬 Surprise! Going to "${movie.title}"`);
+        goMovie(movie.id);
+      } else {
+        toast.info("Add some movies to your wishlist first!");
+      }
+    } catch {
+      toast.error("Failed to pick a random movie");
+    } finally {
+      setSurprising(false);
+    }
+  };
 
   if (loading && !stats) {
     return (
@@ -58,6 +80,19 @@ export function HomeView() {
 
   return (
     <div className="space-y-8 p-4 md:p-6">
+      {/* Surprise Me — random movie button */}
+      <div className="flex justify-center">
+        <Button
+          onClick={surpriseMe}
+          disabled={surprising}
+          size="lg"
+          className="gap-2"
+        >
+          <Shuffle className="size-5" />
+          {surprising ? "Picking..." : "Surprise Me!"}
+        </Button>
+      </div>
+
       {/* 1. Latest Watched — TOP (auto-rotating poster carousel) */}
       <section className="space-y-3">
         <div className="flex items-center justify-between gap-4">
@@ -158,7 +193,17 @@ export function HomeView() {
         )}
       </div>
 
-      {/* 3. Recommended For You — LAST row, with See All → dedicated page */}
+      {/* 3. Recently Added — movies recently added to archive */}
+      {(stats?.recentlyAdded ?? []).length > 0 && (
+        <MovieRow
+          title="Recently Added"
+          icon={<Film />}
+          movies={stats?.recentlyAdded ?? []}
+          emptyText="—"
+        />
+      )}
+
+      {/* 4. Recommended For You — LAST row, with See All → dedicated page */}
       {recs.length > 0 && (
         <MovieRow
           title={t("home_recommended")}

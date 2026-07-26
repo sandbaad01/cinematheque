@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import {
   ArrowLeft, Star, Heart, Calendar, Clock, Globe, MapPin, User, PenLine,
-  Play, Trophy, Repeat, ExternalLink, Pencil, Trash2, Plus, Film, Sparkles, Tag, RefreshCw, Loader2,
+  Play, Trophy, Repeat, ExternalLink, Pencil, Trash2, Plus, Film, Sparkles, Tag, RefreshCw, Loader2, Tv,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useFetch } from "@/lib/useFetch";
@@ -569,6 +569,92 @@ export function MovieDetailView({ movieId }: { movieId: string }) {
                       </Badge>
                     ))}
                   </div>
+                </div>
+              )}
+
+              {/* Series watch progress tracking */}
+              {movie.mediaType === "series" && (
+                <div className="space-y-3 rounded-lg border border-primary/20 bg-primary/5 p-4">
+                  <div className="flex items-center gap-2">
+                    <Tv className="size-4 text-primary" />
+                    <h4 className="text-sm font-semibold">Series Progress</h4>
+                  </div>
+
+                  {/* Seasons */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <label className="text-xs font-medium text-muted-foreground">Seasons Watched</label>
+                      <Input
+                        type="number"
+                        min={0}
+                        value={movie.seasonWatched ?? ""}
+                        onChange={(e) => {
+                          const v = e.target.value ? parseInt(e.target.value, 10) : null;
+                          update({ seasonWatched: v && v >= 0 ? v : null });
+                        }}
+                        className="w-full"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-medium text-muted-foreground">Total Seasons</label>
+                      <Input
+                        type="number"
+                        min={0}
+                        value={movie.seasonCount ?? ""}
+                        onChange={(e) => {
+                          const v = e.target.value ? parseInt(e.target.value, 10) : null;
+                          update({ seasonCount: v && v >= 0 ? v : null });
+                        }}
+                        className="w-full"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Episodes */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <label className="text-xs font-medium text-muted-foreground">Episodes Watched</label>
+                      <Input
+                        type="number"
+                        min={0}
+                        value={movie.episodeWatched ?? ""}
+                        onChange={(e) => {
+                          const v = e.target.value ? parseInt(e.target.value, 10) : null;
+                          update({ episodeWatched: v && v >= 0 ? v : null });
+                        }}
+                        className="w-full"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-medium text-muted-foreground">Total Episodes</label>
+                      <Input
+                        type="number"
+                        min={0}
+                        value={movie.episodeCount ?? ""}
+                        onChange={(e) => {
+                          const v = e.target.value ? parseInt(e.target.value, 10) : null;
+                          update({ episodeCount: v && v >= 0 ? v : null });
+                        }}
+                        className="w-full"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Progress bar */}
+                  {movie.episodeCount && movie.episodeWatched != null && movie.episodeCount > 0 && (
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between text-xs text-muted-foreground">
+                        <span>Progress</span>
+                        <span>{movie.episodeWatched} / {movie.episodeCount} eps</span>
+                      </div>
+                      <div className="h-2 overflow-hidden rounded-full bg-muted">
+                        <div
+                          className="h-full rounded-full bg-primary transition-all"
+                          style={{ width: `${Math.min(100, (movie.episodeWatched / movie.episodeCount) * 100)}%` }}
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </Card>

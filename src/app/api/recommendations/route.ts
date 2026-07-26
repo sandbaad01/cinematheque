@@ -92,6 +92,10 @@ export async function GET(req: NextRequest) {
             notes: null,
             lifetimeRank: null,
             tags: [],
+            episodeCount: null,
+            episodeWatched: null,
+            seasonCount: null,
+            seasonWatched: null,
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
           } as Movie;

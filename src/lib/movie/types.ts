@@ -34,6 +34,11 @@ export interface Movie {
   notes: string | null;
   lifetimeRank: number | null;
   tags: string[];
+  // Series watch progress tracking
+  episodeCount: number | null;
+  episodeWatched: number | null;
+  seasonCount: number | null;
+  seasonWatched: number | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -102,6 +107,10 @@ export function parseMovie(raw: any): Movie {
     notes: raw.notes ?? null,
     lifetimeRank: raw.lifetimeRank ?? null,
     tags: safeJsonArr(raw.tags),
+    episodeCount: raw.episodeCount ?? null,
+    episodeWatched: raw.episodeWatched ?? null,
+    seasonCount: raw.seasonCount ?? null,
+    seasonWatched: raw.seasonWatched ?? null,
     createdAt: raw.createdAt,
     updatedAt: raw.updatedAt,
   };

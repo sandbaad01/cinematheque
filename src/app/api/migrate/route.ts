@@ -55,6 +55,10 @@ export async function POST() {
       "notes" TEXT,
       "lifetimeRank" INTEGER,
       "tags" TEXT NOT NULL DEFAULT '[]',
+      "episodeCount" INTEGER,
+      "episodeWatched" INTEGER,
+      "seasonCount" INTEGER,
+      "seasonWatched" INTEGER,
       "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
       "updatedAt" DATETIME NOT NULL
     )`,
@@ -108,6 +112,10 @@ export async function POST() {
       notes: "TEXT",
       lifetimeRank: "INTEGER",
       tags: "TEXT NOT NULL DEFAULT '[]'",
+      episodeCount: "INTEGER",
+      episodeWatched: "INTEGER",
+      seasonCount: "INTEGER",
+      seasonWatched: "INTEGER",
     },
     Collection: {
       userId: "TEXT",
