@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState } from "react";
 import { Menu, Search, Shuffle, Sun, Moon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -41,6 +41,8 @@ const VIEW_TITLE_KEYS: Record<string, string> = {
   yearlyStats: "nav_yearlyStats",
   report: "nav_report",
   watchedArchive: "nav_watchedArchive",
+  dropped: "nav_dropped",
+  livesOfOthers: "nav_livesOfOthers",
 };
 
 const VIEW_SUBTITLE_KEYS: Record<string, string | null> = {
@@ -69,7 +71,6 @@ const VIEW_SUBTITLE_KEYS: Record<string, string | null> = {
   imdbLists: "imdb_lists_subtitle",
   yearlyStats: null,
   report: null,
-  watchedArchive: null,
 };
 
 /** Top header with view title, subtitle, search, random, language, theme. */
@@ -78,24 +79,6 @@ export function Header({ onMenuClick, className }: HeaderProps) {
   const { view, goSearch, go } = useNav();
   const [search, setSearch] = useState("");
   const [theme, setTheme] = useState<"dark" | "light">("dark");
-  const searchInputRef = useRef<HTMLInputElement>(null);
-
-  // Keyboard shortcut: press '/' to focus search bar
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      // Only trigger if not already in an input/textarea
-      const target = e.target as HTMLElement;
-      if (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable) {
-        return;
-      }
-      if (e.key === "/" && !e.ctrlKey && !e.metaKey) {
-        e.preventDefault();
-        searchInputRef.current?.focus();
-      }
-    };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, []);
 
   const toggleTheme = () => {
     const root = document.documentElement;
@@ -133,7 +116,8 @@ export function Header({ onMenuClick, className }: HeaderProps) {
         </Button>
       )}
 
-      {/* Current view title + subtitle */}
+      {/* Current view title + subtitle — hidden on movie detail page
+          (the movie title is already shown large in the content area) */}
       {view !== "movie" && titleKey && (
         <div className="flex min-w-0 flex-col">
           <h1 className="truncate text-base font-semibold leading-tight tracking-tight md:text-lg">
@@ -149,7 +133,7 @@ export function Header({ onMenuClick, className }: HeaderProps) {
 
       <div className="flex-1" />
 
-      {/* Search with keyboard shortcut hint */}
+      {/* Search */}
       <form
         onSubmit={onSubmitSearch}
         className="hidden sm:flex sm:items-center"
@@ -157,10 +141,9 @@ export function Header({ onMenuClick, className }: HeaderProps) {
         <div className="relative">
           <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
-            ref={searchInputRef}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder={t("search_placeholder") + "  (/)"}
+            placeholder={t("search_placeholder")}
             className="h-9 w-[200px] pl-9 md:w-[280px]"
           />
         </div>

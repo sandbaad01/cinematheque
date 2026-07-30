@@ -34,6 +34,8 @@ import { ImdbListsView } from "@/views/ImdbListsView";
 import { YearlyStatsView } from "@/views/YearlyStatsView";
 import { ReportView } from "@/views/ReportView";
 import { WatchedArchiveView } from "@/views/WatchedArchiveView";
+import { DroppedView } from "@/views/DroppedView";
+import { LivesOfOthersView } from "@/views/LivesOfOthersView";
 import { Github, Heart, Loader2 } from "lucide-react";
 
 export default function Page() {
@@ -114,6 +116,8 @@ export default function Page() {
       case "yearlyStats": return <YearlyStatsView />;
       case "report": return <ReportView />;
       case "watchedArchive": return <WatchedArchiveView />;
+      case "dropped": return <DroppedView />;
+      case "livesOfOthers": return <LivesOfOthersView />;
       default: return <HomeView />;
     }
   };

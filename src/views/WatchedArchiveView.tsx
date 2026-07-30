@@ -7,16 +7,21 @@ import { useI18n } from "@/lib/i18n/context";
 import { useNav } from "@/lib/store";
 import type { Movie } from "@/lib/movie/types";
 import { MovieCard } from "@/components/movie/MovieCard";
-import { FilterBar, DEFAULT_FILTERS, type FilterState } from "@/components/movie/FilterBar";
+import { FilterBar, DEFAULT_FILTERS_YEAR, type FilterState } from "@/components/movie/FilterBar";
 import { EmptyState } from "@/components/movie/EmptyState";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export function WatchedArchiveView() {
   const { t } = useI18n();
   const refreshTick = useNav((s) => s.refreshTick);
-  const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
-  // Show only "watchedArchive" status movies (NOT "watched")
-  const { data: movies, loading } = useFetch<Movie[]>("/api/movies?status=watchedArchive", [refreshTick]);
+  const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS_YEAR);
+  // Show ALL watched movies (both "watched" and "watchedArchive" statuses)
+  // This is the complete archive of everything the user has ever watched
+  const { data: allMovies, loading } = useFetch<Movie[]>("/api/movies", [refreshTick]);
+  const movies = useMemo(
+    () => (allMovies ?? []).filter((m) => m.status === "watched" || m.status === "watchedArchive"),
+    [allMovies]
+  );
 
   const { genres, countries, languages, directors, years, tags } = useMemo(() => {
     const g = new Set<string>();

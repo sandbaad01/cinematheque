@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { Download, Upload, FileText, Info, Database, Film, Globe, Palette, AlertTriangle, Loader2, Trash2, Mail, Calendar } from "lucide-react";
 import { toast } from "sonner";
@@ -369,6 +369,17 @@ export function SettingsView() {
 function MonthlyReportToggle({ email }: { email: string }) {
   const [subscribed, setSubscribed] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  // Fetch subscription status on mount (persists across page reloads)
+  useEffect(() => {
+    if (!email) return;
+    fetch("/api/monthly-report/subscribe")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.subscribed) setSubscribed(true);
+      })
+      .catch(() => {});
+  }, [email]);
 
   const toggle = async () => {
     if (!email) {

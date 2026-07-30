@@ -18,6 +18,7 @@ import {
   BarChart3,
   FileText,
   LogOut,
+  Users,
   type LucideIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -59,7 +60,7 @@ const NAV_GROUPS: NavGroup[] = [
       { view: "watchedSeries", labelKey: "nav_watchedSeries", icon: Film },
       { view: "watchlist", labelKey: "nav_watchlist", icon: Film },
       { view: "wantToWatch", labelKey: "nav_wantToWatch", icon: Film },
-      { view: "genres", labelKey: "nav_genres", icon: Clapperboard },
+      { view: "dropped", labelKey: "nav_dropped", icon: Film },
     ],
   },
   {
@@ -70,6 +71,7 @@ const NAV_GROUPS: NavGroup[] = [
       { view: "recommendations", labelKey: "nav_recommendations", icon: Sparkles },
       { view: "timeline", labelKey: "nav_timeline", icon: CalendarRange },
       { view: "imdbLists", labelKey: "nav_imdbLists", icon: Clapperboard },
+      { view: "genres", labelKey: "nav_genres", icon: Clapperboard },
       { view: "yearlyStats", labelKey: "nav_yearlyStats", icon: BarChart3 },
     ],
   },
@@ -81,6 +83,7 @@ const NAV_GROUPS: NavGroup[] = [
       { view: "collections", labelKey: "nav_collections", icon: FolderOpen },
       { view: "lists", labelKey: "nav_lists", icon: ListOrdered },
       { view: "watchedArchive", labelKey: "nav_watchedArchive", icon: Film },
+      { view: "livesOfOthers", labelKey: "nav_livesOfOthers", icon: Users },
       { view: "report", labelKey: "nav_report", icon: FileText },
     ],
   },
@@ -100,17 +103,15 @@ export function Sidebar({ mobileOpen, onMobileOpenChange }: SidebarProps) {
   const { view, go, triggerRefresh } = useNav();
   const { data: session } = useSession();
   const refreshTick = useNav((s) => s.refreshTick);
-
-  // Fetch all movies to compute counts for sidebar badges
   const { data: allMovies } = useFetch<any[]>("/api/movies", [refreshTick]);
 
-  // Compute counts for each nav item
   const counts: Partial<Record<ViewName, number>> = {
-    watched: (allMovies ?? []).filter((m) => m.status === "watched").length,
+    watched: (allMovies ?? []).filter((m) => m.status === "watched" && m.mediaType === "movie").length,
     watchedSeries: (allMovies ?? []).filter((m) => m.status === "watched" && m.mediaType === "series").length,
     wantToWatch: (allMovies ?? []).filter((m) => m.status === "want").length,
     watchlist: (allMovies ?? []).filter((m) => m.status === "watchlist").length,
-    watchedArchive: (allMovies ?? []).filter((m) => m.status === "watchedArchive").length,
+    watchedArchive: (allMovies ?? []).filter((m) => m.status === "watched" || m.status === "watchedArchive").length,
+    dropped: (allMovies ?? []).filter((m) => m.status === "dropped").length,
     favorites: (allMovies ?? []).filter((m) => m.lifetimeRank != null).length,
     ratings: (allMovies ?? []).filter((m) => m.personalRating != null).length,
   };

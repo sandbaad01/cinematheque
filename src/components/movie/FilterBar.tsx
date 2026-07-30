@@ -46,6 +46,20 @@ export const DEFAULT_FILTERS: FilterState = {
   order: "desc",
 };
 
+// Default filters sorted by release year (for genres, collections, lists, archive)
+export const DEFAULT_FILTERS_YEAR: FilterState = {
+  ...DEFAULT_FILTERS,
+  sort: "releaseYear",
+  order: "desc",
+};
+
+// Default filters sorted by personal rating (for My Ratings)
+export const DEFAULT_FILTERS_RATING: FilterState = {
+  ...DEFAULT_FILTERS,
+  sort: "rating",
+  order: "desc",
+};
+
 interface FilterBarProps {
   filters: FilterState;
   onChange: (f: FilterState) => void;

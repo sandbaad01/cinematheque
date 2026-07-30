@@ -10,7 +10,7 @@ import type { Collection, Movie } from "@/lib/movie/types";
 import { MovieCard } from "@/components/movie/MovieCard";
 import { EmptyState } from "@/components/movie/EmptyState";
 import { AddMovieSearchDialog } from "@/components/movie/AddMovieSearchDialog";
-import { FilterBar, DEFAULT_FILTERS, type FilterState } from "@/components/movie/FilterBar";
+import { FilterBar, DEFAULT_FILTERS_YEAR, type FilterState } from "@/components/movie/FilterBar";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -23,7 +23,7 @@ export function CollectionView({ collectionId }: { collectionId: string }) {
   const [addOpen, setAddOpen] = useState(false);
   const [refreshingAll, setRefreshingAll] = useState(false);
   const [refreshProgress, setRefreshProgress] = useState(0);
-  const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
+  const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS_YEAR);
 
   const moviesInCollection = useMemo(() => {
     if (!collection || !allMovies) return [];
