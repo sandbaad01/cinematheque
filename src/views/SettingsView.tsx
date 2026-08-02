@@ -51,6 +51,8 @@ export function SettingsView() {
   const [friendData, setFriendData] = useState<any>(null);
   const [friendName, setFriendName] = useState("");
   const [friendSaving, setFriendSaving] = useState(false);
+  const [exportType, setExportType] = useState<string>("want");
+  const [exporting, setExporting] = useState(false);
 
   const exportBackup = async () => {
     try {
@@ -274,50 +276,96 @@ export function SettingsView() {
           your own watchlist to share with friends.
         </p>
 
-        {/* Export your watchlist */}
+        {/* Export your list */}
         <div className="space-y-2">
-          <Label className="text-sm font-medium">Export Your Watchlist</Label>
+          <Label className="text-sm font-medium">Export Your List</Label>
           <p className="text-xs text-muted-foreground">
-            Download your wishlist as a JSON file to share with friends.
+            Choose which list to export and share with friends.
           </p>
-          <Button
-            variant="outline"
-            onClick={async () => {
-              try {
-                const res = await fetch("/api/movies?status=want");
-                if (!res.ok) throw new Error();
-                const movies = await res.json();
-                const data = {
-                  type: "cinematheque-watchlist",
-                  exportedAt: new Date().toISOString(),
-                  count: movies.length,
-                  movies: movies.map((m: any) => ({
-                    title: m.title,
-                    year: m.year,
-                    director: m.director,
-                    genres: m.genres,
-                    overview: m.overview,
-                    poster: m.poster,
-                    tmdbId: m.tmdbId,
-                    imdbId: m.imdbId,
-                  })),
-                };
-                const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement("a");
-                a.href = url;
-                a.download = `my-watchlist-${new Date().toISOString().slice(0, 10)}.json`;
-                a.click();
-                URL.revokeObjectURL(url);
-                toast.success(`Exported ${movies.length} movies from your wishlist`);
-              } catch {
-                toast.error("Failed to export watchlist");
-              }
-            }}
-          >
-            <Download className="size-4" />
-            Export My Watchlist
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <Select value={exportType} onValueChange={setExportType}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="watched">Watched Movies</SelectItem>
+                <SelectItem value="want">Wishlist</SelectItem>
+                <SelectItem value="watchlist">Watchlist</SelectItem>
+                <SelectItem value="favorites">Lifetime Favorites</SelectItem>
+                <SelectItem value="ratings">My Ratings</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button
+              variant="outline"
+              disabled={exporting}
+              onClick={async () => {
+                setExporting(true);
+                try {
+                  let url = "/api/movies";
+                  if (exportType === "favorites") {
+                    url = "/api/movies?sort=rank&order=asc";
+                  } else if (exportType === "ratings") {
+                    url = "/api/movies?sort=rating&order=desc";
+                  } else {
+                    url = `/api/movies?status=${exportType}`;
+                  }
+                  const res = await fetch(url);
+                  if (!res.ok) throw new Error();
+                  let movies = await res.json();
+                  // Filter for favorites/ratings
+                  if (exportType === "favorites") {
+                    movies = movies.filter((m: any) => m.lifetimeRank != null);
+                  } else if (exportType === "ratings") {
+                    movies = movies.filter((m: any) => m.personalRating != null);
+                  }
+
+                  const typeLabel = exportType === "watched" ? "watched-movies"
+                    : exportType === "want" ? "wishlist"
+                    : exportType === "watchlist" ? "watchlist"
+                    : exportType === "favorites" ? "lifetime-favorites"
+                    : "my-ratings";
+
+                  const userName = session?.user?.name || session?.user?.email?.split("@")[0] || "user";
+                  const date = new Date().toISOString().slice(0, 10);
+
+                  const data = {
+                    type: "cinematheque-export",
+                    listType: exportType,
+                    exportedBy: userName,
+                    exportedAt: new Date().toISOString(),
+                    count: movies.length,
+                    movies: movies.map((m: any) => ({
+                      title: m.title,
+                      year: m.year,
+                      director: m.director,
+                      genres: m.genres,
+                      overview: m.overview,
+                      poster: m.poster,
+                      tmdbId: m.tmdbId,
+                      imdbId: m.imdbId,
+                      personalRating: exportType === "ratings" ? m.personalRating : undefined,
+                      lifetimeRank: exportType === "favorites" ? m.lifetimeRank : undefined,
+                    })),
+                  };
+                  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+                  const dlUrl = URL.createObjectURL(blob);
+                  const a = document.createElement("a");
+                  a.href = dlUrl;
+                  a.download = `${userName}-${typeLabel}-${date}.json`;
+                  a.click();
+                  URL.revokeObjectURL(dlUrl);
+                  toast.success(`Exported ${movies.length} movies as ${userName}-${typeLabel}-${date}.json`);
+                } catch {
+                  toast.error("Failed to export");
+                } finally {
+                  setExporting(false);
+                }
+              }}
+            >
+              {exporting ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4" />}
+              Export
+            </Button>
+          </div>
         </div>
 
         {/* Import friend's watchlist */}
@@ -339,10 +387,10 @@ export function SettingsView() {
                 try {
                   const text = await f.text();
                   const data = JSON.parse(text);
-                  if (data.type !== "cinematheque-watchlist" || !Array.isArray(data.movies)) {
+                  if (data.type !== "cinematheque-watchlist" && data.type !== "cinematheque-export" || !Array.isArray(data.movies)) {
                     throw new Error("Invalid file format");
                   }
-                  setFriendName(f.name.replace(/\.json$/i, ""));
+                  setFriendName(data.exportedBy || f.name.replace(/\.json$/i, ""));
                   setFriendData(data);
                   toast.success(`Loaded ${data.movies.length} movies from file`);
                 } catch (err) {
