@@ -2,7 +2,7 @@
 
 import { useRef, useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
-import { Download, Upload, FileText, Info, Database, Film, Globe, Palette, AlertTriangle, Loader2, Trash2, Mail, Calendar } from "lucide-react";
+import { Download, Upload, FileText, Info, Database, Film, Globe, Palette, AlertTriangle, Loader2, Trash2, Mail, Calendar, Users } from "lucide-react";
 import { toast } from "sonner";
 import { useI18n } from "@/lib/i18n/context";
 import { useNav } from "@/lib/store";
@@ -46,6 +46,11 @@ export function SettingsView() {
   const [resetOpen, setResetOpen] = useState(false);
   const [resetConfirm, setResetConfirm] = useState("");
   const [resetting, setResetting] = useState(false);
+  // The Lives of Others — friend watchlist import/export
+  const friendInputRef = useRef<HTMLInputElement>(null);
+  const [friendData, setFriendData] = useState<any>(null);
+  const [friendName, setFriendName] = useState("");
+  const [friendSaving, setFriendSaving] = useState(false);
 
   const exportBackup = async () => {
     try {
@@ -255,6 +260,185 @@ export function SettingsView() {
               e.target.value = "";
             }}
           />
+        </div>
+      </Card>
+
+      {/* The Lives of Others — Import/Export friend watchlists */}
+      <Card className="space-y-4 p-5">
+        <div className="flex items-center gap-2">
+          <Users className="size-4 text-primary" />
+          <h3 className="font-semibold">The Lives of Others</h3>
+        </div>
+        <p className="text-sm text-muted-foreground">
+          Import a friend's watchlist to see what they want to watch, or export
+          your own watchlist to share with friends.
+        </p>
+
+        {/* Export your watchlist */}
+        <div className="space-y-2">
+          <Label className="text-sm font-medium">Export Your Watchlist</Label>
+          <p className="text-xs text-muted-foreground">
+            Download your wishlist as a JSON file to share with friends.
+          </p>
+          <Button
+            variant="outline"
+            onClick={async () => {
+              try {
+                const res = await fetch("/api/movies?status=want");
+                if (!res.ok) throw new Error();
+                const movies = await res.json();
+                const data = {
+                  type: "cinematheque-watchlist",
+                  exportedAt: new Date().toISOString(),
+                  count: movies.length,
+                  movies: movies.map((m: any) => ({
+                    title: m.title,
+                    year: m.year,
+                    director: m.director,
+                    genres: m.genres,
+                    overview: m.overview,
+                    poster: m.poster,
+                    tmdbId: m.tmdbId,
+                    imdbId: m.imdbId,
+                  })),
+                };
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = `my-watchlist-${new Date().toISOString().slice(0, 10)}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+                toast.success(`Exported ${movies.length} movies from your wishlist`);
+              } catch {
+                toast.error("Failed to export watchlist");
+              }
+            }}
+          >
+            <Download className="size-4" />
+            Export My Watchlist
+          </Button>
+        </div>
+
+        {/* Import friend's watchlist */}
+        <div className="space-y-2">
+          <Label className="text-sm font-medium">Import Friend's Watchlist</Label>
+          <p className="text-xs text-muted-foreground">
+            Upload a JSON file exported from another Cinémathèque user's watchlist.
+            A new collection will be created in "The Lives of Others".
+          </p>
+          <div className="flex gap-2">
+            <Input
+              ref={(el) => { friendInputRef.current = el; }}
+              type="file"
+              accept=".json,application/json"
+              className="hidden"
+              onChange={async (e) => {
+                const f = e.target.files?.[0];
+                if (!f) return;
+                try {
+                  const text = await f.text();
+                  const data = JSON.parse(text);
+                  if (data.type !== "cinematheque-watchlist" || !Array.isArray(data.movies)) {
+                    throw new Error("Invalid file format");
+                  }
+                  setFriendName(f.name.replace(/\.json$/i, ""));
+                  setFriendData(data);
+                  toast.success(`Loaded ${data.movies.length} movies from file`);
+                } catch (err) {
+                  toast.error("Failed to read file: " + (err instanceof Error ? err.message : "invalid format"));
+                }
+                e.target.value = "";
+              }}
+            />
+            <Button
+              variant="outline"
+              onClick={() => friendInputRef.current?.click()}
+            >
+              <Upload className="size-4" />
+              Choose File
+            </Button>
+          </div>
+          {friendData && (
+            <div className="space-y-3 rounded-lg border bg-muted/50 p-3">
+              <div className="flex items-center gap-2">
+                <Label className="text-sm font-medium">Friend's Name:</Label>
+                <Input
+                  value={friendName}
+                  onChange={(e) => setFriendName(e.target.value)}
+                  placeholder="e.g. Marzieh"
+                  className="h-8 flex-1"
+                />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {friendData.movies.length} movies will be imported as a collection
+                named "{friendName || "Friend"}".
+              </p>
+              <Button
+                size="sm"
+                disabled={friendSaving || !friendName.trim()}
+                onClick={async () => {
+                  setFriendSaving(true);
+                  try {
+                    // Create a collection with the friend's name
+                    const res = await fetch("/api/collections", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        name: friendName.trim(),
+                        description: `Friend Watchlist · ${friendData.count} movies`,
+                        movieIds: [],
+                      }),
+                    });
+                    if (!res.ok) throw new Error();
+                    const collection = await res.json();
+                    // Create movies and add to collection
+                    const movieIds: string[] = [];
+                    for (const m of friendData.movies) {
+                      const createRes = await fetch("/api/movies", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                          ...m,
+                          status: "new",
+                          mediaType: "movie",
+                          rewatchCount: 0,
+                          personalRating: null,
+                          watchDate: null,
+                          notes: null,
+                          lifetimeRank: null,
+                          tags: [],
+                          screenshots: [],
+                          gallery: [],
+                        }),
+                      });
+                      if (createRes.ok) {
+                        const created = await createRes.json();
+                        movieIds.push(created.id);
+                      }
+                    }
+                    // Update collection with movie IDs
+                    await fetch(`/api/collections/${collection.id}`, {
+                      method: "PUT",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ movieIds }),
+                    });
+                    toast.success(`Imported ${movieIds.length} movies for "${friendName.trim()}"`);
+                    setFriendData(null);
+                    setFriendName("");
+                    triggerRefresh();
+                  } catch {
+                    toast.error("Failed to import friend's watchlist");
+                  } finally {
+                    setFriendSaving(false);
+                  }
+                }}
+              >
+                {friendSaving ? <Loader2 className="size-4 animate-spin" /> : null}
+                Import as "{friendName || "Friend"}"
+              </Button>
+            </div>
+          )}
         </div>
       </Card>
 
